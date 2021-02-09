@@ -1,0 +1,20 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <contact>Mr. Admin</contact>
+
+    <hostname>test.it</hostname>
+
+    <clock>
+        <timezone-name>Europe/Stockholm</timezone-name>
+    </clock>
+
+    <ntp>
+        <enabled>true</enabled>
+
+        <server>
+        <name>hr.pool.ntp.org</name>
+        <udp>
+            <address>162.159.200.123</address>
+        </udp>
+        </server>
+    </ntp>
+</system>
