@@ -254,7 +254,8 @@ class NTPTestCase(SystemTestCase):
 
         expected_ntp_server_remove = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
 
-        self.edit_config("data/system_ntp_server_remove.xml")
+        self.session.delete_item("/ietf-system:system/ntp/server[name='hr.pool.ntp.org']")
+        self.session.apply_changes()
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
