@@ -12,7 +12,7 @@ Subsequent rebuilds of the plugin may be done by navigating to the plugin source
 
 ```
 $ export SYSREPO_DIR=${HOME}/code/sysrepofs
-$ cd ${SYSREPO_DIR}/repositories/plugins/dhcp
+$ cd ${SYSREPO_DIR}/repositories/plugins/sysrepo-plugin-general
 
 $ rm -rf ./build && mkdir ./build && cd ./build
 $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -20,18 +20,16 @@ $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DCMAKE_INSTALL_PREFIX=${SYSREPO_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
 		..
--- The C compiler identification is GNU 9.3.0
--- Check for working C compiler: /usr/bin/cc
--- Check for working C compiler: /usr/bin/cc -- works
-[...]
 -- Configuring done
 -- Generating done
 -- Build files have been written to: ${SYSREPO_DIR}/repositories/plugins/sysrepo-plugin-general/build
+Scanning dependencies of target sysrepo-plugin-general
+[ 33%] Building C object CMakeFiles/sysrepo-plugin-general.dir/src/general.c.o
+[ 66%] Linking C executable sysrepo-plugin-general
+[100%] Built target sysrepo-plugin-general
 
 $ make && make install
 [...]
-[ 75%] Building C object CMakeFiles/.dir/src/utils/memory.c.o
-[100%] Linking C executable sysrepo-plugin-general
 [100%] Built target sysrepo-plugin-general
 [100%] Built target sysrepo-plugin-general
 Install the project...
@@ -39,7 +37,7 @@ Install the project...
 -- Installing: ${SYSREPO_DIR}/bin/sysrepo-plugin-general
 -- Set runtime path of "${SYSREPO_DIR}/bin/sysrepo-plugin-general" to ""
 
-$ cd ..
+-$ cd ..
 ```
 
 Before using the plugin it is necessary to install relevant YANG modules. For this particular plugin, the following commands need to be invoked:
@@ -68,16 +66,31 @@ The following items are `RPC`:
 
 ## Running and Examples
 
-This plugin is installed as the `sysrepo-plugin-general` binary to `${SYSREPO_DIR}/bin/` directory path. Simply invoke this binary, making sure that the environment variables are set correctly:
+This plugin is installed as the `sysrepo-plugin-general` binary to `${SYSREPO_DIR}/bin/` directory path. Before executing the plugin binary it is necessary to initialize the datastore with appropriate example data, but before that we have to enable some features:
+
+```
+$ sysrepoctl --change ietf-system --enable-feature timezone-name
+$ sysrepoctl --change ietf-system --enable-feature ntp
+```
+
+After the timezone-name and ntp features are enabled we can initialize the datastore with appropriate example data:
+
+```
+$ sysrepocfg -f xml --copy-from=examples/system.xml -d startup -m 'ietf-system'
+$ sysrepocfg -f xml --copy-from=examples/system.xml -d running -m 'ietf-system'
+```
+
+After loading the example simply invoke this binary, making sure that the environment variables are set correctly:
 
 ```
 $ sysrepo-plugin-general
+[...]
 [INF]: Applying scheduled changes.
 [INF]: No scheduled changes.
-[INF]: Connection 2 created.
-[INF]: Session 3 (user "...", CID 2) created.
+[INF]: Connection "..." created.
+[INF]: Session "..." (user "...", CID "...") created.
 [INF]: plugin: start session to startup datastore
-[INF]: Session 4 (user "...", CID 2) created.
+[INF]: Session "..." (user "...", CID "...") created.
 [INF]: plugin: subscribing to module change
 [INF]: plugin: subscribing to get oper items
 [INF]: plugin: subscribing to rpc
@@ -85,151 +98,64 @@ $ sysrepo-plugin-general
 [...]
 ```
 
-
-## TODO: Update everything below
-
-
-Output from the plugin is expected; the plugin has loaded UCI configuration at `${SYSREPO_DIR}/etc/config/network` into the `startup` datastore. We can confirm this by invoking the following commands:
+Output from the plugin is expected; the plugin has been initialized with `startup` and `running` datastore contents at `${SYSREPO_DIR}/etc/sysrepo`. We can confirm the contents present in Sysrepo by invoking the following command:
 
 ```
-$ cat ${SYSREPO_DIR}/etc/config/network
-config interface 'loopback'
-        option is_lan '1'
-        option ifname 'lo'
-        option proto 'static'
-        option ipaddr '127.0.0.1'
-        option netmask '255.0.0.0'
-
-config interface 'lan'
-        option is_lan '1'
-        option type 'bridge'
-        option proto 'static'
-        option ipaddr '192.168.1.1'
-        option netmask '255.255.255.0'
-        option ip6assign '64'
-        option ifname 'eth1 eth2 eth3 wl0 wl1'
-        list ip6class 'local'
-        list ip6class '5f414e59'
-
-config interface 'wan'
-        option proto 'dhcpv6'
-        option ifname 'eth0.1'
-        option accept_ra '1'
-        option request_pd '3'
-        option aftr_v4_local '192.0.0.2'
-        option aftr_v4_remote '192.0.0.1'
-        option request_na '0'
-        option reqopts '21 23 31 56 64 67 88 96 99 123 198 199'
-
-config interface 'lan_iptv'
-        option proto 'static'
-        option ifname 'eth4'
-        option ipaddr '192.168.2.1'
-        option netmask '255.255.255.0'
-        option ip6assign '64'
-        list ip6class 'local'
-        list ip6class '5f414e59'
-        list ip6class '49505456'
-        list ip6class '564f4950'
-
-$ sysrepocfg -X -d startup -f json -m 'terastream-dhcp'
+$ sysrepocfg -X -d startup -f json -m 'ietf-system'
 {
-  "terastream-dhcp:dhcp-clients": {
-    "dhcp-client": [
-      {
-        "name": "wan",
-        "proto": "dhcpv6",
-        "accept_ra": true,
-        "request_pd": "3",
-        "aftr_v4_local": "192.0.0.2",
-        "aftr_v4_remote": "192.0.0.1",
-        "request_na": "0",
-        "reqopts": "21 23 31 56 64 67 88 96 99 123 198 199"
-      }
-    ]
-  }
-}
-```
-
-Provided output suggests that the plugin has correctly initialized Sysrepo `startup` datastore with appropriate data transformations. It can be seen that only the `dhcp-clients` container has been populated as other types are not available.
-
-Changes to the `running` datastore can be done manually by invoking the following command:
-
-```
-$ sysrepocfg -E -d running -f json -m 'terastream-dhcp'
-[...interactive...]
-{
-  "terastream-dhcp:dhcp-clients": {
-    "dhcp-client": [
-      {
-        "name": "wan",
-        "proto": "dhcpv6",
-        "accept_ra": true, // => false
-        "request_pd": "3",
-        "aftr_v4_local": "192.0.0.2",
-        "aftr_v4_remote": "192.0.0.1",
-        "request_na": "0",
-        "reqopts": "21 23 31 56 64 67 88 96 99 123 198 199"
-      }
-    ]
-  }
-}
-```
-
-Alternatively, instead of changing the entire module data with `-m 'terastream-dhcp'` we can change data on a certain XPath with e.g. `-x '/terastream-dhcp:dhcp-clients'`.
-
-After executing previous command, the following should appear at plugin binary standard output:
-
-```
-[INF]: Processing "terastream-dhcp" "change" event with ID 1 priority 0 (remaining 1 subscribers).
-[INF]: plugin: module_name: terastream-dhcp, xpath: /terastream-dhcp:*//*, event: 1, request_id: 1
-[DBG]: plugin: uci_path: network.wan.accept_ra; prev_val: true; node_val: false; operation: 1
-[INF]: Successful processing of "change" event with ID 1 priority 0 (remaining 0 subscribers).
-[INF]: Processing "terastream-dhcp" "done" event with ID 1 priority 0 (remaining 1 subscribers).
-[INF]: plugin: module_name: terastream-dhcp, xpath: /terastream-dhcp:*//*, event: 2, request_id: 1
-[INF]: Successful processing of "done" event with ID 1 priority 0 (remaining 0 subscribers).
-```
-
-The datastore change operation should be reflected in the `/etc/config/network` UCI file:
-
-```
-$ cat /etc/config/network | grep accept_ra
-        option accept_ra '1'
-```
-
-In constrast to the configuration state data, using `sysrepocfg` we can access `operational` state data. For example:
-
-```
-$ sysrepocfg -X -d operational -f json -x '/terastream-dhcp:dhcp-v4-leases'
-{
-  "terastream-dhcp:dhcp-v4-leases": {
-    "dhcp-v4-lease": [
-      {
-        "name": "lease-1",
-        "leasetime": 1513286887,
-        "hostname": "archy",
-        "ipaddr": "192.168.1.231",
-        "macaddr": "54:ee:75:94:0b:13",
-        "device": "br-lan",
-        "connected": true
-      }
-    ]
-  }
-}
-```
-
-This data is usually provided by certain `ubus` methods which can be acessed via the `ubus` command line utility:
-
-```
-$ ubus call router.network leases
-{
-        "lease-1": {
-                "leasetime": "1513286887",
-                "hostname": "archy",
-                "ipaddr": "192.168.1.231",
-                "macaddr": "54:ee:75:94:0b:13",
-                "device": "br-lan",
-                "connected": true
+  "ietf-system:system": {
+    "clock": {
+      "timezone-name": "Europe/Stockholm"
+    },
+    "contact": "Mr. Admin",
+    "hostname": "test.it",
+    "ntp": {
+      "enabled": true,
+      "server": [
+        {
+          "name": "hr.pool.ntp.org",
+          "udp": {
+            "address": "162.159.200.123"
+          }
         }
+      ]
+    }
+  }
 }
+```
+
+Operational state data, as defined by the `ietf-system` module can be accessed with:
+
+```
+$ sysrepocfg -X -d operational -f json -x '/ietf-system:system-state'
+{
+  "ietf-system:system-state": {
+    "platform": {
+      "os-name": "Linux",
+      "os-release": "5.10.16-arch1-1",
+      "os-version": "#1 SMP PREEMPT Sat, 13 Feb 2021 20:50:18 +0000",
+      "machine": "x86_64"
+    },
+    "clock": {
+      "current-datetime": "2021-02-15T18:53:47Z",
+      "boot-datetime": "2021-02-15T14:31:33Z"
+    }
+  }
+}
+```
+
+Additionally, this plugin handles various RPC paths. For instance, invoking the following example action will set the provided datetime on the system:
+
+```
+$ sysrepocfg --rpc=examples/set_datetime.xml -m "ietf-system"
+```
+
+This action is followed by output on the plugin standard output:
+
+```
+[...]
+[INF]: Processing "/ietf-system:set-current-datetime" "rpc" event with ID 1 priority 0 (remaining 1 subscribers).
+[INF]: plugin: system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!
+[INF]: Successful processing of "rpc" event with ID 1 priority 0 (remaining 0 subscribers).
+[...]
 ```
