@@ -1,4 +1,4 @@
-# Sysrepo DHCP plugin (DT)
+# Sysrepo general plugin
 
 ## Introduction
 
