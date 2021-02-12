@@ -236,7 +236,7 @@ int set_config_value(const char *xpath, const char *value)
 	int error = 0;
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
-		error = sethostname(value, strlen(value) + 1);
+		error = sethostname(value, strnlen(value, HOST_NAME_MAX));
 		if (error != 0) {
 			SRP_LOG_ERR("sethostname error: %s", strerror(errno));
 		}
