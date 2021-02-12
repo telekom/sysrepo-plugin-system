@@ -249,7 +249,7 @@ int set_config_value(const char *xpath, const char *value)
 	} else if (strcmp(xpath, LOCATION_YANG_PATH) == 0) {
 		/*	TODO: Add later...
 
-	        "The system location.
+			"The system location.
 			A server implementation MAY map this leaf to the sysLocation
 			MIB object.  Such an implementation needs to use some
 			mechanism to handle the differences in size and characters
@@ -258,8 +258,8 @@ int set_config_value(const char *xpath, const char *value)
 
 			sysLocation
 			"The physical location of this node (e.g., 'telephone
-               closet, 3rd floor').  If the location is unknown, the
-               value is the zero-length string."
+			closet, 3rd floor').  If the location is unknown, the
+			value is the zero-length string."
 		*/
 
 	} else if (strcmp(xpath, TIMEZONE_NAME_YANG_PATH) == 0) {
@@ -303,7 +303,7 @@ int set_contact_info(const char *value)
 		goto fail;
 
 	fclose(fptemp);
-    return 0;
+	return 0;
 
 fail:
 	return -1;
@@ -470,8 +470,8 @@ int get_datetime_info(char current_datetime[], char boot_datetime[])
 {
 	time_t now = 0;
 	struct tm *ts = {0};
-    struct sysinfo s_info = {0};
-    time_t uptime_seconds = 0;
+	struct sysinfo s_info = {0};
+	time_t uptime_seconds = 0;
 
 	now = time(NULL);
 
@@ -480,27 +480,27 @@ int get_datetime_info(char current_datetime[], char boot_datetime[])
 		return -1;
 
 	/* must satisfy constraint:
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[\+\-]\d{2}:\d{2})"
-	    TODO: Add support for:
-            - 2021-02-09T06:02:39.234+01:00
-	        - 2021-02-09T06:02:39.234Z
-            - 2021-02-09T06:02:39+11:11
-    */
+		"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[\+\-]\d{2}:\d{2})"
+		TODO: Add support for:
+			- 2021-02-09T06:02:39.234+01:00
+			- 2021-02-09T06:02:39.234Z
+			- 2021-02-09T06:02:39+11:11
+	*/
 
 	strftime(current_datetime, DATETIME_BUF_SIZE, "%FT%TZ", ts);
 
-    if (sysinfo(&s_info) != 0)
-        return -1;
-
-    uptime_seconds = s_info.uptime;
-
-    time_t diff = now - uptime_seconds;
-
-    ts = localtime(&diff);
-    if (ts == NULL)
+	if (sysinfo(&s_info) != 0)
 		return -1;
 
-    strftime(boot_datetime, DATETIME_BUF_SIZE, "%FT%TZ", ts);
+	uptime_seconds = s_info.uptime;
+
+	time_t diff = now - uptime_seconds;
+
+	ts = localtime(&diff);
+	if (ts == NULL)
+		return -1;
+
+	strftime(boot_datetime, DATETIME_BUF_SIZE, "%FT%TZ", ts);
 
 	return 0;
 }
@@ -612,4 +612,3 @@ static void sigint_handler(__attribute__((unused)) int signum)
 }
 
 #endif
-
