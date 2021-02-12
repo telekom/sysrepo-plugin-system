@@ -56,8 +56,11 @@ typedef struct {
 #define CONTACT_TEMP_FILE "/etc/tempfile"
 #define PASSWD_FILE "/etc/passwd"
 #define PASSWD_BAK_FILE PASSWD_FILE ".bak"
+
 #define TIMEZONE_DIR "/usr/share/zoneinfo/"
 #define LOCALTIME_FILE "/etc/localtime"
+#define ZONE_DIR_LEN 20 // '/usr/share/zoneinfo' length
+#define TIMEZONE_NAME_LEN 14*3 // The Area and Location names have a maximum length of 14 characters, but areas can have a subarea
 
 #define DATETIME_BUF_SIZE 30
 #define UTS_LEN 64
@@ -315,10 +318,15 @@ int set_timezone(const char *value)
 	char *zoneinfo = TIMEZONE_DIR;
 	char *timezone = NULL;
 
-	timezone = xmalloc(strlen(zoneinfo) + strlen(value) + 1);
+	timezone = xmalloc(strnlen(zoneinfo, ZONE_DIR_LEN) + strnlen(value, TIMEZONE_NAME_LEN));
 
 	strcpy(timezone, zoneinfo);
 	strcat(timezone, value);
+
+	// check if file exists in TIMEZONE_DIR
+	if (access(timezone, F_OK) != 0 ) {
+		goto fail;
+	}
 
 	error = unlink(LOCALTIME_FILE);
 	if (error != 0) {
