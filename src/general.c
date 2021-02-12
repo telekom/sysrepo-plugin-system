@@ -60,6 +60,7 @@ typedef struct {
 #define LOCALTIME_FILE "/etc/localtime"
 
 #define DATETIME_BUF_SIZE 30
+#define UTS_LEN 64
 
 static int system_module_change_cb(sr_session_ctx_t *session, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data);
 static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
@@ -452,15 +453,15 @@ int get_os_info(char **os_name, char **os_release, char **os_version, char **mac
 	if (uname(&uname_data) < 0)
 		error = -1;
 
-	*os_name = xmalloc(strlen(uname_data.sysname) + 1);
-	*os_release = xmalloc(strlen(uname_data.release) + 1);
-	*os_version = xmalloc(strlen(uname_data.version) + 1);
-	*machine = xmalloc(strlen(uname_data.machine) + 1);
+	*os_name = xmalloc(strnlen(uname_data.sysname, UTS_LEN + 1));
+	*os_release = xmalloc(strnlen(uname_data.release, UTS_LEN + 1));
+	*os_version = xmalloc(strnlen(uname_data.version, UTS_LEN + 1));
+	*machine = xmalloc(strnlen(uname_data.machine, UTS_LEN + 1));
 
-	strncpy(*os_name, uname_data.sysname, strlen(uname_data.sysname) + 1);
-	strncpy(*os_release, uname_data.release, strlen(uname_data.release) + 1);
-	strncpy(*os_version, uname_data.version, strlen(uname_data.version) + 1);
-	strncpy(*machine, uname_data.machine, strlen(uname_data.machine) + 1);
+	strncpy(*os_name, uname_data.sysname, strnlen(uname_data.sysname, UTS_LEN + 1));
+	strncpy(*os_release, uname_data.release, strnlen(uname_data.release, UTS_LEN + 1));
+	strncpy(*os_version, uname_data.version, strnlen(uname_data.version, UTS_LEN + 1));
+	strncpy(*machine, uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
 
 	return error;
 }
