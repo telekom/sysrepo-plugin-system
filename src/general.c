@@ -571,7 +571,7 @@ volatile int exit_application = 0;
 
 static void sigint_handler(__attribute__((unused)) int signum);
 
-int main()
+int main(void)
 {
 	int error = SR_ERR_OK;
 	sr_conn_ctx_t *connection = NULL;
