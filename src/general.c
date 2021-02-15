@@ -10,8 +10,9 @@
 #include <sys/sendfile.h>
 #include <sys/utsname.h>
 #include <sys/reboot.h>
-#include <time.h>
 #include <fcntl.h>
+#define __USE_XOPEN // needed for strptime
+#include <time.h>
 
 #include <sysrepo.h>
 
@@ -79,6 +80,8 @@ static char *system_xpath_get(const struct lyd_node *node);
 
 int get_os_info(char **os_name, char **os_release, char **os_version, char **machine);
 int get_datetime_info(char current_datetime[], char boot_datetime[]);
+
+int set_datetime(char *datetime);
 
 int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 {
@@ -565,21 +568,18 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 	char *datetime = NULL;
 
 	if (strcmp(op_path, SET_CURR_DATETIME_YANG_PATH) == 0) {
-		/*
-			"Set the /system-state/clock/current-datetime leaf
-			to the specified value.
-
-			If the system is using NTP (i.e., /system/ntp/enabled
-			is set to 'true'), then this operation will fail with
-			error-tag 'operation-failed' and error-app-tag value of
-			'ntp-active'.";
-		*/
 		if (input_cnt != 1) {
 			SRP_LOG_ERR("system_rpc_cb: input_cnt != 1");
 			exit(EXIT_FAILURE);
 		}
 
 		datetime = input[0].data.string_val;
+
+		error = set_datetime(datetime);
+		if (error) {
+			SRP_LOG_ERR("set_datetime error: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 
 		error = sr_set_item_str(session, CURR_DATETIME_YANG_PATH, datetime, NULL, SR_EDIT_DEFAULT);
 		if (error) {
@@ -607,6 +607,36 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 	}
 
 	return SR_ERR_OK;
+}
+
+int set_datetime(char *datetime)
+{
+	struct tm t = {0};
+	time_t time_to_set = 0;
+	struct timespec stime = {0};
+
+	/* datetime format must satisfy constraint:
+		"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[\+\-]\d{2}:\d{2})"
+		currently only "%d-%d-%dT%d-%d-%dZ" is supported
+		TODO: Add support for:
+			- 2021-02-09T06:02:39.234+01:00
+			- 2021-02-09T06:02:39.234Z
+			- 2021-02-09T06:02:39+11:11
+	*/
+
+	if (strptime(datetime, "%FT%TZ", &t) == NULL)
+		return -1;
+
+	time_to_set = mktime(&t);
+	if (time_to_set == -1)
+		return -1;
+
+	stime.tv_sec = time_to_set;
+
+	if (clock_settime(CLOCK_REALTIME, &stime) == -1)
+		return -1;
+
+	return 0;
 }
 
 #ifndef PLUGIN
