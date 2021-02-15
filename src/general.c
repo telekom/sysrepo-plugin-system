@@ -5,10 +5,13 @@
 #include <pwd.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <sys/sendfile.h>
 #include <sys/utsname.h>
 #include <sys/reboot.h>
-#include <sys/sysinfo.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include <sysrepo.h>
 
@@ -53,7 +56,7 @@ typedef struct {
 #define BOOT_DATETIME_YANG_PATH STATE_CLOCK_YANG_PATH "/boot-datetime"
 
 #define CONTACT_USERNAME "root"
-#define CONTACT_TEMP_FILE "/etc/tempfile"
+#define CONTACT_TEMP_FILE "/tmp/tempfile"
 #define PASSWD_FILE "/etc/passwd"
 #define PASSWD_BAK_FILE PASSWD_FILE ".bak"
 
@@ -282,33 +285,78 @@ int set_config_value(const char *xpath, const char *value)
 int set_contact_info(const char *value)
 {
 	struct passwd *pwd = {0};
-	FILE *fptemp = NULL;
+	FILE *tmp_pwf = NULL; // temporary passwd file
+	int read_fd = -1;
+	int write_fd = -1;
+	struct stat stat_buf = {0};
+	off_t offset = 0;
 
-	fptemp = fopen(CONTACT_TEMP_FILE, "w");
-	if (!fptemp)
+	// write /etc/passwd to a temp file
+	// and change GECOS field for CONTACT_USERNAME
+	tmp_pwf = fopen(CONTACT_TEMP_FILE, "w");
+	if (!tmp_pwf)
 		goto fail;
 
 	while ((pwd = getpwent()) != NULL) {
 		if (strcmp(pwd->pw_name, CONTACT_USERNAME) == 0) {
+			// TODO: check max allowed len of gecos field
 			pwd->pw_gecos = (char *)value;
-			if (putpwent(pwd, fptemp) != 0)
+
+			if (putpwent(pwd, tmp_pwf) != 0)
 				goto fail;
+
 		} else{
-			if (putpwent(pwd, fptemp) != 0)
+			if (putpwent(pwd, tmp_pwf) != 0)
 				goto fail;
 		}
 	}
 
+	fclose(tmp_pwf);
+	tmp_pwf = NULL;
+
+	// create a backup file of /etc/passwd
 	if (rename(PASSWD_FILE, PASSWD_BAK_FILE) != 0)
 		goto fail;
 
-	if (rename(CONTACT_TEMP_FILE, PASSWD_FILE) != 0)
+	// copy the temp file to /etc/passwd
+	read_fd = open(CONTACT_TEMP_FILE, O_RDONLY);
+	if (read_fd == -1)
 		goto fail;
 
-	fclose(fptemp);
+	if (fstat(read_fd, &stat_buf) != 0)
+		goto fail;
+
+	write_fd = open(PASSWD_FILE, O_WRONLY | O_CREAT, stat_buf.st_mode);
+	if (write_fd == -1)
+		goto fail;
+
+	if (sendfile(write_fd, read_fd, &offset, stat_buf.st_size) == -1)
+		goto fail;
+
+	// remove the temp file
+	if (remove(CONTACT_TEMP_FILE) != 0)
+		goto fail;
+
+	close(read_fd);
+	close(write_fd);
+
 	return 0;
 
 fail:
+	// if copying tmp file to /etc/passwd failed
+	// rename the backup back to passwd
+	if (access(PASSWD_FILE, F_OK) != 0 )
+		rename(PASSWD_BAK_FILE, PASSWD_FILE);
+
+	if (tmp_pwf != NULL)
+		fclose(tmp_pwf);
+
+	if (read_fd != -1)
+		close(read_fd);
+
+	if (write_fd != -1)
+		close(write_fd);
+		
 	return -1;
 }
 
