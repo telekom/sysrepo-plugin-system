@@ -363,18 +363,17 @@ fail:
 int set_timezone(const char *value)
 {
 	int error = 0;
-	char *zoneinfo = TIMEZONE_DIR;
+	char *zoneinfo = TIMEZONE_DIR; // not NULL terminated
 	char *timezone = NULL;
 
-	timezone = xmalloc(strnlen(zoneinfo, ZONE_DIR_LEN) + strnlen(value, TIMEZONE_NAME_LEN));
+	timezone = xmalloc(strnlen(zoneinfo, ZONE_DIR_LEN) + strnlen(value, TIMEZONE_NAME_LEN) + 1);
 
-	strcpy(timezone, zoneinfo);
-	strcat(timezone, value);
+	strncpy(timezone, zoneinfo, strnlen(zoneinfo, ZONE_DIR_LEN) + 1);
+	strncat(timezone, value, strnlen(value, TIMEZONE_NAME_LEN));
 
 	// check if file exists in TIMEZONE_DIR
-	if (access(timezone, F_OK) != 0 ) {
+	if (access(timezone, F_OK) != 0 )
 		goto fail;
-	}
 
 	error = unlink(LOCALTIME_FILE);
 	if (error != 0) {
@@ -382,9 +381,8 @@ int set_timezone(const char *value)
 	}
 
 	error = symlink(timezone, LOCALTIME_FILE);
-	if (error != 0) {
+	if (error != 0)
 		goto fail;
-	}
 
 	free(timezone);
 	return 0;
