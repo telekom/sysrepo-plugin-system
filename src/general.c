@@ -384,11 +384,11 @@ int set_timezone(const char *value)
 	if (error != 0)
 		goto fail;
 
-	free(timezone);
+	FREE_SAFE(timezone);
 	return 0;
 
 fail:
-	free(timezone);
+	FREE_SAFE(timezone);
 	return -1;
 }
 
