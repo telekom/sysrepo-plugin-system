@@ -330,7 +330,7 @@ int set_contact_info(const char *value)
 	if (write_fd == -1)
 		goto fail;
 
-	if (sendfile(write_fd, read_fd, &offset, stat_buf.st_size) == -1)
+	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1)
 		goto fail;
 
 	// remove the temp file
