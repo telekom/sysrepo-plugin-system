@@ -570,7 +570,7 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 	if (strcmp(op_path, SET_CURR_DATETIME_YANG_PATH) == 0) {
 		if (input_cnt != 1) {
 			SRP_LOG_ERR("system_rpc_cb: input_cnt != 1");
-			exit(EXIT_FAILURE);
+			goto error_out;
 		}
 
 		datetime = input[0].data.string_val;
@@ -578,35 +578,40 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 		error = set_datetime(datetime);
 		if (error) {
 			SRP_LOG_ERR("set_datetime error: %s", strerror(errno));
-			exit(EXIT_FAILURE);
+			goto error_out;
 		}
 
 		error = sr_set_item_str(session, CURR_DATETIME_YANG_PATH, datetime, NULL, SR_EDIT_DEFAULT);
 		if (error) {
 			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
-			exit(EXIT_FAILURE);
+			goto error_out;
 		}
 
 		error = sr_apply_changes(session, 0, 0);
 		if (error) {
 			SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
-			exit(EXIT_FAILURE);
+			goto error_out;
 		}
 
-		SRP_LOG_INFMSG("RPC: CURR_DATETIME_YANG_PATH successfully set!\n");
+		SRP_LOG_INFMSG("system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!");
 
 	} else if (strcmp(op_path, RESTART_YANG_PATH) == 0) {
 		sync();
 		reboot(RB_AUTOBOOT);
+		SRP_LOG_INFMSG("system_rpc_cb: restarting the system!");
 	} else if (strcmp(op_path, SHUTDOWN_YANG_PATH) == 0) {
 		sync();
 		reboot(RB_POWER_OFF);
+		SRP_LOG_INFMSG("system_rpc_cb: shutting down the system!");
 	} else {
 		SRP_LOG_ERR("system_rpc_cb: invalid path %s", op_path);
-		exit(EXIT_FAILURE);
+		goto error_out;
 	}
 
 	return SR_ERR_OK;
+
+error_out:
+	return SR_ERR_CALLBACK_FAILED;
 }
 
 int set_datetime(char *datetime)
