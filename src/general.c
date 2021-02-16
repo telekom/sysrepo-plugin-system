@@ -597,11 +597,11 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 
 	} else if (strcmp(op_path, RESTART_YANG_PATH) == 0) {
 		sync();
-		reboot(RB_AUTOBOOT);
+		system("shutdown -r");
 		SRP_LOG_INFMSG("system_rpc_cb: restarting the system!");
 	} else if (strcmp(op_path, SHUTDOWN_YANG_PATH) == 0) {
 		sync();
-		reboot(RB_POWER_OFF);
+		system("shutdown -P");
 		SRP_LOG_INFMSG("system_rpc_cb: shutting down the system!");
 	} else {
 		SRP_LOG_ERR("system_rpc_cb: invalid path %s", op_path);
