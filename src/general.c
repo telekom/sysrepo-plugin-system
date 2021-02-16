@@ -32,6 +32,8 @@ typedef struct {
 #define BASE_YANG_MODEL "ietf-system"
 #define SYSTEM_YANG_MODEL "/" BASE_YANG_MODEL ":system"
 
+#define SYSREPOCFG_EMPTY_CHECK_COMMAND "sysrepocfg -X -d running -m " BASE_YANG_MODEL
+
 #define SET_CURR_DATETIME_YANG_PATH "/" BASE_YANG_MODEL ":set-current-datetime"
 #define RESTART_YANG_PATH "/" BASE_YANG_MODEL ":system-restart"
 #define SHUTDOWN_YANG_PATH "/" BASE_YANG_MODEL ":system-shutdown"
@@ -73,10 +75,13 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
 static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data);
 
+static bool system_running_datastore_is_empty_check(void);
+static int load_data(sr_session_ctx_t *session);
+static char *system_xpath_get(const struct lyd_node *node);
+
 int set_config_value(const char *xpath, const char *value );
 int set_contact_info(const char *value);
 int set_timezone(const char *value);
-static char *system_xpath_get(const struct lyd_node *node);
 
 int get_os_info(char **os_name, char **os_release, char **os_version, char **machine);
 int get_datetime_info(char current_datetime[], char boot_datetime[]);
@@ -102,6 +107,22 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	}
 
 	*private_data = startup_session;
+
+	if (system_running_datastore_is_empty_check() == true) {
+		SRP_LOG_INFMSG("running DS is empty, loading data");
+
+		error = load_data(session);
+		if (error) {
+			SRP_LOG_ERRMSG("load_data error");
+			goto error_out;
+		}
+
+		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0, 0);
+		if (error) {
+			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+	}
 
 	SRP_LOG_INFMSG("subscribing to module change");
 
@@ -148,6 +169,57 @@ error_out:
 
 out:
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
+}
+
+static bool system_running_datastore_is_empty_check(void)
+{
+	FILE *sysrepocfg_DS_empty_check = NULL;
+	bool is_empty = false;
+
+	sysrepocfg_DS_empty_check = popen(SYSREPOCFG_EMPTY_CHECK_COMMAND, "r");
+	if (sysrepocfg_DS_empty_check == NULL) {
+		SRP_LOG_WRN("could not execute %s", SYSREPOCFG_EMPTY_CHECK_COMMAND);
+		is_empty = true;
+		goto out;
+	}
+
+	if (fgetc(sysrepocfg_DS_empty_check) == EOF) {
+		is_empty = true;
+	}
+
+out:
+	if (sysrepocfg_DS_empty_check) {
+		pclose(sysrepocfg_DS_empty_check);
+	}
+
+	return is_empty;
+}
+
+static int load_data(sr_session_ctx_t *session)
+{
+	int error = 0;
+
+	error = sr_set_item_str(session, CONTACT_YANG_PATH, "first_name last_name", NULL, SR_EDIT_DEFAULT);
+	if (error) {
+		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+
+	error = sr_set_item_str(session, HOSTNAME_YANG_PATH, "hostname.com", NULL, SR_EDIT_DEFAULT);
+	if (error) {
+		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+
+	error = sr_apply_changes(session, 0, 0);
+	if (error) {
+		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+
+	return 0;
+error_out:
+	return -1;
 }
 
 void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
