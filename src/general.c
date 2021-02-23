@@ -641,7 +641,7 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 
 	if (strcmp(op_path, SET_CURR_DATETIME_YANG_PATH) == 0) {
 		if (input_cnt != 1) {
-			SRP_LOG_ERR("system_rpc_cb: input_cnt != 1");
+			SRP_LOG_ERRMSG("system_rpc_cb: input_cnt != 1");
 			goto error_out;
 		}
 
