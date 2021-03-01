@@ -62,6 +62,7 @@ typedef struct {
 #define CONTACT_TEMP_FILE "/tmp/tempfile"
 #define PASSWD_FILE "/etc/passwd"
 #define PASSWD_BAK_FILE PASSWD_FILE ".bak"
+#define MAX_GECOS_LEN 100
 
 #define TIMEZONE_DIR "/usr/share/zoneinfo/"
 #define LOCALTIME_FILE "/etc/localtime"
@@ -82,6 +83,9 @@ static char *system_xpath_get(const struct lyd_node *node);
 int set_config_value(const char *xpath, const char *value );
 int set_contact_info(const char *value);
 int set_timezone(const char *value);
+
+int get_contact_info(char *value);
+int get_timezone_name(char *value);
 
 int get_os_info(char **os_name, char **os_release, char **os_version, char **machine);
 int get_datetime_info(char current_datetime[], char boot_datetime[]);
@@ -198,18 +202,52 @@ out:
 static int load_data(sr_session_ctx_t *session)
 {
 	int error = 0;
+	char contact_info[MAX_GECOS_LEN] = {0};
+	char hostname[HOST_NAME_MAX] = {0};
+	char timezone_name[TIMEZONE_NAME_LEN] = {0};
 
-	error = sr_set_item_str(session, CONTACT_YANG_PATH, "first_name last_name", NULL, SR_EDIT_DEFAULT);
+	// get the contact info from /etc/passwd
+	error = get_contact_info(contact_info);
+	if (error) {
+		SRP_LOG_ERR("get_contact_info error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	error = sr_set_item_str(session, CONTACT_YANG_PATH, contact_info, NULL, SR_EDIT_DEFAULT);
 	if (error) {
 		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	error = sr_set_item_str(session, HOSTNAME_YANG_PATH, "hostname.com", NULL, SR_EDIT_DEFAULT);
+	// get the hostname of the system
+	error = gethostname(hostname, HOST_NAME_MAX);
+	if (error != 0) {
+		SRP_LOG_ERR("gethostname error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	error = sr_set_item_str(session, HOSTNAME_YANG_PATH, hostname, NULL, SR_EDIT_DEFAULT);
 	if (error) {
 		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
+
+	// TODO: uncomment for now because: "if-feature timezone-name;"
+	//		 the feature has to be enabled in order to set the item
+	/*
+	// get the current datetime (timezone-name) of the system
+	error = get_timezone_name(timezone_name);
+	if (error != 0) {
+		SRP_LOG_ERR("get_timezone_name error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	error = sr_set_item_str(session, TIMEZONE_NAME_YANG_PATH, timezone_name, NULL, SR_EDIT_DEFAULT);
+	if (error) {
+		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+	*/
 
 	error = sr_apply_changes(session, 0, 0);
 	if (error) {
@@ -218,6 +256,7 @@ static int load_data(sr_session_ctx_t *session)
 	}
 
 	return 0;
+
 error_out:
 	return -1;
 }
@@ -435,6 +474,25 @@ fail:
 	return -1;
 }
 
+int get_contact_info(char *value)
+{
+	struct passwd *pwd = {0};
+
+	pwd = getpwent();
+
+	if (pwd == NULL) {
+		return -1;
+	}
+
+	do {
+		if (strcmp(pwd->pw_name, CONTACT_USERNAME) == 0) {
+			strncpy(value, pwd->pw_gecos, strnlen(pwd->pw_gecos, MAX_GECOS_LEN));
+		}
+	} while ((pwd = getpwent()) != NULL);
+
+	return 0;
+}
+
 int set_timezone(const char *value)
 {
 	int error = 0;
@@ -464,6 +522,27 @@ int set_timezone(const char *value)
 
 fail:
 	FREE_SAFE(timezone);
+	return -1;
+}
+
+int get_timezone_name(char *value)
+{
+	char buf[TIMEZONE_NAME_LEN];
+	ssize_t len = 0;
+	size_t start = 0;
+
+	if ((len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1)) != -1) {
+		buf[len] = '\0';
+	} else {
+		goto error_out;
+	}
+
+	start = strlen(TIMEZONE_DIR);
+	strncpy(value, &buf[start], strnlen(buf, TIMEZONE_NAME_LEN));
+
+	return 0;
+
+error_out:
 	return -1;
 }
 
