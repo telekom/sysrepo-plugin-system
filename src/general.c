@@ -612,7 +612,7 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 		if (ly_ctx == NULL) {
 			return -1;
 		}
-		*parent = lyd_new_path(NULL, ly_ctx, request_xpath, NULL, 0, 0);
+		*parent = lyd_new_path(NULL, ly_ctx, SYSTEM_STATE_YANG_MODEL, NULL, 0, 0);
 	}
 
 	lyd_new_path(*parent, NULL, OS_NAME_YANG_PATH, os_name, 0, 0);
