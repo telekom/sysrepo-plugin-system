@@ -88,7 +88,7 @@ static int load_data(sr_session_ctx_t *session);
 static char *system_xpath_get(const struct lyd_node *node);
 
 int set_config_list(const char *xpath, const char *value);
-int set_config_value(const char *xpath, const char *value );
+int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
 int set_ntp(const char *xpath, char *value);
 int set_contact_info(const char *value);
 int set_timezone(const char *value);
@@ -340,7 +340,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 			
 			if (node->schema->nodetype == LYS_LEAF) {
 				if (operation == SR_OP_CREATED || operation == SR_OP_MODIFIED) {
-					error = set_config_value(node_xpath, node_value);
+					error = set_config_value(node_xpath, node_value, operation);
 					if (error) {
 						SRP_LOG_ERR("set_config_value error (%d)", error);
 						goto error_out;
@@ -350,7 +350,11 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 						ntp_change = true;
 					}
 				} else if (operation == SR_OP_DELETED) {
-					// TODO: discussion with DT needed
+					error = set_config_value(node_xpath, node_value, operation);
+					if (error) {
+						SRP_LOG_ERR("set_config_value error (%d)", error);
+						goto error_out;
+					}
 				}
 			} 
 			FREE_SAFE(node_xpath);
@@ -378,19 +382,33 @@ out:
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
 }
 
-int set_config_value(const char *xpath, const char *value)
+int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
-		error = sethostname(value, strnlen(value, HOST_NAME_MAX));
-		if (error != 0) {
-			SRP_LOG_ERR("sethostname error: %s", strerror(errno));
+		if (operation == SR_OP_DELETED) {
+			error = sethostname("none", strnlen("none", HOST_NAME_MAX));
+			if (error != 0) {
+				SRP_LOG_ERR("sethostname error: %s", strerror(errno));
+			}
+		} else {
+			error = sethostname(value, strnlen(value, HOST_NAME_MAX));
+			if (error != 0) {
+				SRP_LOG_ERR("sethostname error: %s", strerror(errno));
+			}
 		}
 	} else if (strcmp(xpath, CONTACT_YANG_PATH) == 0) {
-		error = set_contact_info(value);
-		if (error != 0) {
-			SRP_LOG_ERR("set_contact_info error: %s", strerror(errno));
+		if (operation == SR_OP_DELETED) {
+			error = set_contact_info("");
+			if (error != 0) {
+				SRP_LOG_ERR("set_contact_info error: %s", strerror(errno));
+			}
+		} else {
+			error = set_contact_info(value);
+			if (error != 0) {
+				SRP_LOG_ERR("set_contact_info error: %s", strerror(errno));
+			}
 		}
 	} else if (strcmp(xpath, LOCATION_YANG_PATH) == 0) {
 		/*	TODO: Add later...
@@ -407,11 +425,23 @@ int set_config_value(const char *xpath, const char *value)
 			closet, 3rd floor').  If the location is unknown, the
 			value is the zero-length string."
 		*/
-
 	} else if (strcmp(xpath, TIMEZONE_NAME_YANG_PATH) == 0) {
-		error = set_timezone(value);
-		if (error != 0) {
-			SRP_LOG_ERR("set_timezone error: %s", strerror(errno));
+		if (operation == SR_OP_DELETED) {
+			// check if the /etc/localtime symlink exists
+			error = access(LOCALTIME_FILE, F_OK);
+			if (error != 0 ) {
+				SRP_LOG_ERR("/etc/localtime doesn't exist; unlink/delete timezone error: %s", strerror(errno));
+			}
+
+			error = unlink(LOCALTIME_FILE);
+			if (error != 0) {
+				SRP_LOG_ERR("unlinking/deleting timezone error: %s", strerror(errno));
+			}
+		} else {
+			error = set_timezone(value);
+			if (error != 0) {
+				SRP_LOG_ERR("set_timezone error: %s", strerror(errno));
+			}
 		}
 	} else if (strcmp(xpath, TIMEZONE_OFFSET_YANG_PATH) == 0) {
 		// timezone-utc-offset leaf
@@ -539,7 +569,14 @@ int set_contact_info(const char *value)
 	if (!tmp_pwf)
 		goto fail;
 
-	while ((pwd = getpwent()) != NULL) {
+	endpwent(); // close the passwd db
+
+	pwd = getpwent();
+	if (pwd == NULL) {
+		goto fail;
+	}
+
+	do {
 		if (strcmp(pwd->pw_name, CONTACT_USERNAME) == 0) {
 			// TODO: check max allowed len of gecos field
 			pwd->pw_gecos = (char *)value;
@@ -551,7 +588,7 @@ int set_contact_info(const char *value)
 			if (putpwent(pwd, tmp_pwf) != 0)
 				goto fail;
 		}
-	}
+	} while ((pwd = getpwent()) != NULL);
 
 	fclose(tmp_pwf);
 	tmp_pwf = NULL;
@@ -636,10 +673,14 @@ int set_timezone(const char *value)
 	if (access(timezone, F_OK) != 0)
 		goto fail;
 
-	error = unlink(LOCALTIME_FILE);
-	if (error != 0) {
-		goto fail;
-	}
+	if (access(LOCALTIME_FILE, F_OK) == 0 ) {
+		// if the /etc/localtime symlink file exists
+		// unlink it
+		error = unlink(LOCALTIME_FILE);
+		if (error != 0) {
+			goto fail;
+		}
+	} // if it doesn't, it will be created
 
 	error = symlink(timezone, LOCALTIME_FILE);
 	if (error != 0)
