@@ -15,8 +15,10 @@
 #include <time.h>
 
 #include <sysrepo.h>
+#include <sysrepo/xpath.h>
 
 #include "utils/memory.h"
+#include "utils/ntp/server_list.h"
 /*
 typedef struct {
 	char *value;
@@ -28,6 +30,7 @@ typedef struct {
 	size_t num_values;
 } result_values_t;
 */
+static ntp_server_list_t *ntp_servers;
 
 #define BASE_YANG_MODEL "ietf-system"
 #define SYSTEM_YANG_MODEL "/" BASE_YANG_MODEL ":system"
@@ -41,10 +44,14 @@ typedef struct {
 #define CONTACT_YANG_PATH SYSTEM_YANG_MODEL  "/contact"
 #define HOSTNAME_YANG_PATH SYSTEM_YANG_MODEL "/hostname"
 #define LOCATION_YANG_PATH SYSTEM_YANG_MODEL "/location"
+#define NTP_YANG_PATH SYSTEM_YANG_MODEL "/ntp"
 
 #define CLOCK_YANG_PATH SYSTEM_YANG_MODEL 	 "/clock"
 #define TIMEZONE_NAME_YANG_PATH CLOCK_YANG_PATH "/timezone-name"
 #define TIMEZONE_OFFSET_YANG_PATH CLOCK_YANG_PATH "/timezone-utc-offset"
+
+#define NTP_ENABLED_YANG_PATH NTP_YANG_PATH "/enabled"
+#define NTP_SERVER_YANG_PATH NTP_YANG_PATH "/server"
 
 #define SYSTEM_STATE_YANG_MODEL "/" BASE_YANG_MODEL ":system-state"
 #define STATE_PLATFORM_YANG_PATH SYSTEM_STATE_YANG_MODEL "/platform"
@@ -80,7 +87,9 @@ static bool system_running_datastore_is_empty_check(void);
 static int load_data(sr_session_ctx_t *session);
 static char *system_xpath_get(const struct lyd_node *node);
 
+int set_config_list(const char *xpath, const char *value);
 int set_config_value(const char *xpath, const char *value );
+int set_ntp(const char *xpath, char *value);
 int set_contact_info(const char *value);
 int set_timezone(const char *value);
 
@@ -100,6 +109,8 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	sr_subscription_ctx_t *subscription = NULL;
 
 	*private_data = NULL;
+
+	ntp_server_list_init(&ntp_servers);
 
 	SRP_LOG_INFMSG("start session to startup datastore");
 
@@ -204,7 +215,6 @@ static int load_data(sr_session_ctx_t *session)
 	int error = 0;
 	char contact_info[MAX_GECOS_LEN] = {0};
 	char hostname[HOST_NAME_MAX] = {0};
-	char timezone_name[TIMEZONE_NAME_LEN] = {0};
 
 	// get the contact info from /etc/passwd
 	error = get_contact_info(contact_info);
@@ -232,9 +242,10 @@ static int load_data(sr_session_ctx_t *session)
 		goto error_out;
 	}
 
-	// TODO: uncomment for now because: "if-feature timezone-name;"
+	// TODO: comment out for now because: "if-feature timezone-name;"
 	//		 the feature has to be enabled in order to set the item
 	/*
+	char timezone_name[TIMEZONE_NAME_LEN] = {0};
 	// get the current datetime (timezone-name) of the system
 	error = get_timezone_name(timezone_name);
 	if (error != 0) {
@@ -269,6 +280,8 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 		sr_session_stop(startup_session);
 	}
 
+	ntp_server_list_free(ntp_servers);
+
 	SRP_LOG_INFMSG("plugin cleanup finished");
 }
 
@@ -286,6 +299,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 	const char *node_value = NULL;
 	struct lyd_node_leaf_list *node_leaf_list;
 	struct lys_node_leaf *schema_node_leaf;
+	bool ntp_change = false;
 
 	SRP_LOG_INF("module_name: %s, xpath: %s, event: %d, request_id: %" PRIu32, module_name, xpath, event, request_id);
 
@@ -309,6 +323,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 			SRP_LOG_ERR("sr_get_changes_iter error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
+
 		while (sr_get_change_tree_next(session, system_change_iter, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
 			node_xpath = system_xpath_get(node);
 
@@ -322,7 +337,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 			}
 
 			SRP_LOG_DBG("node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
-
+			
 			if (node->schema->nodetype == LYS_LEAF) {
 				if (operation == SR_OP_CREATED || operation == SR_OP_MODIFIED) {
 					error = set_config_value(node_xpath, node_value);
@@ -330,20 +345,31 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 						SRP_LOG_ERR("set_config_value error (%d)", error);
 						goto error_out;
 					}
+
+					if (strncmp(node_xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
+						ntp_change = true;
+					}
 				} else if (operation == SR_OP_DELETED) {
 					// TODO: discussion with DT needed
 				}
-			}
+			} 
 			FREE_SAFE(node_xpath);
 			node_value = NULL;
+		}
+
+		if (ntp_change) {
+			// save data to ntp.conf
+			error = save_ntp_config(ntp_servers);
+			if (error) {
+				SRP_LOG_ERR("save_ntp_config error (%d)", error);
+				goto error_out;
+			}
 		}
 	}
 	goto out;
 
 error_out:
 	//TODO: handle errors here
-	//srpo_uci_revert("dhcp"); <- this won't be used
-	//srpo_uci_revert("network"); <- this won't be used
 
 out:
 	FREE_SAFE(node_xpath);
@@ -391,10 +417,112 @@ int set_config_value(const char *xpath, const char *value)
 		// timezone-utc-offset leaf
 		// https://linux.die.net/man/5/tzfile
 		// https://linux.die.net/man/8/zic
+	} else if (strncmp(xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
+		error = set_ntp(xpath, (char *)value);
+		if (error != 0) {
+			SRP_LOG_ERRMSG("set_ntp error");
+		}
 	}
 
 	return error;
 }
+
+int set_ntp(const char *xpath, char *value)
+{
+	int error = 0;
+
+	if (strcmp(xpath, NTP_ENABLED_YANG_PATH) == 0) {
+		SRP_LOG_DBG("set_ntp enabled: %s", value);
+
+		if (strcmp(value, "true") == 0){
+			// TODO: replace "system()" call with sd-bus later if needed
+
+			error = system("systemctl enable --now ntpd");
+			if (error != 0) {
+				SRP_LOG_ERR("\"systemctl enable --now ntpd\" failed with return value: %d", error);
+				return -1;
+			}
+			// TODO: check if ntpd was enabled
+		} else if(strcmp(value, "false") == 0) {
+			// TODO: add - 'systemctl stop ntpd' as well ?
+			error = system("systemctl disable ntpd");
+			if (error != 0) {
+				SRP_LOG_ERR("\"systemctl disable ntpd\" failed with return value: %d", error);
+				return -1;
+			}
+			// TODO: check if ntpd was disabled
+		}
+	} else if (strncmp(xpath, NTP_SERVER_YANG_PATH, strlen(NTP_SERVER_YANG_PATH)) == 0) {
+		char *ntp_node = NULL;
+		char *ntp_server_name = NULL;
+		sr_xpath_ctx_t state = {0};
+
+		ntp_node = sr_xpath_node_name((char *) xpath);
+		ntp_server_name = sr_xpath_key_value((char *) xpath, "server", "name", &state);
+
+		if (strcmp(ntp_node, "name") == 0) {
+			error = ntp_server_list_add_server(ntp_servers, value);
+			if (error != 0) {
+				SRP_LOG_ERRMSG("error adding new ntp server");
+				return -1;
+			}
+
+		} else if (strcmp(ntp_node, "address") == 0) {
+			error = ntp_server_list_set_address(ntp_servers, ntp_server_name, value);
+			if (error != 0) {
+				SRP_LOG_ERRMSG("error setting ntp server address");
+				return -1;
+			}
+
+		} else if (strcmp(ntp_node, "port") == 0) {
+			error = ntp_server_list_set_port(ntp_servers, ntp_server_name, value);
+			if (error != 0) {
+				SRP_LOG_ERRMSG("error setting ntp server port");
+				return -1;
+			}
+
+		} else if (strcmp(ntp_node, "association-type") == 0) {
+			error = ntp_server_list_set_assoc_type(ntp_servers, ntp_server_name, value);
+			if (error != 0) {
+				SRP_LOG_ERRMSG("error setting ntp server association-type");
+				return -1;
+			}
+
+		} else if (strcmp(ntp_node, "iburst") == 0) {
+			if (strcmp(value, "true") == 0){
+				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "iburst");
+				if (error != 0) {
+					SRP_LOG_ERRMSG("error setting ntp server iburst");
+					return -1;
+				}
+			} else {
+				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "");
+				if (error != 0) {
+					SRP_LOG_ERRMSG("error setting ntp server iburst");
+					return -1;
+				}
+			}
+
+		} else if (strcmp(ntp_node, "prefer") == 0) {
+			if (strcmp(value, "true") == 0){
+				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "prefer");
+				if (error != 0) {
+					SRP_LOG_ERRMSG("error setting ntp server prefer");
+					return -1;
+				}
+			} else {
+				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "");
+				if (error != 0) {
+					SRP_LOG_ERRMSG("error setting ntp server prefer");
+					return -1;
+				}
+			}
+		}
+	}
+	
+	return 0;
+}
+
 
 int set_contact_info(const char *value)
 {
@@ -505,7 +633,7 @@ int set_timezone(const char *value)
 	strncat(timezone, value, strnlen(value, TIMEZONE_NAME_LEN));
 
 	// check if file exists in TIMEZONE_DIR
-	if (access(timezone, F_OK) != 0 )
+	if (access(timezone, F_OK) != 0)
 		goto fail;
 
 	error = unlink(LOCALTIME_FILE);
