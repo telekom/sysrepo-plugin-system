@@ -13,6 +13,7 @@ include_directories(
 set(SOURCES
     src/general.c
     src/utils/memory.c
+    src/utils/ntp/server_list.c
 )
 
 # get sysrepo version
