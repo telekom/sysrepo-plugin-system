@@ -5,6 +5,7 @@ include(CompileOptions.cmake)
 
 set(PLUGIN 0 CACHE BOOL "Build a plugin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src/
@@ -43,6 +44,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 
+if (ENABLE_BUILD_TESTS)
+	find_package(CMOCKA REQUIRED)
+endif()
+
 target_link_libraries(
     ${PROJECT_NAME}
     ${SYSREPO_LIBRARIES}
@@ -53,3 +58,13 @@ include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
 )
+
+if(ENABLE_BUILD_TESTS)
+	if(CMOCKA_FOUND)
+		enable_testing()
+		include(tests/Tests.cmake)
+	else()
+		message(STATUS "CMocka hasn't been found, disabling tests")
+		set(ENABLE_BUILD_TESTS OFF)
+	endif()
+endif()
