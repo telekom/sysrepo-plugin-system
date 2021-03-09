@@ -87,19 +87,18 @@ static bool system_running_datastore_is_empty_check(void);
 static int load_data(sr_session_ctx_t *session);
 static char *system_xpath_get(const struct lyd_node *node);
 
-int set_config_list(const char *xpath, const char *value);
-int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
-int set_ntp(const char *xpath, char *value);
-int set_contact_info(const char *value);
-int set_timezone(const char *value);
+static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
+static int set_ntp(const char *xpath, char *value);
+static int set_contact_info(const char *value);
+static int set_timezone(const char *value);
 
-int get_contact_info(char *value);
-int get_timezone_name(char *value);
+static int get_contact_info(char *value);
+static int get_timezone_name(char *value);
 
-int get_os_info(char **os_name, char **os_release, char **os_version, char **machine);
-int get_datetime_info(char current_datetime[], char boot_datetime[]);
+static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine);
+static int get_datetime_info(char current_datetime[], char boot_datetime[]);
 
-int set_datetime(char *datetime);
+static int set_datetime(char *datetime);
 
 int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 {
@@ -272,7 +271,7 @@ error_out:
 	return -1;
 }
 
-void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
+static void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 {
 	sr_session_ctx_t *startup_session = (sr_session_ctx_t *) private_data;
 
@@ -382,7 +381,7 @@ out:
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
 }
 
-int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
+static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
 
@@ -457,7 +456,7 @@ int set_config_value(const char *xpath, const char *value, sr_change_oper_t oper
 	return error;
 }
 
-int set_ntp(const char *xpath, char *value)
+static int set_ntp(const char *xpath, char *value)
 {
 	int error = 0;
 
@@ -554,7 +553,7 @@ int set_ntp(const char *xpath, char *value)
 }
 
 
-int set_contact_info(const char *value)
+static int set_contact_info(const char *value)
 {
 	struct passwd *pwd = {0};
 	FILE *tmp_pwf = NULL; // temporary passwd file
@@ -639,7 +638,7 @@ fail:
 	return -1;
 }
 
-int get_contact_info(char *value)
+static int get_contact_info(char *value)
 {
 	struct passwd *pwd = {0};
 
@@ -658,7 +657,7 @@ int get_contact_info(char *value)
 	return 0;
 }
 
-int set_timezone(const char *value)
+static int set_timezone(const char *value)
 {
 	int error = 0;
 	char *zoneinfo = TIMEZONE_DIR; // not NULL terminated
@@ -694,7 +693,7 @@ fail:
 	return -1;
 }
 
-int get_timezone_name(char *value)
+static int get_timezone_name(char *value)
 {
 	char buf[TIMEZONE_NAME_LEN];
 	ssize_t len = 0;
@@ -823,7 +822,7 @@ static int store_values_to_datastore(sr_session_ctx_t *session, const char *requ
 }
 */
 
-int get_os_info(char **os_name, char **os_release, char **os_version, char **machine){
+static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine){
 	int error = 0;
 	struct utsname uname_data = {0};
 
@@ -843,7 +842,7 @@ int get_os_info(char **os_name, char **os_release, char **os_version, char **mac
 	return error;
 }
 
-int get_datetime_info(char current_datetime[], char boot_datetime[])
+static int get_datetime_info(char current_datetime[], char boot_datetime[])
 {
 	time_t now = 0;
 	struct tm *ts = {0};
@@ -934,7 +933,7 @@ error_out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int set_datetime(char *datetime)
+static int set_datetime(char *datetime)
 {
 	struct tm t = {0};
 	time_t time_to_set = 0;
