@@ -10,12 +10,16 @@
 
 static void test_correct_set_datetime(void **state);
 static void test_incorrect_set_datetime(void **state);
+static void test_correct_get_datetime_info(void **state);
+static void test_incorrect_get_datetime_info(void **state);
 
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(test_correct_set_datetime),
 		cmocka_unit_test(test_incorrect_set_datetime),
+		cmocka_unit_test(test_correct_get_datetime_info),
+		cmocka_unit_test(test_incorrect_get_datetime_info),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -65,4 +69,46 @@ static void test_incorrect_set_datetime(void **state)
 	}
 
 
+}
+
+static void test_correct_get_datetime_info(void **state)
+{
+	(void) state;
+	char current_datetime[DATETIME_BUF_SIZE] = {0};
+	char boot_datetime[DATETIME_BUF_SIZE] = {0};
+	int rc = 0;
+
+	will_return(__wrap_time, 1615406419);
+	will_return(__wrap_sysinfo, 1000);
+	will_return(__wrap_sysinfo, 0);
+	rc = get_datetime_info(current_datetime, boot_datetime);
+	assert_int_equal(rc, 0);
+	assert_string_equal(current_datetime, "2021-03-10T21:00:19Z");
+	assert_string_equal(boot_datetime, "2021-03-10T20:43:39Z");
+}
+
+static void test_incorrect_get_datetime_info(void **state)
+{
+	(void) state;
+	char current_datetime[DATETIME_BUF_SIZE] = {0};
+	char boot_datetime[DATETIME_BUF_SIZE] = {0};
+	int rc = 0;
+
+	will_return(__wrap_time, 1615406419);
+	will_return(__wrap_sysinfo, 0);
+	will_return(__wrap_sysinfo, -1);
+	// Test handling of sysinfo error
+	rc = get_datetime_info(current_datetime, boot_datetime);
+	assert_int_equal(rc, -1);
+}
+
+time_t __wrap_time(time_t *tloc)
+{
+	return (time_t) mock();
+}
+
+int __wrap_sysinfo(struct sysinfo *info)
+{
+	info->uptime = (time_t) mock();
+	return (int) mock();
 }
