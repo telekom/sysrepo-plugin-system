@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <cmocka.h>
 
-#define PLUGIN
 #include "general.c"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))

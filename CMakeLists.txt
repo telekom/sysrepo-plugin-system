@@ -17,6 +17,10 @@ set(SOURCES
     src/utils/ntp/server_list.c
 )
 
+if (NOT PLUGIN)
+	set(SOURCES ${SOURCES} src/main.c)
+endif()
+
 # get sysrepo version
 find_package(PkgConfig)
 if (PKG_CONFIG_FOUND)
