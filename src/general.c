@@ -699,19 +699,21 @@ static int get_timezone_name(char *value)
 	ssize_t len = 0;
 	size_t start = 0;
 
-	if ((len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1)) != -1) {
-		buf[len] = '\0';
-	} else {
-		goto error_out;
+	len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1);
+	if (len == -1) {
+		return -1;
+	}
+
+	buf[len] = '\0';
+
+	if (strncmp(buf, TIMEZONE_DIR, strlen(TIMEZONE_DIR)) != 0) {
+		return -1;
 	}
 
 	start = strlen(TIMEZONE_DIR);
 	strncpy(value, &buf[start], strnlen(buf, TIMEZONE_NAME_LEN));
 
 	return 0;
-
-error_out:
-	return -1;
 }
 
 static char *system_xpath_get(const struct lyd_node *node)
