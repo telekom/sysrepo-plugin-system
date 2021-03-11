@@ -16,6 +16,7 @@ static void test_correct_get_os_info(void **state);
 static void test_incorrect_get_os_info(void **state);
 static void test_correct_get_timezone_name(void **state);
 static void test_incorrect_get_timezone_name(void **state);
+static void test_readlink_fail_get_timezone_name(void **state);
 
 int main(void)
 {
@@ -28,6 +29,7 @@ int main(void)
 		cmocka_unit_test(test_incorrect_get_os_info),
 		cmocka_unit_test(test_correct_get_timezone_name),
 		cmocka_unit_test(test_incorrect_get_timezone_name),
+		cmocka_unit_test(test_readlink_fail_get_timezone_name)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -192,7 +194,7 @@ int __wrap_uname(struct utsname *buf)
 static void test_correct_get_timezone_name(void **state)
 {
 	(void) state;
-	char timezone_name[TIMEZONE_NAME_LEN];
+	char timezone_name[TIMEZONE_NAME_LEN] = {0};
 	const char *timezone_path = "/usr/share/zoneinfo/Europe/Stockholm";
 	const char *expected_timezone = "Europe/Stockholm";
 	int rc = 0;
@@ -206,7 +208,31 @@ static void test_correct_get_timezone_name(void **state)
 
 static void test_incorrect_get_timezone_name(void **state)
 {
-	return;
+	(void) state;
+	char timezone_name[TIMEZONE_NAME_LEN] = "This shouldn't change";
+	const char *timezone_path = "/usr/share/error/Europe/Stockholm";
+	int rc = 0;
+
+	will_return(__wrap_readlink, timezone_path);
+	will_return(__wrap_readlink, strlen(timezone_path));
+	rc = get_timezone_name(timezone_name);
+	assert_int_equal(rc, -1);
+	assert_string_equal(timezone_name, "This shouldn't change");
+}
+
+static void test_readlink_fail_get_timezone_name(void **state)
+{
+	(void) state;
+	char timezone_name[TIMEZONE_NAME_LEN] = "This shouldn't change";
+	const char *timezone_path = "/usr/share/error/Europe/Stockholm";
+	int rc = 0;
+
+	will_return(__wrap_readlink, timezone_path);
+	will_return(__wrap_readlink, -1);
+	rc = get_timezone_name(timezone_name);
+	assert_int_equal(rc, -1);
+	assert_string_equal(timezone_name, "This shouldn't change");
+
 }
 
 ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
