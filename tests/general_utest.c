@@ -12,6 +12,8 @@ static void test_correct_set_datetime(void **state);
 static void test_incorrect_set_datetime(void **state);
 static void test_correct_get_datetime_info(void **state);
 static void test_incorrect_get_datetime_info(void **state);
+static void test_correct_get_os_info(void **state);
+static void test_incorrect_get_os_info(void **state);
 
 int main(void)
 {
@@ -20,6 +22,8 @@ int main(void)
 		cmocka_unit_test(test_incorrect_set_datetime),
 		cmocka_unit_test(test_correct_get_datetime_info),
 		cmocka_unit_test(test_incorrect_get_datetime_info),
+		cmocka_unit_test(test_correct_get_os_info),
+		cmocka_unit_test(test_incorrect_get_os_info),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -110,5 +114,73 @@ time_t __wrap_time(time_t *tloc)
 int __wrap_sysinfo(struct sysinfo *info)
 {
 	info->uptime = (time_t) mock();
+	return (int) mock();
+}
+
+static void test_correct_get_os_info(void **state)
+{
+	(void) state;
+	char *os_name = NULL;
+	char *os_release = NULL;
+	char *os_version = NULL;
+	char *machine = NULL;
+	const char *os_name_expected = "OS_NAME_TEST";
+	const char *os_release_expected = "OS_RELEASE_TEST";
+	const char *os_version_expected = "OS_VERSION_TEST";
+	const char *machine_expected = "MACHINE_TEST";
+	int rc = 0;
+
+	will_return(__wrap_uname, os_name_expected);
+	will_return(__wrap_uname, os_release_expected);
+	will_return(__wrap_uname, os_version_expected);
+	will_return(__wrap_uname, machine_expected);
+	will_return(__wrap_uname, 0);
+	rc = get_os_info(&os_name, &os_release, &os_version, &machine);
+	assert_int_equal(rc, 0);
+	assert_string_equal(os_name, os_name_expected);
+	assert_string_equal(os_release, os_release_expected);
+	assert_string_equal(os_version, os_version_expected);
+	assert_string_equal(machine, machine_expected);
+}
+
+static void test_incorrect_get_os_info(void **state)
+{
+	(void) state;
+	char *os_name = NULL;
+	char *os_release = NULL;
+	char *os_version = NULL;
+	char *machine = NULL;
+	const char *os_name_expected = "OS_NAME_TEST";
+	const char *os_release_expected = "OS_RELEASE_TEST";
+	const char *os_version_expected = "OS_VERSION_TEST";
+	const char *machine_expected = "MACHINE_TEST";
+	int rc = 0;
+
+	will_return(__wrap_uname, os_name_expected);
+	will_return(__wrap_uname, os_release_expected);
+	will_return(__wrap_uname, os_version_expected);
+	will_return(__wrap_uname, machine_expected);
+	will_return(__wrap_uname, -1);
+	rc = get_os_info(&os_name, &os_release, &os_version, &machine);
+	assert_int_equal(rc, -1);
+	assert_null(os_name);
+	assert_null(os_release);
+	assert_null(os_version);
+	assert_null(machine);
+}
+
+int __wrap_uname(struct utsname *buf)
+{
+	char *tmp = NULL;
+
+	tmp = (char *) mock();
+	strncpy(buf->sysname, tmp, strlen(tmp));
+	tmp = (char *) mock();
+	strncpy(buf->release, tmp, strlen(tmp));
+	tmp = (char *) mock();
+	strncpy(buf->version, tmp, strlen(tmp));
+	tmp = (char *) mock();
+	strncpy(buf->machine, tmp, strlen(tmp));
+
 	return (int) mock();
 }

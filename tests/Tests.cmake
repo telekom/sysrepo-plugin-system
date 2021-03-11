@@ -9,5 +9,6 @@ target_link_libraries(general_utest
 	"-Wl,--wrap=clock_settime"
 	"-Wl,--wrap=time"
 	"-Wl,--wrap=sysinfo"
+	"-Wl,--wrap=uname"
 	)
 add_test(NAME general_utest COMMAND general_utest)
