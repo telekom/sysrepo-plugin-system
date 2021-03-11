@@ -823,11 +823,11 @@ static int store_values_to_datastore(sr_session_ctx_t *session, const char *requ
 */
 
 static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine){
-	int error = 0;
 	struct utsname uname_data = {0};
 
-	if (uname(&uname_data) < 0)
-		error = -1;
+	if (uname(&uname_data) < 0) {
+		return -1;
+	}
 
 	*os_name = xmalloc(strnlen(uname_data.sysname, UTS_LEN + 1));
 	*os_release = xmalloc(strnlen(uname_data.release, UTS_LEN + 1));
@@ -839,7 +839,8 @@ static int get_os_info(char **os_name, char **os_release, char **os_version, cha
 	strncpy(*os_version, uname_data.version, strnlen(uname_data.version, UTS_LEN + 1));
 	strncpy(*machine, uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
 
-	return error;
+	return 0;
+
 }
 
 static int get_datetime_info(char current_datetime[], char boot_datetime[])
