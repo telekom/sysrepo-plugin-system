@@ -10,5 +10,6 @@ target_link_libraries(general_utest
 	"-Wl,--wrap=time"
 	"-Wl,--wrap=sysinfo"
 	"-Wl,--wrap=uname"
+	"-Wl,--wrap=readlink"
 	)
 add_test(NAME general_utest COMMAND general_utest)

@@ -14,6 +14,8 @@ static void test_correct_get_datetime_info(void **state);
 static void test_incorrect_get_datetime_info(void **state);
 static void test_correct_get_os_info(void **state);
 static void test_incorrect_get_os_info(void **state);
+static void test_correct_get_timezone_name(void **state);
+static void test_incorrect_get_timezone_name(void **state);
 
 int main(void)
 {
@@ -24,6 +26,8 @@ int main(void)
 		cmocka_unit_test(test_incorrect_get_datetime_info),
 		cmocka_unit_test(test_correct_get_os_info),
 		cmocka_unit_test(test_incorrect_get_os_info),
+		cmocka_unit_test(test_correct_get_timezone_name),
+		cmocka_unit_test(test_incorrect_get_timezone_name),
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -183,4 +187,46 @@ int __wrap_uname(struct utsname *buf)
 	strncpy(buf->machine, tmp, strlen(tmp));
 
 	return (int) mock();
+}
+
+static void test_correct_get_timezone_name(void **state)
+{
+	(void) state;
+	char timezone_name[TIMEZONE_NAME_LEN];
+	const char *timezone_path = "/usr/share/zoneinfo/Europe/Stockholm";
+	const char *expected_timezone = "Europe/Stockholm";
+	int rc = 0;
+
+	will_return(__wrap_readlink, timezone_path);
+	will_return(__wrap_readlink, strlen(timezone_path));
+	rc = get_timezone_name(timezone_name);
+	assert_int_equal(rc, 0);
+	assert_string_equal(timezone_name, expected_timezone);
+}
+
+static void test_incorrect_get_timezone_name(void **state)
+{
+	return;
+}
+
+ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
+{
+	const char *target = NULL;
+	size_t min = bufsize;
+	int error = 0;
+
+	target = (const char *) mock();
+	error = (int) mock();
+
+	if (error < 0) {
+		return error;
+	}
+
+	if (min > strlen(target)) {
+		min = strlen(target);
+	}
+
+	memcpy(buf, target, min);
+	
+	return min;
 }
