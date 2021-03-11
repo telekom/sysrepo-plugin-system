@@ -1,3 +1,4 @@
+#include "general.h"
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
@@ -14,7 +15,6 @@
 #define __USE_XOPEN // needed for strptime
 #include <time.h>
 
-#include <sysrepo.h>
 #include <sysrepo/xpath.h>
 
 #include "utils/memory.h"
@@ -271,7 +271,7 @@ error_out:
 	return -1;
 }
 
-static void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
+void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 {
 	sr_session_ctx_t *startup_session = (sr_session_ctx_t *) private_data;
 
@@ -699,19 +699,21 @@ static int get_timezone_name(char *value)
 	ssize_t len = 0;
 	size_t start = 0;
 
-	if ((len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1)) != -1) {
-		buf[len] = '\0';
-	} else {
-		goto error_out;
+	len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1);
+	if (len == -1) {
+		return -1;
+	}
+
+	buf[len] = '\0';
+
+	if (strncmp(buf, TIMEZONE_DIR, strlen(TIMEZONE_DIR)) != 0) {
+		return -1;
 	}
 
 	start = strlen(TIMEZONE_DIR);
 	strncpy(value, &buf[start], strnlen(buf, TIMEZONE_NAME_LEN));
 
 	return 0;
-
-error_out:
-	return -1;
 }
 
 static char *system_xpath_get(const struct lyd_node *node)
@@ -823,11 +825,11 @@ static int store_values_to_datastore(sr_session_ctx_t *session, const char *requ
 */
 
 static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine){
-	int error = 0;
 	struct utsname uname_data = {0};
 
-	if (uname(&uname_data) < 0)
-		error = -1;
+	if (uname(&uname_data) < 0) {
+		return -1;
+	}
 
 	*os_name = xmalloc(strnlen(uname_data.sysname, UTS_LEN + 1));
 	*os_release = xmalloc(strnlen(uname_data.release, UTS_LEN + 1));
@@ -839,7 +841,8 @@ static int get_os_info(char **os_name, char **os_release, char **os_version, cha
 	strncpy(*os_version, uname_data.version, strnlen(uname_data.version, UTS_LEN + 1));
 	strncpy(*machine, uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
 
-	return error;
+	return 0;
+
 }
 
 static int get_datetime_info(char current_datetime[], char boot_datetime[])
@@ -962,61 +965,3 @@ static int set_datetime(char *datetime)
 
 	return 0;
 }
-
-#ifndef PLUGIN
-#include <signal.h>
-#include <unistd.h>
-
-volatile int exit_application = 0;
-
-static void sigint_handler(__attribute__((unused)) int signum);
-
-int main(void)
-{
-	int error = SR_ERR_OK;
-	sr_conn_ctx_t *connection = NULL;
-	sr_session_ctx_t *session = NULL;
-	void *private_data = NULL;
-
-	sr_log_stderr(SR_LL_DBG);
-
-	/* connect to sysrepo */
-	error = sr_connect(SR_CONN_DEFAULT, &connection);
-	if (error) {
-		SRP_LOG_ERR("sr_connect error (%d): %s", error, sr_strerror(error));
-		goto out;
-	}
-
-	error = sr_session_start(connection, SR_DS_RUNNING, &session);
-	if (error) {
-		SRP_LOG_ERR("sr_session_start error (%d): %s", error, sr_strerror(error));
-		goto out;
-	}
-
-	error = sr_plugin_init_cb(session, &private_data);
-	if (error) {
-		SRP_LOG_ERRMSG("sr_plugin_init_cb error");
-		goto out;
-	}
-
-	/* loop until ctrl-c is pressed / SIGINT is received */
-	signal(SIGINT, sigint_handler);
-	signal(SIGPIPE, SIG_IGN);
-	while (!exit_application) {
-		sleep(1);
-	}
-
-out:
-	sr_plugin_cleanup_cb(session, private_data);
-	sr_disconnect(connection);
-
-	return error ? -1 : 0;
-}
-
-static void sigint_handler(__attribute__((unused)) int signum)
-{
-	SRP_LOG_INFMSG("Sigint called, exiting...");
-	exit_application = 1;
-}
-
-#endif
