@@ -1,0 +1,53 @@
+stages:
+  - build
+  - test_unit
+  - test_unit_memory
+
+build:
+  stage: build
+  script:
+    - mkdir build
+    - cd build
+    - "CC=clang cmake -DENABLE_BUILD_TESTS=ON .."
+    - make
+  artifacts:
+    paths:
+      - build/
+
+build_sanitized:
+  stage: build
+  script:
+    - mkdir build_sanitized
+    - cd build_sanitized
+    - "CC=clang cmake -DENABLE_BUILD_TESTS=ON -DENABLE_SANITIZER=ON .."
+    - make
+  artifacts:
+    paths:
+      - build_sanitized/
+
+test_unit:
+  stage: test_unit
+  script:
+    - cd build
+    - ctest -T test --output-on-failure
+  artifacts:
+    paths:
+      - build/
+
+test_unit_valgrind:
+  stage: test_unit_memory
+  script:
+    - cd build
+    - ctest -T memcheck
+  artifacts:
+    paths:
+      - build/
+
+test_unit_sanitized:
+  stage: test_unit_memory
+  script:
+    - cd build_sanitized
+    - ctest -T test --output-on-failure
+  artifacts:
+    paths:
+      - build_sanitized/
