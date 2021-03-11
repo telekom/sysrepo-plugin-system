@@ -19,11 +19,23 @@ build_sanitized:
   script:
     - mkdir build_sanitized
     - cd build_sanitized
-    - "CC=clang cmake -DENABLE_BUILD_TESTS=ON -DENABLE_SANITIZER=ON .."
+    - "CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=address,undefined\" -DENABLE_SANITIZER=ON .."
     - make
   artifacts:
     paths:
       - build_sanitized/
+
+build_sanitized_memory:
+  stage: build
+  script:
+    - mkdir build_sanitized_memory
+    - cd build_sanitized_memory
+    - "CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=memory\" -DENABLE_SANITIZER=ON .."
+    - make
+  artifacts:
+    paths:
+      - build_sanitized_memory/
+
 
 test_unit:
   stage: test_unit
@@ -51,3 +63,12 @@ test_unit_sanitized:
   artifacts:
     paths:
       - build_sanitized/
+
+test_unit_sanitized_memory:
+  stage: test_unit_memory
+  script:
+    - cd build_sanitized_memory
+    - ctest -T test --output-on-failure
+  artifacts:
+    paths:
+      - build_sanitized_memory/
