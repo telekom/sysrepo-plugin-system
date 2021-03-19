@@ -4,7 +4,41 @@
 
 This Sysrepo plugin is responsible for bridging a Linux system and Sysrepo/YANG datastore system configuration.
 
-## Development Setup
+## Build
+
+This section describes how to build the plugin on hosts that have Sysrepo installed. This 
+includes standard Linux machines and docker images with Sysrepo, Netopeer and other required dependencies.
+
+First, clone the repo:
+```
+$ git clone git@lab.sartura.hr:sysrepo/sysrepo-plugin-general.git
+```
+
+Next, make a build directory and prepare the build scripts:
+
+```
+$ mkdir build && cd build
+$ cmake ..
+```
+
+This will build the plugin as a standalone executable which can be run without `sysrepo-plugind`
+
+To build the project in plugin mode, run the following instead:
+
+```
+$ cmake -DPLUGIN=ON ..
+```
+
+After that, run `make` and `make install`
+
+Finally to run the plugin, the `iana-crypt-hash` and `ietf-system` YANG modules need to be installed.
+
+```
+$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang
+$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang
+```
+
+## Development Setup with setup-dev-sysrepo scripts
 
 Setup the development environment using the provided [`setup-dev-sysrepo`](https://github.com/sartura/setup-dev-sysrepo) scripts. This will build all the necessary components.
 
