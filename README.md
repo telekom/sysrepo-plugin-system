@@ -4,6 +4,11 @@
 
 This Sysrepo plugin is responsible for bridging a Linux system and Sysrepo/YANG datastore system configuration.
 
+## Dependencies
+Other than libyang 1 and Sysrepo, no build time dependencies are required.
+However, to use the NTP part of the plugin, `ntpd` is required, as the plugin
+uses `/etc/ntp.conf`
+
 ## Build
 
 This section describes how to build the plugin on hosts that have Sysrepo installed. This 
