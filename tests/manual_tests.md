@@ -49,18 +49,24 @@ The contact information is retrieved from the `/etc/passwd` file, which we can c
 ```
 $ cat /etc/passwd
 root:x:0:0:Mr. Admin:/root:/bin/bash
-bin:x:1:1::/:/usr/bin/nologin
-daemon:x:2:2::/:/usr/bin/nologin
-mail:x:8:12::/var/spool/mail:/usr/bin/nologin
-ftp:x:14:11::/srv/ftp:/usr/bin/nologin
-http:x:33:33::/srv/http:/usr/bin/nologin
-nobody:x:65534:65534:Nobody:/:/usr/bin/nologin
-dbus:x:81:81:System Message Bus:/:/usr/bin/nologin
-systemd-journal-remote:x:982:982:systemd Journal Remote:/:/usr/bin/nologin
-systemd-network:x:981:981:systemd Network Management:/:/usr/bin/nologin
-systemd-resolve:x:980:980:systemd Resolver:/:/usr/bin/nologin
-systemd-timesync:x:979:979:systemd Time Synchronization:/:/usr/bin/nologin
-systemd-coredump:x:978:978:systemd Core Dumper:/:/usr/bin/nologin
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
 ```
 
 We can change the contact field, which will store new contact information in the `/etc/passwd` file.
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/contact'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <contact>test contact</contact>
+</system>
+
+$ cat /etc/passwd
+root:x:0:0:test contact:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+```
