@@ -484,14 +484,14 @@ static int set_ntp(const char *xpath, char *value)
 			// TODO: add - 'systemctl stop ntpd' as well ?
 			error = system("systemctl stop ntpd");
 			if (error != 0) {
-				SRP_LOG_ERR("\"systemctl disable ntpd\" failed with return value: %d", error);
+				SRP_LOG_ERR("\"systemctl stop ntpd\" failed with return value: %d", error);
 				/* Debian based systems have a service file named
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
-				SRP_LOG_ERRMSG("trying systemctl enable --now ntp instead");
+				SRP_LOG_ERRMSG("trying systemctl stop ntp instead");
 				error = system("systemctl stop ntp");
 				if (error != 0) {
-					SRP_LOG_ERR("\"systemctl disable ntp\" failed with return value: %d", error);
+					SRP_LOG_ERR("\"systemctl stop ntp\" failed with return value: %d", error);
 					return -1;
 				} else {
 					error = system("systemctl disable ntp");
