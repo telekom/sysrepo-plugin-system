@@ -198,3 +198,15 @@ This action is followed by output on the plugin standard output:
 [INF]: Successful processing of "rpc" event with ID 1 priority 0 (remaining 0 subscribers).
 [...]
 ```
+
+## Testing
+
+### Manual tests
+The `tests/manual_tests.md` file contains a list of sysrepo commands that can be used to test
+the currently implemented features of the plugin.
+It can also serve as a list of currently implemented YANG nodes in the model.
+
+### Unit tests
+Unit tests for the plugin are available in `tests/`. To build the unit tests, use the `-DENABLE_BUILD_TESTS=ON` option when running cmake. To then run the tests, run `ctest` in the build directory.
+
+The tests can be built with sanitizers, by setting appropriate compile flags through cmake (`-DCMAKE_C_FLAGS='-fsanitize=address,undefined` for example).
