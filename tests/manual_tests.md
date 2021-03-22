@@ -70,3 +70,49 @@ bin:x:2:2:bin:/bin:/usr/sbin/nologin
 sys:x:3:3:sys:/dev:/usr/sbin/nologin
 sync:x:4:65534:sync:/bin:/bin/sync
 ```
+
+#### Hostname
+We can retrieve the hostname:
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/hostname'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <hostname>test.it</hostname>
+</system>
+```
+
+The hostname is set and retrieved using the `sethostname()` and `gethostname()` system calls.
+
+We can verify that the hostname matches the system hostname:
+```
+hostnamectl
+   Static hostname: c70d08e518bd
+Transient hostname: test.it
+         Icon name: computer-laptop
+           Chassis: laptop
+        Machine ID: d95430cef4c5dce339469c8c6011e470
+           Boot ID: ac5d9f56dbde476aaec818a8016df0d7
+  Operating System: Ubuntu 18.04.5 LTS
+            Kernel: Linux 5.10.8
+      Architecture: x86-64
+```
+
+The plugin also supports hostname editing. After setting it to `test2` with `sysrepocfg -Evim -fjson -m ietf-system`,
+we can verify that the changes have been applied.
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/hostname'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <hostname>test2</hostname>
+</system>
+$ hostnamectl
+   Static hostname: c70d08e518bd
+Transient hostname: test2
+         Icon name: computer-laptop
+           Chassis: laptop
+        Machine ID: d95430cef4c5dce339469c8c6011e470
+           Boot ID: ac5d9f56dbde476aaec818a8016df0d7
+  Operating System: Ubuntu 18.04.5 LTS
+            Kernel: Linux 5.10.8
+      Architecture: x86-64
+```
