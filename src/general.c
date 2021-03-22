@@ -473,7 +473,7 @@ static int set_ntp(const char *xpath, char *value)
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
 				SRP_LOG_ERRMSG("trying systemctl enable --now ntp instead");
-				error = system("systemctl enable --now ntpd");
+				error = system("systemctl enable --now ntp");
 				if (error != 0) {
 					SRP_LOG_ERR("\"systemctl enable --now ntp\" failed with return value: %d", error);
 					return -1;
@@ -489,7 +489,7 @@ static int set_ntp(const char *xpath, char *value)
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
 				SRP_LOG_ERRMSG("trying systemctl enable --now ntp instead");
-				error = system("systemctl disable ntpd");
+				error = system("systemctl disable ntp");
 				if (error != 0) {
 					SRP_LOG_ERR("\"systemctl disable ntp\" failed with return value: %d", error);
 					return -1;
