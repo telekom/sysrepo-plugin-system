@@ -116,3 +116,33 @@ Transient hostname: test2
             Kernel: Linux 5.10.8
       Architecture: x86-64
 ```
+
+#### Timezone-name
+If the timezone-name feature is enabled, we can retrieve and change the timezone-name.
+The timezone data is retrieved and set by using the `/etc/localtime` symlink.
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/clock/timezone-name'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <clock>
+    <timezone-name>Europe/Stockholm</timezone-name>
+  </clock>
+</system>
+
+$ ls -al /etc/localtime
+lrwxrwxrwx 1 root root 33 Mar 22 16:28 /etc/localtime -> /usr/share/zoneinfo/Europe/Stockholm
+```
+
+After setting it to `Europe/Zagreb` with `sysrepocfg -Evim -fjson -m ietf-system`, we can verify the changes.
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/clock/timezone-name'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <clock>
+    <timezone-name>Europe/Zagreb</timezone-name>
+  </clock>
+</system>
+$ ls -al /etc/localtime
+lrwxrwxrwx 1 root root 33 Mar 22 16:28 /etc/localtime -> /usr/share/zoneinfo/Europe/Zagreb
+```
+
