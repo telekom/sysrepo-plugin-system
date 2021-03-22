@@ -13,6 +13,7 @@ uses `/etc/ntp.conf`
 
 This section describes how to build the plugin on hosts that have Sysrepo installed. This 
 includes standard Linux machines and docker images with Sysrepo, Netopeer and other required dependencies.
+Additionally, a Dockerfile that builds all the dependencies and the plugin is available in `docker/`
 
 First, clone the repo:
 ```
