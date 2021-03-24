@@ -14,7 +14,7 @@ Since the plugin depends on systemd, we need to run the container with `CAP_SYS_
 cgroups FS within the container.
 
 ```
-docker run -ti -v /sys/fs/cgroup:/sys/fs/cgroup:ro --cap-add SYS_ADMIN --name system-plugin sysrepo/system-plugin /sbin/init
+docker run -ti -v /sys/fs/cgroup:/sys/fs/cgroup:ro --cap-add SYS_ADMIN --cap-add SYS_TIME --name system-plugin sysrepo/system-plugin /sbin/init
 ```
 
 
