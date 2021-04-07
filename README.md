@@ -211,3 +211,87 @@ It can also serve as a list of currently implemented YANG nodes in the model.
 Unit tests for the plugin are available in `tests/`. To build the unit tests, use the `-DENABLE_BUILD_TESTS=ON` option when running cmake. To then run the tests, run `ctest` in the build directory.
 
 The tests can be built with sanitizers, by setting appropriate compile flags through cmake (`-DCMAKE_C_FLAGS='-fsanitize=address,undefined` for example).
+
+
+## Nodes that are currently implemented
+- DONE - nodes are implemented and a value is provided if such information can be retrieved
+- NA - node is not implemented
+- IN PROGRESS - implementation in progress
+
+```
+module: ietf-system
+  +--rw system
+  |  +--rw contact?          string                                         DONE
+  |  +--rw hostname?         inet:domain-name                               DONE
+  |  +--rw location?         string                                         IN PROGRESS
+  |  +--rw clock
+  |  |  +--rw (timezone)?
+  |  |     +--:(timezone-name) {timezone-name}?
+  |  |     |  +--rw timezone-name?         timezone-name                    DONE
+  |  |     +--:(timezone-utc-offset)
+  |  |        +--rw timezone-utc-offset?   int16                            NA
+  |  +--rw ntp! {ntp}?
+  |  |  +--rw enabled?   boolean                                            DONE
+  |  |  +--rw server* [name]
+  |  |     +--rw name                string                                 DONE
+  |  |     +--rw (transport)
+  |  |     |  +--:(udp)
+  |  |     |     +--rw udp
+  |  |     |        +--rw address    inet:host                              DONE
+  |  |     |        +--rw port?      inet:port-number {ntp-udp-port}?       DONE
+  |  |     +--rw association-type?   enumeration                            DONE
+  |  |     +--rw iburst?             boolean                                DONE
+  |  |     +--rw prefer?             boolean                                DONE
+  |  +--rw dns-resolver
+  |  |  +--rw search*    inet:domain-name                                   IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  +--rw server* [name]
+  |  |  |  +--rw name                 string                                IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  |  +--rw (transport)
+  |  |  |     +--:(udp-and-tcp)
+  |  |  |        +--rw udp-and-tcp
+  |  |  |           +--rw address    inet:ip-address                        IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  |           +--rw port?      inet:port-number {dns-udp-tcp-port}?   NA
+  |  |  +--rw options
+  |  |     +--rw timeout?    uint8                                          IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |     +--rw attempts?   uint8                                          IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  +--rw radius {radius}?
+  |  |  +--rw server* [name]
+  |  |  |  +--rw name                   string                              NA
+  |  |  |  +--rw (transport)
+  |  |  |  |  +--:(udp)
+  |  |  |  |     +--rw udp
+  |  |  |  |        +--rw address                inet:host                  NA
+  |  |  |  |        +--rw authentication-port?   inet:port-number           NA
+  |  |  |  |        +--rw shared-secret          string                     NA
+  |  |  |  +--rw authentication-type?   identityref                         NA
+  |  |  +--rw options
+  |  |     +--rw timeout?    uint8                                          NA
+  |  |     +--rw attempts?   uint8                                          NA
+  |  +--rw authentication {authentication}?
+  |     +--rw user-authentication-order*   identityref                      NA
+  |     +--rw user* [name] {local-users}?
+  |        +--rw name              string                                   IN PROGRESS
+  |        +--rw password?         ianach:crypt-hash                        IN PROGRESS
+  |        +--rw authorized-key* [name]
+  |           +--rw name         string                                     IN PROGRESS
+  |           +--rw algorithm    string                                     IN PROGRESS
+  |           +--rw key-data     binary                                     IN PROGRESS
+  +--ro system-state
+     +--ro platform
+     |  +--ro os-name?      string                                          DONE
+     |  +--ro os-release?   string                                          DONE
+     |  +--ro os-version?   string                                          DONE
+     |  +--ro machine?      string                                          DONE
+     +--ro clock
+        +--ro current-datetime?   yang:date-and-time                        DONE
+        +--ro boot-datetime?      yang:date-and-time                        DONE
+
+  rpcs:
+    +---x set-current-datetime
+    |  +---w input
+    |     +---w current-datetime    yang:date-and-time                      DONE
+    +---x system-restart                                                    DONE
+    +---x system-shutdown                                                   DONE
+
+```
+
