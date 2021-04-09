@@ -441,7 +441,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 			}
 
 			SRP_LOG_DBG("node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
-			
+
 			if (node->schema->nodetype == LYS_LEAF) {
 				if (operation == SR_OP_CREATED || operation == SR_OP_MODIFIED) {
 					error = set_config_value(node_xpath, node_value, operation);
@@ -458,6 +458,10 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 					if (error) {
 						SRP_LOG_ERR("set_config_value error (%d)", error);
 						goto error_out;
+					}
+
+					if (strncmp(node_xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
+						ntp_change = true;
 					}
 				}
 			} 
@@ -550,9 +554,16 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 		// https://linux.die.net/man/5/tzfile
 		// https://linux.die.net/man/8/zic
 	} else if (strncmp(xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
-		error = set_ntp(xpath, (char *)value);
-		if (error != 0) {
-			SRP_LOG_ERRMSG("set_ntp error");
+		if (operation == SR_OP_DELETED) {
+			error = set_ntp(xpath, "");
+			if (error != 0) {
+				SRP_LOG_ERR("set_ntp error: %s", strerror(errno));
+			}
+		} else {
+			error = set_ntp(xpath, (char *)value);
+			if (error != 0) {
+				SRP_LOG_ERR("set_ntp error: %s", strerror(errno));
+			}
 		}
 	}
 
@@ -621,10 +632,18 @@ static int set_ntp(const char *xpath, char *value)
 		ntp_server_name = sr_xpath_key_value((char *) xpath, "server", "name", &state);
 
 		if (strcmp(ntp_node, "name") == 0) {
-			error = ntp_server_list_add_server(ntp_servers, value);
-			if (error != 0) {
-				SRP_LOG_ERRMSG("error adding new ntp server");
-				return -1;
+			if (strcmp(value, "") == 0){
+				error = ntp_server_list_set_delete(ntp_servers, ntp_server_name, true);
+				if (error != 0) {
+					SRP_LOG_ERRMSG("ntp_server_list_set_delete error");
+					return -1;
+				}
+			} else {
+				error = ntp_server_list_add_server(ntp_servers, value);
+				if (error != 0) {
+					SRP_LOG_ERRMSG("error adding new ntp server");
+					return -1;
+				}
 			}
 
 		} else if (strcmp(ntp_node, "address") == 0) {

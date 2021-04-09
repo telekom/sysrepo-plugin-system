@@ -22,6 +22,7 @@ typedef struct {
 	char *assoc_type;
 	char *iburst;
 	char *prefer;
+	bool delete;
 } ntp_server_t;
 
 struct ntp_server_list_s {
@@ -43,6 +44,7 @@ void ntp_server_init(ntp_server_t *s)
 	s->iburst[0] = 0;
 	s->prefer = xmalloc(sizeof(char));
 	s->prefer[0] = 0;
+	s->delete = false;
 }
 
 void ntp_server_set_name(ntp_server_t *s, char *name)
@@ -79,6 +81,8 @@ void ntp_server_free(ntp_server_t *s)
 	if (s->prefer) {
 		FREE_SAFE(s->prefer);
 	}
+
+	s->delete = false;
 }
 
 void ntp_server_list_init(ntp_server_list_t **sl)
@@ -93,15 +97,40 @@ void ntp_server_list_init(ntp_server_list_t **sl)
 
 int ntp_server_list_add_server(ntp_server_list_t *sl, char *name)
 {
-	int error = 0;
+	bool name_found = false;
 
 	if (sl->count >= NTP_MAX_SERVERS) {
-		error = EINVAL;
-	} else {
-		ntp_server_set_name(&sl->servers[sl->count], name);
-		++sl->count;
+		return EINVAL;
 	}
-	return error;
+
+	for (int i = 0; i < sl->count; i++) {
+		if (sl->servers[i].name != NULL) { // in case we deleted a server it will be NULL
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				name_found = true;
+				break;
+			}
+		}
+	}
+
+	if (!name_found) {
+		// set the new server to the first free one in the list
+		// the one with name == 0
+		int pos = sl->count;
+		for (int i = 0; i < sl->count; i++) {
+			if (sl->servers[i].name == NULL) {
+				pos = i;
+				break;
+			}
+		}
+
+		ntp_server_set_name(&sl->servers[pos], name);
+
+		if (pos == sl->count) {
+			++sl->count;
+		}
+	}
+
+	return 0;
 }
 
 int ntp_server_list_set_address(ntp_server_list_t *sl, char *name, char *address)
@@ -109,21 +138,23 @@ int ntp_server_list_set_address(ntp_server_list_t *sl, char *name, char *address
 	bool server_found = false;
 
 	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			// if the address was already allocated (set)
-			// free it first
-			if (sl->servers[i].address != NULL) {
-				FREE_SAFE(sl->servers[i].address);
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				// if the address was already allocated (set)
+				// free it first
+				if (sl->servers[i].address != NULL) {
+					FREE_SAFE(sl->servers[i].address);
+				}
+
+				unsigned long tmp_len = 0;
+				tmp_len = strlen(address);
+				sl->servers[i].address = xmalloc(sizeof(char) * (tmp_len + 1));
+				memcpy(sl->servers[i].address, address, tmp_len);
+				sl->servers[i].address[tmp_len] = 0;
+
+				server_found = true;
+				break;
 			}
-
-			unsigned long tmp_len = 0;
-			tmp_len = strlen(address);
-			sl->servers[i].address = xmalloc(sizeof(char) * (tmp_len + 1));
-			memcpy(sl->servers[i].address, address, tmp_len);
-			sl->servers[i].address[tmp_len] = 0;
-
-			server_found = true;
-			break;
 		}
 	}
 	if (!server_found) {
@@ -137,20 +168,22 @@ int ntp_server_list_set_port(ntp_server_list_t *sl, char *name, char *port)
 	bool server_found = false;
 
 	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			// if the port was already allocated (set)
-			// free it first
-			if (sl->servers[i].port != NULL) {
-				FREE_SAFE(sl->servers[i].port);
-			}
-			unsigned long tmp_len = 0;
-			tmp_len = strlen(port);
-			sl->servers[i].port = xmalloc(sizeof(char) * (tmp_len + 1));
-			memcpy(sl->servers[i].port, port, tmp_len);
-			sl->servers[i].port[tmp_len] = 0;
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				// if the port was already allocated (set)
+				// free it first
+				if (sl->servers[i].port != NULL) {
+					FREE_SAFE(sl->servers[i].port);
+				}
+				unsigned long tmp_len = 0;
+				tmp_len = strlen(port);
+				sl->servers[i].port = xmalloc(sizeof(char) * (tmp_len + 1));
+				memcpy(sl->servers[i].port, port, tmp_len);
+				sl->servers[i].port[tmp_len] = 0;
 
-			server_found = true;
-			break;
+				server_found = true;
+				break;
+			}
 		}
 	}
 	if (!server_found) {
@@ -164,20 +197,22 @@ int ntp_server_list_set_assoc_type(ntp_server_list_t *sl, char *name, char *asso
 	bool server_found = false;
 
 	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			// if the assoc_type was already allocated (set)
-			// free it first
-			if (sl->servers[i].assoc_type != NULL) {
-				FREE_SAFE(sl->servers[i].assoc_type);
-			}
-			unsigned long tmp_len = 0;
-			tmp_len = strlen(assoc_type);
-			sl->servers[i].assoc_type = xmalloc(sizeof(char) * (tmp_len + 1));
-			memcpy(sl->servers[i].assoc_type, assoc_type, tmp_len);
-			sl->servers[i].assoc_type[tmp_len] = 0;
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				// if the assoc_type was already allocated (set)
+				// free it first
+				if (sl->servers[i].assoc_type != NULL) {
+					FREE_SAFE(sl->servers[i].assoc_type);
+				}
+				unsigned long tmp_len = 0;
+				tmp_len = strlen(assoc_type);
+				sl->servers[i].assoc_type = xmalloc(sizeof(char) * (tmp_len + 1));
+				memcpy(sl->servers[i].assoc_type, assoc_type, tmp_len);
+				sl->servers[i].assoc_type[tmp_len] = 0;
 
-			server_found = true;
-			break;
+				server_found = true;
+				break;
+			}
 		}
 	}
 	if (!server_found) {
@@ -191,20 +226,22 @@ int ntp_server_list_set_iburst(ntp_server_list_t *sl, char *name, char *iburst)
 	bool server_found = false;
 
 	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			// if the iburst was already allocated (set)
-			// free it first
-			if (sl->servers[i].iburst != NULL) {
-				FREE_SAFE(sl->servers[i].iburst);
-			}
-			unsigned long tmp_len = 0;
-			tmp_len = strlen(iburst);
-			sl->servers[i].iburst = xmalloc(sizeof(char) * (tmp_len + 1));
-			memcpy(sl->servers[i].iburst, iburst, tmp_len);
-			sl->servers[i].iburst[tmp_len] = 0;
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				// if the iburst was already allocated (set)
+				// free it first
+				if (sl->servers[i].iburst != NULL) {
+					FREE_SAFE(sl->servers[i].iburst);
+				}
+				unsigned long tmp_len = 0;
+				tmp_len = strlen(iburst);
+				sl->servers[i].iburst = xmalloc(sizeof(char) * (tmp_len + 1));
+				memcpy(sl->servers[i].iburst, iburst, tmp_len);
+				sl->servers[i].iburst[tmp_len] = 0;
 
-			server_found = true;
-			break;
+				server_found = true;
+				break;
+			}
 		}
 	}
 	if (!server_found) {
@@ -218,20 +255,43 @@ int ntp_server_list_set_prefer(ntp_server_list_t *sl, char *name, char *prefer)
 	bool server_found = false;
 
 	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			// if the prefer was already allocated (set)
-			// free it first
-			if (sl->servers[i].prefer != NULL) {
-				FREE_SAFE(sl->servers[i].prefer);
-			}
-			unsigned long tmp_len = 0;
-			tmp_len = strlen(prefer);
-			sl->servers[i].prefer = xmalloc(sizeof(char) * (tmp_len + 1));
-			memcpy(sl->servers[i].prefer, prefer, tmp_len);
-			sl->servers[i].prefer[tmp_len] = 0;
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+				// if the prefer was already allocated (set)
+				// free it first
+				if (sl->servers[i].prefer != NULL) {
+					FREE_SAFE(sl->servers[i].prefer);
+				}
+				unsigned long tmp_len = 0;
+				tmp_len = strlen(prefer);
+				sl->servers[i].prefer = xmalloc(sizeof(char) * (tmp_len + 1));
+				memcpy(sl->servers[i].prefer, prefer, tmp_len);
+				sl->servers[i].prefer[tmp_len] = 0;
 
-			server_found = true;
-			break;
+				server_found = true;
+				break;
+			}
+		}
+	}
+	if (!server_found) {
+		return -1;
+	}
+	return 0;
+}
+
+int ntp_server_list_set_delete(ntp_server_list_t *sl, char *name, bool delete_val)
+{
+	bool server_found = false;
+
+	for (int i = 0; i < sl->count; i++) {
+		if (sl->servers[i].name != NULL) {
+			if (strcmp(sl->servers[i].name, name) == 0) {
+
+				sl->servers[i].delete = delete_val;
+
+				server_found = true;
+				break;
+			}
 		}
 	}
 	if (!server_found) {
@@ -288,28 +348,36 @@ int save_ntp_config(ntp_server_list_t *sl)
 
 	// save all ntp servers from ntp_servers list
 	for (int i = 0; i < sl->count; i++) {
+		if (sl->servers[i].name == NULL) {
+			continue;
+		}
+
 		assoc_len = strlen(sl->servers[i].assoc_type);
 		addr_len = strlen(sl->servers[i].address);
 		port_len = strlen(sl->servers[i].port);
 		iburst_len = strlen(sl->servers[i].iburst);
 		prefer_len = strlen(sl->servers[i].prefer);
 
-		entry_len = assoc_len + addr_len + port_len + iburst_len + prefer_len + 6; // +6 for 4 spaces, a newline char and \0
+		if (sl->servers[i].delete == true) {
+			ntp_server_free(&sl->servers[i]);
+		} else {
+			entry_len = assoc_len + addr_len + port_len + iburst_len + prefer_len + 6; // +6 for 4 spaces, a newline char and \0
 
-		cfg_entry = xmalloc(entry_len);
+			cfg_entry = xmalloc(entry_len);
 
-		// construct the entry string
-		snprintf(cfg_entry, entry_len, "%s %s%c%s %s %s\n",
-				sl->servers[i].assoc_type,
-				sl->servers[i].address,
-				strcmp(sl->servers[i].port,"")==0 ? ' ' : ':',
-				sl->servers[i].port, sl->servers[i].iburst,
-				sl->servers[i].prefer);
+			// construct the entry string
+			snprintf(cfg_entry, entry_len, "%s %s%c%s %s %s\n",
+					sl->servers[i].assoc_type,
+					sl->servers[i].address,
+					strcmp(sl->servers[i].port,"")==0 ? ' ' : ':',
+					sl->servers[i].port, sl->servers[i].iburst,
+					sl->servers[i].prefer);
 
-		// save it to the ntp config temp file
-		fputs(cfg_entry, fp_tmp);
+			// save it to the ntp config temp file
+			fputs(cfg_entry, fp_tmp);
 
-		FREE_SAFE(cfg_entry);
+			FREE_SAFE(cfg_entry);
+		}
 	}
 
 	fclose(fp_tmp);
