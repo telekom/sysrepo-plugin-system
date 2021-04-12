@@ -48,10 +48,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 
-if (ENABLE_BUILD_TESTS)
-	find_package(CMOCKA REQUIRED)
-endif()
-
 target_link_libraries(
     ${PROJECT_NAME}
     ${SYSREPO_LIBRARIES}
@@ -64,11 +60,7 @@ include_directories(
 )
 
 if(ENABLE_BUILD_TESTS)
-	if(CMOCKA_FOUND)
-		enable_testing()
-		include(tests/Tests.cmake)
-	else()
-		message(STATUS "CMocka hasn't been found, disabling tests")
-		set(ENABLE_BUILD_TESTS OFF)
-	endif()
+	find_package(CMOCKA REQUIRED)
+    include (CTest)
+    include(tests/Tests.cmake)
 endif()
