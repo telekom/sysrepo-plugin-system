@@ -117,6 +117,26 @@ Transient hostname: test2
       Architecture: x86-64
 ```
 
+#### Location
+We can retrieve the location:
+
+```
+$ sysrepocfg -X -x '/ietf-system:system/location'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <location>basement</location>
+</system>
+```
+
+The location is set and retrieved from a file (`location_info`) located in a directory whos path is set via the `GEN_PLUGIN_DATA_DIR` environment variable.
+
+After setting it to `3rd floor` with `sysrepocfg -Evim -fjson -m ietf-system`, we can verify the changes.
+```
+$ sysrepocfg -X -x '/ietf-system:system/location'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <location>3rd floor</location>
+</system
+```
+
 #### Timezone-name
 If the timezone-name feature is enabled, we can retrieve and change the timezone-name.
 The timezone data is retrieved and set by using the `/etc/localtime` symlink.
