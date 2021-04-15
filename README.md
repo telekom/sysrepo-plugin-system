@@ -120,9 +120,13 @@ $ sysrepocfg -f xml --copy-from=examples/system.xml -d startup -m 'ietf-system'
 $ sysrepocfg -f xml --copy-from=examples/system.xml -d running -m 'ietf-system'
 ```
 
-After loading the example simply invoke this binary, making sure that the environment variables are set correctly:
+After loading the example simply invoke this binary, making sure that the environment variables are set correctly. 
+Specifically, the `GEN_PLUGIN_DATA_DIR` has to be set, to a directory where the plugin's files can be stored:
 
 ```
+mkdir -p /usr/local/lib/sysrepo-general-plugin
+export GEN_PLUGIN_DATA_DIR=/usr/local/lib/sysrepo-general-plugin
+
 $ sysrepo-plugin-general
 [...]
 [INF]: Applying scheduled changes.
@@ -147,6 +151,7 @@ $ sysrepocfg -X -d startup -f json -m 'ietf-system'
     "clock": {
       "timezone-name": "Europe/Stockholm"
     },
+    "location": "basement",
     "contact": "Mr. Admin",
     "hostname": "test.it",
     "ntp": {
@@ -223,7 +228,7 @@ module: ietf-system
   +--rw system
   |  +--rw contact?          string                                         DONE
   |  +--rw hostname?         inet:domain-name                               DONE
-  |  +--rw location?         string                                         IN PROGRESS
+  |  +--rw location?         string                                         DONE
   |  +--rw clock
   |  |  +--rw (timezone)?
   |  |     +--:(timezone-name) {timezone-name}?
