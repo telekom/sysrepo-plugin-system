@@ -3,6 +3,8 @@
 
     <hostname>test.it</hostname>
 
+    <location>basement</location>
+
     <clock>
         <timezone-name>Europe/Stockholm</timezone-name>
     </clock>
