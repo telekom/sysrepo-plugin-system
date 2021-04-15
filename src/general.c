@@ -79,6 +79,10 @@ static ntp_server_list_t *ntp_servers;
 #define DATETIME_BUF_SIZE 30
 #define UTS_LEN 64
 
+#define LOCATION_FILENAME "/location_info"
+#define PLUGIN_DIR_ENV_VAR "GEN_PLUGIN_DATA_DIR"
+#define MAX_LOCATION_LENGTH 100
+
 static int system_module_change_cb(sr_session_ctx_t *session, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data);
 static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
 static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data);
@@ -100,14 +104,29 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[]);
 
 static int set_datetime(char *datetime);
 
+static char *get_plugin_file_path(const char *filename, bool create);
+
+static int set_location(const char *location);
+static int get_location(char *location);
+
 int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 {
 	int error = 0;
 	sr_conn_ctx_t *connection = NULL;
 	sr_session_ctx_t *startup_session = NULL;
 	sr_subscription_ctx_t *subscription = NULL;
-
+	char *location_file_path = NULL;
 	*private_data = NULL;
+	
+	location_file_path = get_plugin_file_path(LOCATION_FILENAME, true);
+	if (location_file_path == NULL) {
+		SRP_LOG_ERR("Please set the %s env variable. "
+			       "The plugin uses the path in the variable "
+			       "to store location in a file.", PLUGIN_DIR_ENV_VAR);
+		error = -1;
+		goto error_out;
+	}
+
 
 	ntp_server_list_init(&ntp_servers);
 
@@ -209,12 +228,65 @@ out:
 	return is_empty;
 }
 
+
+static char *get_plugin_file_path(const char *filename, bool create)
+{
+	char *plugin_dir = NULL;
+	char *file_path = NULL;
+	size_t filename_len = 0;
+	FILE *tmp = NULL;
+
+	plugin_dir = getenv(PLUGIN_DIR_ENV_VAR);
+	if (plugin_dir == NULL) {
+		SRP_LOG_ERR("Unable to get env var %s", PLUGIN_DIR_ENV_VAR);
+		return NULL;
+	}
+
+	filename_len = strlen(plugin_dir) + strlen(filename) + 1;
+	file_path= xmalloc(filename_len);
+
+	if (snprintf(file_path, filename_len, "%s%s", plugin_dir, filename) < 0) {
+		return NULL;
+	}
+
+	// check if file exists
+	if (access(file_path, F_OK) != 0){
+		if (create) {
+			tmp = fopen(file_path, "w");
+			if (tmp == NULL) {
+				SRP_LOG_ERR("Error creating %s", file_path);
+			}
+			fclose(tmp);
+		} else {
+			SRP_LOG_ERR("Filename %s doesn't exist in dir %s", filename, plugin_dir);
+			return NULL;
+		}
+	}
+
+	return file_path;
+}
+
 static int load_data(sr_session_ctx_t *session)
 {
 	int error = 0;
 	char contact_info[MAX_GECOS_LEN] = {0};
 	char hostname[HOST_NAME_MAX] = {0};
+	char location[MAX_LOCATION_LENGTH] = {0};
+	
+	// get the location of the system
+	error = get_location(location);
+	if (error != 0) {
+		SRP_LOG_ERR("getlocation error: %s", strerror(errno));
+		goto error_out;
+	}
 
+	error = sr_set_item_str(session, LOCATION_YANG_PATH, location, NULL, SR_EDIT_DEFAULT);
+	if (error) {
+		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+	SRP_LOG_DBG("location: %s", location);
+	
 	// get the contact info from /etc/passwd
 	error = get_contact_info(contact_info);
 	if (error) {
@@ -410,20 +482,18 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 			}
 		}
 	} else if (strcmp(xpath, LOCATION_YANG_PATH) == 0) {
-		/*	TODO: Add later...
+		if (operation == SR_OP_DELETED) {
+			error = set_location("none");
+			if (error != 0) {
+				SRP_LOG_ERR("setlocation error: %s", strerror(errno));
+			}
+		} else {
+			error = set_location(value);
+			if (error != 0) {
+				SRP_LOG_ERR("setlocation error: %s", strerror(errno));
+			}
+		}
 
-			"The system location.
-			A server implementation MAY map this leaf to the sysLocation
-			MIB object.  Such an implementation needs to use some
-			mechanism to handle the differences in size and characters
-			allowed between this leaf and sysLocation.  The definition
-			of such a mechanism is outside the scope of this document.";
-
-			sysLocation
-			"The physical location of this node (e.g., 'telephone
-			closet, 3rd floor').  If the location is unknown, the
-			value is the zero-length string."
-		*/
 	} else if (strcmp(xpath, TIMEZONE_NAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
 			// check if the /etc/localtime symlink exists
@@ -991,5 +1061,75 @@ static int set_datetime(char *datetime)
 	if (clock_settime(CLOCK_REALTIME, &stime) == -1)
 		return -1;
 
+	return 0;
+}
+
+static int set_location(const char *location)
+{
+	FILE *fp = NULL;
+	char *location_file_path = NULL;
+	
+	if (strnlen(location, MAX_LOCATION_LENGTH) > MAX_LOCATION_LENGTH) {
+		SRP_LOG_ERRMSG("set_location: location string overflow");
+		goto error_out;
+	}
+	
+	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
+	if (location_file_path == NULL) {
+		SRP_LOG_ERRMSG("set_location: couldn't get location file path");
+		goto error_out;
+	}
+
+	fp = fopen(location_file_path, "w");
+	if (fp == NULL) {
+		goto error_out;
+	}
+		
+	fputs(location, fp);
+	fclose(fp);
+	fp = NULL;
+
+	FREE_SAFE(location_file_path);
+	return 0;
+
+error_out:
+	if (location_file_path != NULL) {
+		FREE_SAFE(location_file_path);
+	}
+
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	return -1;
+ }
+
+static int get_location(char *location)
+ {
+	FILE *fp = NULL;
+	char *location_file_path = NULL;
+	
+	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
+	if (location_file_path == NULL) {
+		SRP_LOG_ERRMSG("get_location: couldn't get location file path");
+		return -1;
+	}
+
+	fp = fopen(location_file_path, "r");
+	if (fp == NULL) {
+		FREE_SAFE(location_file_path);
+		return -1;
+	}
+
+	if (fgets(location, MAX_LOCATION_LENGTH, fp) == NULL) {
+		fclose(fp);
+		fp = NULL;
+		FREE_SAFE(location_file_path);
+		return -1;
+		}
+	
+	fclose(fp);
+	fp = NULL;
+	FREE_SAFE(location_file_path);
 	return 0;
 }
