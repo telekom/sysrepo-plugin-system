@@ -16,6 +16,9 @@ static void test_incorrect_get_os_info(void **state);
 static void test_correct_get_timezone_name(void **state);
 static void test_incorrect_get_timezone_name(void **state);
 static void test_readlink_fail_get_timezone_name(void **state);
+static void test_correct_get_plugin_file_path(void **state);
+static void test_getenv_fail_get_plugin_file_path(void **state);
+static void test_access_fail_get_plugin_file_path(void **state);
 
 int main(void)
 {
@@ -28,7 +31,10 @@ int main(void)
 		cmocka_unit_test(test_incorrect_get_os_info),
 		cmocka_unit_test(test_correct_get_timezone_name),
 		cmocka_unit_test(test_incorrect_get_timezone_name),
-		cmocka_unit_test(test_readlink_fail_get_timezone_name)
+		cmocka_unit_test(test_readlink_fail_get_timezone_name),
+		cmocka_unit_test(test_correct_get_plugin_file_path),
+		cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
+		cmocka_unit_test(test_access_fail_get_plugin_file_path)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -254,4 +260,58 @@ ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
 	memcpy(buf, target, min);
 	
 	return min;
+}
+
+static void test_correct_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+
+	char *expected_getenv = "/somepath";
+		
+	const char *expected_file_path = "/somepath/file";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, 0);
+	file_path = get_plugin_file_path(filename, create);
+	assert_string_equal(file_path, expected_file_path);
+}
+
+static void test_getenv_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+	char *file_path;
+
+	will_return(__wrap_getenv, NULL);
+	will_return(__wrap_access, 0);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+}
+
+static void test_access_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+	char *expected_getenv = "/somepath";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, -1);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+}
+
+char *__wrap_getenv(const char *name)
+{	
+	return (char *) mock();
+}
+
+int __wrap_access(const char *pathname, int mode)
+{
+	return (int) mock();
 }
