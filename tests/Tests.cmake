@@ -13,5 +13,6 @@ target_link_libraries(general_utest
 	"-Wl,--wrap=readlink"
 	"-Wl,--wrap=getenv"
 	"-Wl,--wrap=access"
+	"-Wl,--wrap=fopen"
 	)
 add_test(NAME general_utest COMMAND general_utest)

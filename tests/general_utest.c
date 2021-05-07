@@ -19,6 +19,7 @@ static void test_readlink_fail_get_timezone_name(void **state);
 static void test_correct_get_plugin_file_path(void **state);
 static void test_getenv_fail_get_plugin_file_path(void **state);
 static void test_access_fail_get_plugin_file_path(void **state);
+static void test_fopen_fail_get_plugin_file_path(void **state);
 
 int main(void)
 {
@@ -34,7 +35,8 @@ int main(void)
 		cmocka_unit_test(test_readlink_fail_get_timezone_name),
 		cmocka_unit_test(test_correct_get_plugin_file_path),
 		cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
-		cmocka_unit_test(test_access_fail_get_plugin_file_path)
+		cmocka_unit_test(test_access_fail_get_plugin_file_path),
+		cmocka_unit_test(test_fopen_fail_get_plugin_file_path)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -306,6 +308,22 @@ static void test_access_fail_get_plugin_file_path(void **state)
 	assert_null(file_path);
 }
 
+static void test_fopen_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = true;
+	char *expected_getenv = "/somepath";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, -1);
+	will_return(__wrap_fopen, NULL);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+
+}
+
 char *__wrap_getenv(const char *name)
 {	
 	return (char *) mock();
@@ -314,4 +332,9 @@ char *__wrap_getenv(const char *name)
 int __wrap_access(const char *pathname, int mode)
 {
 	return (int) mock();
+}
+
+FILE *__wrap_fopen(const char *pathname, const char *mode)
+{
+	return (FILE *) mock();
 }
