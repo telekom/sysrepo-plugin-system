@@ -11,5 +11,7 @@ target_link_libraries(general_utest
 	"-Wl,--wrap=sysinfo"
 	"-Wl,--wrap=uname"
 	"-Wl,--wrap=readlink"
+	"-Wl,--wrap=getenv"
+	"-Wl,--wrap=access"
 	)
 add_test(NAME general_utest COMMAND general_utest)
