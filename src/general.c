@@ -351,7 +351,9 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 		sr_session_stop(startup_session);
 	}
 
-	ntp_server_list_free(ntp_servers);
+	if (ntp_servers) {
+		ntp_server_list_free(ntp_servers);
+	}
 
 	SRP_LOG_INFMSG("plugin cleanup finished");
 }
