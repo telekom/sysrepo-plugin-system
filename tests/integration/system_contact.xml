@@ -1,0 +1,7 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <contact>test_contac</contact>
+
+    <hostname>test_hostname</hostname>
+
+    <location>test_location</location>
+</system>
