@@ -7,6 +7,10 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
+FILE *__real_fopen(const char *pathname, const char *mode);
+struct passwd *__real_getpwent(void);
+int __real_open(const char *pathname, int flags, mode_t mode);
+
 static void test_correct_set_datetime(void **state);
 static void test_incorrect_set_datetime(void **state);
 static void test_correct_get_datetime_info(void **state);
@@ -20,6 +24,10 @@ static void test_correct_get_plugin_file_path(void **state);
 static void test_getenv_fail_get_plugin_file_path(void **state);
 static void test_access_fail_get_plugin_file_path(void **state);
 static void test_fopen_fail_get_plugin_file_path(void **state);
+static void test_correct_get_contact_info(void **state);
+static void test_incorrect_get_contact_info(void **state);
+static void test_correct_set_contact_info(void **state);
+static void test_incorrect_set_contact_info(void **state);
 
 int main(void)
 {
@@ -36,7 +44,11 @@ int main(void)
 		cmocka_unit_test(test_correct_get_plugin_file_path),
 		cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
 		cmocka_unit_test(test_access_fail_get_plugin_file_path),
-		cmocka_unit_test(test_fopen_fail_get_plugin_file_path)
+		cmocka_unit_test(test_fopen_fail_get_plugin_file_path),
+		cmocka_unit_test(test_correct_get_contact_info),
+		cmocka_unit_test(test_incorrect_get_contact_info),
+		cmocka_unit_test(test_correct_set_contact_info),
+		cmocka_unit_test(test_incorrect_set_contact_info)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -338,3 +350,138 @@ FILE *__wrap_fopen(const char *pathname, const char *mode)
 {
 	return (FILE *) mock();
 }
+
+static void test_correct_get_contact_info(void **state)
+{
+	(void) state;
+	char value[MAX_GECOS_LEN] = "";
+
+	struct passwd *pwd1 = (struct passwd *) malloc(sizeof(struct passwd));
+
+	pwd1->pw_name = malloc(strlen(CONTACT_USERNAME) + 1);
+	pwd1->pw_name = CONTACT_USERNAME;
+	
+	pwd1->pw_gecos = malloc(strlen("user1") + 1);
+	pwd1->pw_gecos = "user1";
+
+	int rc;
+
+	will_return(__wrap_getpwent, pwd1);
+	will_return(__wrap_getpwent, NULL);
+	rc = get_contact_info(value);
+	assert_int_equal(rc, 0);
+	assert_string_equal(value, pwd1->pw_gecos);
+}
+
+struct passwd *__wrap_getpwent(void)
+{
+	struct passwd *a = mock();
+	printf("%s\n", a->pw_name);
+	return (struct passwd *) a;
+}
+
+static void test_incorrect_get_contact_info(void **state)
+{
+	(void) state;
+	char value[MAX_GECOS_LEN];
+	int rc;
+
+
+	will_return(__wrap_getpwent, NULL);
+	rc = get_contact_info(value);
+	assert_int_equal(rc, -1);
+}
+
+static void test_correct_set_contact_info(void **state)
+{
+	(void) state;
+	const char value[MAX_GECOS_LEN] = "user1";
+	/*
+	struct passwd *pwd1 = (struct passwd *) malloc(sizeof(struct passwd));
+
+	pwd1->pw_name = malloc(strlen(CONTACT_USERNAME) + 1);
+	pwd1->pw_name = CONTACT_USERNAME;
+
+	pwd1->pw_gecos = malloc(strlen(value) + 1);
+	*/
+	struct passwd *pwd = (struct passwd *)malloc(sizeof(struct passwd));
+	FILE *fp;
+	fp = (FILE *)malloc(sizeof(FILE));
+
+	fp = __real_fopen(CONTACT_TEMP_FILE, "w");
+	assert_non_null(fp);
+
+	struct stat stat_buf = {0};	
+	
+	int rc;
+
+	will_return(__wrap_fopen, fp);
+
+	setpwent();
+	pwd = __real_getpwent();
+	
+	do {		
+		will_return(__wrap_getpwent, pwd);
+	} while ((pwd = __real_getpwent()) != NULL);
+
+	will_return(__wrap_getpwent, NULL);
+
+	will_return(__wrap_rename, 0);
+
+	int read_fd = __real_open(CONTACT_TEMP_FILE, O_RDONLY, S_IRWXU);
+	will_return(__wrap_open, read_fd);
+	
+	fstat(read_fd, &stat_buf);
+
+	int write_fd = __real_open("/tmp/file", O_WRONLY | O_CREAT, stat_buf.st_mode);
+	will_return(__wrap_open, write_fd);
+
+	rc = set_contact_info(value);
+	assert_int_equal(rc, 0);
+		
+}
+
+static void test_incorrect_set_contact_info(void **state)
+{
+	(void) state;
+	const char *value = "root";
+	int rc;
+
+	will_return(__wrap_fopen, NULL);
+	will_return(__wrap_access, 0);
+	rc = set_contact_info(value);
+	assert_int_equal(rc, -1);	
+}
+
+int __wrap_open(const char *pathname, int flags, mode_t mode)
+{
+	return (int) mock();
+}
+
+int __wrap_rename(const char *oldpath, const char *newpath)
+{
+	return (int) mock();
+}
+/*
+ssize_t __wrap_sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
+{
+	return (ssize_t) mock();
+}
+*/
+/*
+int __wrap_putpwent(const struct passwd *p, FILE *stream)
+{
+	return (int) mock();
+}
+*/
+/*
+static void test_correct_get_location(void **state)
+{
+	(void) state;
+	char location[MAX_LOCATION_LENGTH] = "";
+	int rc;
+
+	rc = get_location(location);
+	assert_int_equal(rc, 0);
+}
+*/
