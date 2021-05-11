@@ -376,7 +376,8 @@ static void test_correct_get_contact_info(void **state)
 struct passwd *__wrap_getpwent(void)
 {
 	struct passwd *a = mock();
-	printf("%s\n", a->pw_name);
+	if (a == NULL) return NULL;
+	printf("%s %p\n", a->pw_name, a);
 	return (struct passwd *) a;
 }
 
@@ -404,9 +405,14 @@ static void test_correct_set_contact_info(void **state)
 
 	pwd1->pw_gecos = malloc(strlen(value) + 1);
 	*/
-	struct passwd *pwd = (struct passwd *)malloc(sizeof(struct passwd));
-	FILE *fp;
-	fp = (FILE *)malloc(sizeof(FILE));
+	struct passwd *pwd = NULL;
+	struct passwd **pwd_array = NULL;
+
+	size_t size = 0;
+	pwd_array = malloc((size + 1) * sizeof(struct passwd *));
+
+	FILE *fp = NULL;
+	fp = malloc(sizeof(FILE));
 
 	fp = __real_fopen(CONTACT_TEMP_FILE, "w");
 	assert_non_null(fp);
@@ -418,13 +424,21 @@ static void test_correct_set_contact_info(void **state)
 	will_return(__wrap_fopen, fp);
 
 	setpwent();
-	pwd = __real_getpwent();
-	
-	do {		
-		will_return(__wrap_getpwent, pwd);
-	} while ((pwd = __real_getpwent()) != NULL);
 
-	will_return(__wrap_getpwent, NULL);
+	while ((pwd = __real_getpwent()) != NULL)
+ 	{	
+		pwd_array = realloc(pwd_array, (size + 1) * sizeof(struct passwd *));
+
+		pwd_array[size] = malloc(sizeof(struct passwd));
+
+		memcpy(pwd_array[size], pwd, sizeof(struct passwd));
+		
+		will_return(__wrap_getpwent, pwd_array[size]);
+
+		size++;
+	}
+
+ 	will_return(__wrap_getpwent, NULL);
 
 	will_return(__wrap_rename, 0);
 
