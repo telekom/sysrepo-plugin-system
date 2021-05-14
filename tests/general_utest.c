@@ -2,8 +2,14 @@
 #include <setjmp.h>
 #include <stddef.h>
 #include <cmocka.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "general.c"
+
+#undef CONTACT_TEMP_FILE
+#define CONTACT_TEMP_FILE "./tempfile"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
@@ -407,9 +413,10 @@ static void test_correct_set_contact_info(void **state)
 	struct passwd *pwd1 = (struct passwd *) malloc(sizeof(struct passwd));
 
 	pwd1->pw_name = malloc(strlen(CONTACT_USERNAME) + 1);
-	pwd1->pw_name = CONTACT_USERNAME;
+	strcpy (pwd1->pw_name, CONTACT_USERNAME);
 
 	pwd1->pw_gecos = malloc(strlen(value) + 1);
+
 	/*
 	struct passwd *pwd = NULL;
 	struct passwd **pwd_array = NULL;
@@ -417,15 +424,14 @@ static void test_correct_set_contact_info(void **state)
 	size_t size = 0;
 	pwd_array = malloc(40 * sizeof(struct passwd *));
 	*/
+
+	struct stat stat_buf = {0};	
+	int rc;
+
 	FILE *fp = NULL;
-	fp = malloc(sizeof(FILE));
 
 	fp = __real_fopen(CONTACT_TEMP_FILE, "w");
 	assert_non_null(fp);
-
-	struct stat stat_buf = {0};	
-	
-	int rc;
 
 	will_return(__wrap_fopen, fp);
 	/*
@@ -494,7 +500,7 @@ static void test_correct_get_location(void **state)
 	
 	char *location_file = NULL;
 
-	char expected[4 + 1] = "/tmp";
+	char expected[1 + 1] = ".";
 
 	will_return(__wrap_getenv, expected);
 	will_return(__wrap_access, 0);
@@ -502,16 +508,22 @@ static void test_correct_get_location(void **state)
 	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
 	assert_non_null(location_file);
 
-	will_return(__wrap_getenv, "/tmp");
-	will_return(__wrap_access, 0);
-
+	assert_string_equal(location_file, "./location_info");
+	
 	fp = __real_fopen(location_file, "w+");
+
+	print_message("%s\n", strerror(errno));
+	print_message("%d %d\n", geteuid(), getuid());
+	
 	assert_non_null(fp);
 	
 	assert_int_equal(fwrite("location_get", strlen("location_get") + 1, 1, fp), 1);
 	assert_non_null(fp);
 
 	rewind(fp);
+
+	will_return(__wrap_getenv, ".");
+	will_return(__wrap_access, 0);
 
 	will_return(__wrap_fopen, fp);	
 
@@ -544,7 +556,7 @@ static void test_correct_set_location(void **state)
 	
 	char *location_file = NULL;
 
-	char expected[4 + 1] = "/tmp";
+	char expected[1 + 1] = ".";
 
 	will_return(__wrap_getenv, expected);
 	will_return(__wrap_access, 0);
@@ -552,7 +564,9 @@ static void test_correct_set_location(void **state)
 	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
 	assert_non_null(location_file);
 
-	will_return(__wrap_getenv, "/tmp");
+	assert_string_equal(location_file, "./location_info");
+	
+	will_return(__wrap_getenv, "./");
 	will_return(__wrap_access, 0);
 
 	fp = __real_fopen(location_file, "w");
