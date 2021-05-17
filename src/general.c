@@ -281,21 +281,9 @@ static int load_data(sr_session_ctx_t *session)
 	char contact_info[MAX_GECOS_LEN] = {0};
 	char hostname[HOST_NAME_MAX] = {0};
 	char location[MAX_LOCATION_LENGTH] = {0};
-	
-	// get the location of the system
-	error = get_location(location);
-	if (error != 0) {
-		SRP_LOG_ERR("getlocation error: %s", strerror(errno));
-		goto error_out;
-	}
+	char *location_file_path = NULL;
+	struct stat stat_buf = {0};
 
-	error = sr_set_item_str(session, LOCATION_YANG_PATH, location, NULL, SR_EDIT_DEFAULT);
-	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
-		goto error_out;
-	}
-	SRP_LOG_DBG("location: %s", location);
-	
 	// get the contact info from /etc/passwd
 	error = get_contact_info(contact_info);
 	if (error) {
@@ -340,15 +328,49 @@ static int load_data(sr_session_ctx_t *session)
 	}
 	*/
 
+	// check if the location file is not empty
+	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
+	if (location_file_path == NULL) {
+		SRP_LOG_ERRMSG("get_plugin_file_path: couldn't get location file path");
+		goto error_out;
+	}
+
+	error = stat(location_file_path, &stat_buf);
+	if (error == -1) {
+		SRP_LOG_ERR("stat error (%d): %s", error, strerror(errno));
+		goto error_out;
+	}
+
+	// if it's not empty, get the location
+	if(stat_buf.st_size >= 1) {
+		// get the location of the system
+		error = get_location(location);
+		if (error != 0) {
+			SRP_LOG_ERR("get_location error: %s", strerror(errno));
+			goto error_out;
+		}
+
+		error = sr_set_item_str(session, LOCATION_YANG_PATH, location, NULL, SR_EDIT_DEFAULT);
+		if (error) {
+			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+	}
+
 	error = sr_apply_changes(session, 0, 0);
 	if (error) {
 		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
+	FREE_SAFE(location_file_path);
+
 	return 0;
 
 error_out:
+	if (location_file_path != NULL) {
+		FREE_SAFE(location_file_path);
+	}
 	return -1;
 }
 
