@@ -555,7 +555,8 @@ int __wrap_remove(const char *pathname)
 static void test_correct_set_location(void **state)
 {
 	(void) state;
-	const char location[MAX_LOCATION_LENGTH] = "location_set";
+	char location[MAX_LOCATION_LENGTH + 1] = "location_set";
+	const char *expected_location = "location_set";
 	int rc;
 
 	FILE *fp = NULL;
@@ -582,6 +583,13 @@ static void test_correct_set_location(void **state)
 
 	rc = set_location(location);
 	assert_int_equal(rc, 0);
+
+	fp = __real_fopen(location_file, "r");
+	assert_non_null(fp);
+
+	fgets(location, MAX_LOCATION_LENGTH, fp);
+	assert_string_equal(expected_location, location);
+
 }
 
 static void test_incorrect_set_location(void **state)
