@@ -2,10 +2,18 @@
 #include <setjmp.h>
 #include <stddef.h>
 #include <cmocka.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "general.c"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
+FILE *__real_fopen(const char *pathname, const char *mode);
+struct passwd *__real_getpwent(void);
+int __real_open(const char *pathname, int flags, mode_t mode);
+char *__real_getenv(const char *name);
 
 static void test_correct_set_datetime(void **state);
 static void test_incorrect_set_datetime(void **state);
@@ -16,6 +24,18 @@ static void test_incorrect_get_os_info(void **state);
 static void test_correct_get_timezone_name(void **state);
 static void test_incorrect_get_timezone_name(void **state);
 static void test_readlink_fail_get_timezone_name(void **state);
+static void test_correct_get_plugin_file_path(void **state);
+static void test_getenv_fail_get_plugin_file_path(void **state);
+static void test_access_fail_get_plugin_file_path(void **state);
+static void test_fopen_fail_get_plugin_file_path(void **state);
+static void test_correct_get_contact_info(void **state);
+static void test_incorrect_get_contact_info(void **state);
+static void test_correct_set_contact_info(void **state);
+static void test_incorrect_set_contact_info(void **state);
+static void test_correct_get_location(void **state);
+static void test_incorrect_get_location(void **state);
+static void test_correct_set_location(void **state);
+static void test_incorrect_set_location(void **state);
 
 int main(void)
 {
@@ -28,7 +48,19 @@ int main(void)
 		cmocka_unit_test(test_incorrect_get_os_info),
 		cmocka_unit_test(test_correct_get_timezone_name),
 		cmocka_unit_test(test_incorrect_get_timezone_name),
-		cmocka_unit_test(test_readlink_fail_get_timezone_name)
+		cmocka_unit_test(test_readlink_fail_get_timezone_name),
+		cmocka_unit_test(test_correct_get_plugin_file_path),
+		cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
+		cmocka_unit_test(test_access_fail_get_plugin_file_path),
+		cmocka_unit_test(test_fopen_fail_get_plugin_file_path),
+		cmocka_unit_test(test_correct_get_contact_info),
+		cmocka_unit_test(test_incorrect_get_contact_info),
+		cmocka_unit_test(test_correct_set_contact_info),
+		cmocka_unit_test(test_incorrect_set_contact_info),
+		cmocka_unit_test(test_correct_get_location),
+		cmocka_unit_test(test_incorrect_get_location),
+		cmocka_unit_test(test_correct_set_location),
+		cmocka_unit_test(test_incorrect_set_location)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
@@ -254,4 +286,319 @@ ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
 	memcpy(buf, target, min);
 	
 	return min;
+}
+
+static void test_correct_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+
+	char *expected_getenv = "/tmp";
+		
+	const char *expected_file_path = "/tmp/file";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, 0);
+	file_path = get_plugin_file_path(filename, create);
+	assert_non_null(file_path);
+	assert_string_equal(file_path, expected_file_path);
+}
+
+static void test_getenv_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+	char *file_path;
+
+	will_return(__wrap_getenv, NULL);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+}
+
+static void test_access_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = false;
+	char *expected_getenv = "/somepath";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, -1);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+}
+
+static void test_fopen_fail_get_plugin_file_path(void **state)
+{
+	(void) state;
+	const char *filename = "/file";
+	bool create = true;
+	char *expected_getenv = "/somepath";
+	char *file_path;
+
+	will_return(__wrap_getenv, expected_getenv);
+	will_return(__wrap_access, -1);
+	will_return(__wrap_fopen, NULL);
+	file_path = get_plugin_file_path(filename, create);
+	assert_null(file_path);
+
+}
+
+char *__wrap_getenv(const char *name)
+{	
+	return (char *) mock();
+}
+
+int __wrap_access(const char *pathname, int mode)
+{
+	return (int) mock();
+}
+
+FILE *__wrap_fopen(const char *pathname, const char *mode)
+{
+	return (FILE *) mock();
+}
+
+static void test_correct_get_contact_info(void **state)
+{
+	(void) state;
+	char value[MAX_GECOS_LEN] = "";
+
+	struct passwd *pwd1 = (struct passwd *) malloc(sizeof(struct passwd));
+
+	pwd1->pw_name = malloc(strlen(CONTACT_USERNAME) + 1);
+	pwd1->pw_name = CONTACT_USERNAME;
+	
+	pwd1->pw_gecos = malloc(strlen("user1") + 1);
+	pwd1->pw_gecos = "user1";
+
+	int rc;
+
+	will_return(__wrap_getpwent, pwd1);
+	will_return(__wrap_getpwent, NULL);
+	rc = get_contact_info(value);
+	assert_int_equal(rc, 0);
+	assert_string_equal(value, pwd1->pw_gecos);
+}
+
+struct passwd *__wrap_getpwent(void)
+{
+	return (struct passwd *) mock();
+}
+
+void __wrap_endpwent(void)
+{
+	function_called();
+}
+
+static void test_incorrect_get_contact_info(void **state)
+{
+	(void) state;
+	char value[MAX_GECOS_LEN];
+	int rc;
+
+
+	will_return(__wrap_getpwent, NULL);
+	rc = get_contact_info(value);
+	assert_int_equal(rc, -1);
+}
+
+static void test_correct_set_contact_info(void **state)
+{
+	(void) state;
+	const char *value = "user1";
+	struct passwd pwd[] = {{.pw_name = "test", .pw_gecos = "testcontact",
+			.pw_uid = 1001, .pw_gid = 1001, .pw_dir = "/home/test", .pw_shell = "/bin/bash",},
+			{.pw_name = "root", .pw_gecos = "testcontact",
+			.pw_uid = 0, .pw_gid = 0, .pw_dir = "/root", .pw_shell = "/bin/bash",},
+			{.pw_name = "test2", .pw_gecos = "testcontact",
+			.pw_uid = 1002, .pw_gid = 1002, .pw_dir = "/home/test2", .pw_shell = "/bin/bash",},
+	};
+	struct stat stat_buf = {0};	
+	int rc = 0;
+	FILE *fp = NULL;
+	int read_fd = 0;
+	int write_fd = 0;
+#define BUF_SIZE 1000
+	char buf[BUF_SIZE];
+	const char *contact_path= "./tmp_passwd";
+	const char *expected_passwd_path = "./passwd_result";
+	const char *expected_passwd_lines[] = {"test::1001:1001:testcontact:/home/test:/bin/bash\n",
+		"root::0:0:user1:/root:/bin/bash\n",
+		"test2::1002:1002:testcontact:/home/test2:/bin/bash\n",
+	};
+
+	fp = __real_fopen(contact_path, "w");
+	assert_non_null(fp);
+	will_return(__wrap_fopen, fp);
+
+	expect_function_call(__wrap_endpwent);
+
+	will_return(__wrap_getpwent, &pwd[0]);
+	will_return(__wrap_getpwent, &pwd[1]);
+	will_return(__wrap_getpwent, &pwd[2]);
+ 	will_return(__wrap_getpwent, NULL);
+
+	will_return(__wrap_rename, 0);
+
+	read_fd = __real_open(contact_path, O_RDONLY, S_IRWXU);
+	will_return(__wrap_open, read_fd);
+
+	rc = fstat(read_fd, &stat_buf);
+	assert_int_equal(rc, 0);
+
+	write_fd = __real_open(expected_passwd_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+	will_return(__wrap_open, write_fd);
+
+	will_return(__wrap_remove, 0);
+
+	rc = set_contact_info(value);
+	assert_int_equal(rc, 0);
+
+	fp = __real_fopen(expected_passwd_path, "r");
+	assert_non_null(fp);
+
+	for (size_t i = 0; i < ARRAY_SIZE(expected_passwd_lines); i++) {
+		fgets(buf, BUF_SIZE - 1, fp);
+		assert_string_equal(buf, expected_passwd_lines[i]);
+	}
+
+	fclose(fp);
+
+#undef BUF_SIZE
+}
+
+static void test_incorrect_set_contact_info(void **state)
+{
+	(void) state;
+	const char *value = "root";
+	int rc;
+
+	will_return(__wrap_fopen, NULL);
+	will_return(__wrap_access, 0);
+	rc = set_contact_info(value);
+	assert_int_equal(rc, -1);	
+}
+
+int __wrap_open(const char *pathname, int flags, mode_t mode)
+{
+	return (int) mock();
+}
+
+int __wrap_rename(const char *oldpath, const char *newpath)
+{
+	return (int) mock();
+}
+
+static void test_correct_get_location(void **state)
+{
+	(void) state;
+
+	int rc;
+
+	FILE *fp = NULL;
+	
+	char *location_file = NULL;
+
+	char expected[1 + 1] = ".";
+
+	will_return(__wrap_getenv, expected);
+	will_return(__wrap_access, 0);
+
+	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
+	assert_non_null(location_file);
+
+	assert_string_equal(location_file, "./location_info");
+	
+	fp = __real_fopen(location_file, "w+");
+
+	assert_non_null(fp);
+	
+	assert_int_equal(fwrite("location_get", strlen("location_get") + 1, 1, fp), 1);
+	assert_non_null(fp);
+
+	rewind(fp);
+
+	will_return(__wrap_getenv, ".");
+	will_return(__wrap_access, 0);
+
+	will_return(__wrap_fopen, fp);	
+
+	char location[MAX_LOCATION_LENGTH];
+
+	rc = get_location(location);
+	
+	assert_string_equal(location, "location_get");
+	assert_int_equal(rc, 0);
+}
+
+static void test_incorrect_get_location(void **state)
+{
+	(void) state;
+	char location[MAX_LOCATION_LENGTH];
+	int rc;
+
+	will_return(__wrap_getenv, NULL);	
+	rc = get_location(location);
+	assert_int_equal(rc, -1);
+}
+
+int __wrap_remove(const char *pathname)
+{
+	return (int) mock();
+}
+
+static void test_correct_set_location(void **state)
+{
+	(void) state;
+	char location[MAX_LOCATION_LENGTH + 1] = "location_set";
+	const char *expected_location = "location_set";
+	int rc;
+
+	FILE *fp = NULL;
+	
+	char *location_file = NULL;
+
+	char expected[1 + 1] = ".";
+
+	will_return(__wrap_getenv, expected);
+	will_return(__wrap_access, 0);
+
+	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
+	assert_non_null(location_file);
+
+	assert_string_equal(location_file, "./location_info");
+	
+	will_return(__wrap_getenv, "./");
+	will_return(__wrap_access, 0);
+
+	fp = __real_fopen(location_file, "w");
+	assert_non_null(fp);
+	
+	will_return(__wrap_fopen, fp);		
+
+	rc = set_location(location);
+	assert_int_equal(rc, 0);
+
+	fp = __real_fopen(location_file, "r");
+	assert_non_null(fp);
+
+	fgets(location, MAX_LOCATION_LENGTH, fp);
+	assert_string_equal(expected_location, location);
+
+}
+
+static void test_incorrect_set_location(void **state)
+{
+	(void) state;
+	char location[MAX_LOCATION_LENGTH] = "loc";
+	int rc;
+
+	will_return(__wrap_getenv, NULL);	
+	rc = set_location(location);
+	assert_int_equal(rc, -1);
 }

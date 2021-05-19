@@ -255,6 +255,7 @@ static char *get_plugin_file_path(const char *filename, bool create)
 			tmp = fopen(file_path, "w");
 			if (tmp == NULL) {
 				SRP_LOG_ERR("Error creating %s", file_path);
+				return NULL;
 			}
 			fclose(tmp);
 		} else {
@@ -665,8 +666,9 @@ static int set_contact_info(const char *value)
 	// write /etc/passwd to a temp file
 	// and change GECOS field for CONTACT_USERNAME
 	tmp_pwf = fopen(CONTACT_TEMP_FILE, "w");
-	if (!tmp_pwf)
+	if (!tmp_pwf) {
 		goto fail;
+	}
 
 	endpwent(); // close the passwd db
 
@@ -680,12 +682,14 @@ static int set_contact_info(const char *value)
 			// TODO: check max allowed len of gecos field
 			pwd->pw_gecos = (char *)value;
 
-			if (putpwent(pwd, tmp_pwf) != 0)
+			if (putpwent(pwd, tmp_pwf) != 0) {
 				goto fail;
+			}
 
 		} else{
-			if (putpwent(pwd, tmp_pwf) != 0)
+			if (putpwent(pwd, tmp_pwf) != 0) {
 				goto fail;
+			}
 		}
 	} while ((pwd = getpwent()) != NULL);
 
@@ -693,27 +697,33 @@ static int set_contact_info(const char *value)
 	tmp_pwf = NULL;
 
 	// create a backup file of /etc/passwd
-	if (rename(PASSWD_FILE, PASSWD_BAK_FILE) != 0)
+	if (rename(PASSWD_FILE, PASSWD_BAK_FILE) != 0) {
 		goto fail;
+	}
 
 	// copy the temp file to /etc/passwd
 	read_fd = open(CONTACT_TEMP_FILE, O_RDONLY);
-	if (read_fd == -1)
+	if (read_fd == -1) {
 		goto fail;
+	}
 
-	if (fstat(read_fd, &stat_buf) != 0)
+	if (fstat(read_fd, &stat_buf) != 0) {
 		goto fail;
+	}
 
 	write_fd = open(PASSWD_FILE, O_WRONLY | O_CREAT, stat_buf.st_mode);
-	if (write_fd == -1)
+	if (write_fd == -1) {
 		goto fail;
+	}
 
-	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1)
+	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1) {
 		goto fail;
+	}
 
 	// remove the temp file
-	if (remove(CONTACT_TEMP_FILE) != 0)
+	if (remove(CONTACT_TEMP_FILE) != 0) {
 		goto fail;
+	}
 
 	close(read_fd);
 	close(write_fd);
@@ -723,17 +733,21 @@ static int set_contact_info(const char *value)
 fail:
 	// if copying tmp file to /etc/passwd failed
 	// rename the backup back to passwd
-	if (access(PASSWD_FILE, F_OK) != 0 )
+	if (access(PASSWD_FILE, F_OK) != 0 ) {
 		rename(PASSWD_BAK_FILE, PASSWD_FILE);
+	}
 
-	if (tmp_pwf != NULL)
+	if (tmp_pwf != NULL) {
 		fclose(tmp_pwf);
+	}
 
-	if (read_fd != -1)
+	if (read_fd != -1) {
 		close(read_fd);
+	}
 
-	if (write_fd != -1)
+	if (write_fd != -1) {
 		close(write_fd);
+	}
 		
 	return -1;
 }
@@ -769,8 +783,9 @@ static int set_timezone(const char *value)
 	strncat(timezone, value, strnlen(value, TIMEZONE_NAME_LEN));
 
 	// check if file exists in TIMEZONE_DIR
-	if (access(timezone, F_OK) != 0)
+	if (access(timezone, F_OK) != 0) {
 		goto fail;
+	}
 
 	if (access(LOCALTIME_FILE, F_OK) == 0 ) {
 		// if the /etc/localtime symlink file exists
@@ -955,8 +970,9 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[])
 	now = time(NULL);
 
 	ts = localtime(&now);
-	if (ts == NULL)
+	if (ts == NULL) {
 		return -1;
+	}
 
 	/* must satisfy constraint:
 		"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[\+\-]\d{2}:\d{2})"
@@ -968,16 +984,18 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[])
 
 	strftime(current_datetime, DATETIME_BUF_SIZE, "%FT%TZ", ts);
 
-	if (sysinfo(&s_info) != 0)
+	if (sysinfo(&s_info) != 0) {
 		return -1;
+	}
 
 	uptime_seconds = s_info.uptime;
 
 	time_t diff = now - uptime_seconds;
 
 	ts = localtime(&diff);
-	if (ts == NULL)
+	if (ts == NULL) {
 		return -1;
+	}
 
 	strftime(boot_datetime, DATETIME_BUF_SIZE, "%FT%TZ", ts);
 
@@ -1051,17 +1069,20 @@ static int set_datetime(char *datetime)
 			- 2021-02-09T06:02:39+11:11
 	*/
 
-	if (strptime(datetime, "%FT%TZ", &t) == NULL)
+	if (strptime(datetime, "%FT%TZ", &t) == NULL) {
 		return -1;
+	}
 
 	time_to_set = mktime(&t);
-	if (time_to_set == -1)
+	if (time_to_set == -1) {
 		return -1;
+	}
 
 	stime.tv_sec = time_to_set;
 
-	if (clock_settime(CLOCK_REALTIME, &stime) == -1)
+	if (clock_settime(CLOCK_REALTIME, &stime) == -1) {
 		return -1;
+	}
 
 	return 0;
 }
