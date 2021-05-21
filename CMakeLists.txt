@@ -15,6 +15,7 @@ set(SOURCES
     src/general.c
     src/utils/memory.c
     src/utils/ntp/server_list.c
+    src/utils/dns/resolv_conf.c
 )
 
 if (NOT PLUGIN)

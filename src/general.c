@@ -1,4 +1,6 @@
 #include "general.h"
+#include "libyang/tree_schema.h"
+#include "sysrepo.h"
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,6 +21,7 @@
 
 #include "utils/memory.h"
 #include "utils/ntp/server_list.h"
+
 /*
 typedef struct {
 	char *value;
@@ -41,17 +44,24 @@ static ntp_server_list_t *ntp_servers;
 #define RESTART_YANG_PATH "/" BASE_YANG_MODEL ":system-restart"
 #define SHUTDOWN_YANG_PATH "/" BASE_YANG_MODEL ":system-shutdown"
 
-#define CONTACT_YANG_PATH SYSTEM_YANG_MODEL  "/contact"
+#define CONTACT_YANG_PATH SYSTEM_YANG_MODEL "/contact"
 #define HOSTNAME_YANG_PATH SYSTEM_YANG_MODEL "/hostname"
 #define LOCATION_YANG_PATH SYSTEM_YANG_MODEL "/location"
 #define NTP_YANG_PATH SYSTEM_YANG_MODEL "/ntp"
+#define DNS_RESOLVER_YANG_PATH SYSTEM_YANG_MODEL "/dns-resolver"
 
-#define CLOCK_YANG_PATH SYSTEM_YANG_MODEL 	 "/clock"
+#define CLOCK_YANG_PATH SYSTEM_YANG_MODEL "/clock"
 #define TIMEZONE_NAME_YANG_PATH CLOCK_YANG_PATH "/timezone-name"
 #define TIMEZONE_OFFSET_YANG_PATH CLOCK_YANG_PATH "/timezone-utc-offset"
 
 #define NTP_ENABLED_YANG_PATH NTP_YANG_PATH "/enabled"
 #define NTP_SERVER_YANG_PATH NTP_YANG_PATH "/server"
+
+#define DNS_RESOLVER_SEARCH_YANG_PATH DNS_RESOLVER_YANG_PATH "/search"
+#define DNS_RESOLVER_SERVER_YANG_PATH DNS_RESOLVER_YANG_PATH "/server"
+#define DNS_RESOLVER_OPTIONS_YANG_PATH DNS_RESOLVER_YANG_PATH "/options"
+#define DNS_RESOLVER_OPTIONS_TIMEOUT_YANG_PATH DNS_RESOLVER_OPTIONS_YANG_PATH "/timeout"
+#define DNS_RESOLVER_OPTIONS_ATTEMPTS_YANG_PATH DNS_RESOLVER_OPTIONS_YANG_PATH "/attempts"
 
 #define SYSTEM_STATE_YANG_MODEL "/" BASE_YANG_MODEL ":system-state"
 #define STATE_PLATFORM_YANG_PATH SYSTEM_STATE_YANG_MODEL "/platform"
@@ -73,8 +83,8 @@ static ntp_server_list_t *ntp_servers;
 
 #define TIMEZONE_DIR "/usr/share/zoneinfo/"
 #define LOCALTIME_FILE "/etc/localtime"
-#define ZONE_DIR_LEN 20 // '/usr/share/zoneinfo' length
-#define TIMEZONE_NAME_LEN 14*3 // The Area and Location names have a maximum length of 14 characters, but areas can have a subarea
+#define ZONE_DIR_LEN 20			 // '/usr/share/zoneinfo' length
+#define TIMEZONE_NAME_LEN 14 * 3 // The Area and Location names have a maximum length of 14 characters, but areas can have a subarea
 
 #define DATETIME_BUF_SIZE 30
 #define UTS_LEN 64
@@ -97,6 +107,7 @@ static char *system_xpath_get(const struct lyd_node *node);
 
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
 static int set_ntp(const char *xpath, char *value);
+static int set_dns(const char *xpath, char *value, sr_change_oper_t operation);
 static int set_contact_info(const char *value);
 static int set_timezone(const char *value);
 
@@ -126,12 +137,13 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	char *location_file_path = NULL;
 	char *ntp_names_file_path = NULL;
 	*private_data = NULL;
-	
+
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, true);
 	if (location_file_path == NULL) {
 		SRP_LOG_ERR("Please set the %s env variable. "
-			       "The plugin uses the path in the variable "
-			       "to store location in a file.", PLUGIN_DIR_ENV_VAR);
+					"The plugin uses the path in the variable "
+					"to store location in a file.",
+					PLUGIN_DIR_ENV_VAR);
 		error = -1;
 		goto error_out;
 	}
@@ -284,7 +296,7 @@ char *get_plugin_file_path(const char *filename, bool create)
 	}
 
 	// check if file exists
-	if (access(file_path, F_OK) != 0){
+	if (access(file_path, F_OK) != 0) {
 		if (create) {
 			tmp = fopen(file_path, "w");
 			if (tmp == NULL) {
@@ -584,7 +596,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 
 			SRP_LOG_DBG("node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
 
-			if (node->schema->nodetype == LYS_LEAF) {
+			if (node->schema->nodetype == LYS_LEAF || node->schema->nodetype == LYS_LEAFLIST) {
 				if (operation == SR_OP_CREATED || operation == SR_OP_MODIFIED) {
 					error = set_config_value(node_xpath, node_value, operation);
 					if (error) {
@@ -592,7 +604,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 						goto error_out;
 					}
 
-					if (strncmp(node_xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
+					if (strncmp(node_xpath, NTP_YANG_PATH, (sizeof(NTP_YANG_PATH) / sizeof(char))) == 0) {
 						ntp_change = true;
 					}
 				} else if (operation == SR_OP_DELETED) {
@@ -606,7 +618,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 						ntp_change = true;
 					}
 				}
-			} 
+			}
 			FREE_SAFE(node_xpath);
 			node_value = NULL;
 		}
@@ -635,6 +647,7 @@ out:
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
+	SRP_LOG_DBG("Setting config value");
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
@@ -677,7 +690,7 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 		if (operation == SR_OP_DELETED) {
 			// check if the /etc/localtime symlink exists
 			error = access(LOCALTIME_FILE, F_OK);
-			if (error != 0 ) {
+			if (error != 0) {
 				SRP_LOG_ERR("/etc/localtime doesn't exist; unlink/delete timezone error: %s", strerror(errno));
 			}
 
@@ -707,6 +720,11 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 				SRP_LOG_ERR("set_ntp error: %s", strerror(errno));
 			}
 		}
+	} else if (strncmp(xpath, DNS_RESOLVER_YANG_PATH, sizeof(DNS_RESOLVER_YANG_PATH) - 1) == 0) {
+		error = set_dns(xpath, (char *) value, operation);
+		if (error != 0) {
+			SRP_LOG_ERRMSG("set_dns error");
+		}
 	}
 
 	return error;
@@ -733,7 +751,7 @@ static int set_ntp(const char *xpath, char *value)
 				}
 			}
 			// TODO: check if ntpd was enabled
-		} else if(strcmp(value, "false") == 0) {
+		} else if (strcmp(value, "false") == 0) {
 			// TODO: add - 'systemctl stop ntpd' as well ?
 			error = system("systemctl stop ntpd");
 			if (error != 0) {
@@ -813,7 +831,7 @@ static int set_ntp(const char *xpath, char *value)
 			}
 
 		} else if (strcmp(ntp_node, "iburst") == 0) {
-			if (strcmp(value, "true") == 0){
+			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "iburst");
 				if (error != 0) {
 					SRP_LOG_ERRMSG("error setting ntp server iburst");
@@ -828,7 +846,7 @@ static int set_ntp(const char *xpath, char *value)
 			}
 
 		} else if (strcmp(ntp_node, "prefer") == 0) {
-			if (strcmp(value, "true") == 0){
+			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "prefer");
 				if (error != 0) {
 					SRP_LOG_ERRMSG("error setting ntp server prefer");
@@ -843,8 +861,20 @@ static int set_ntp(const char *xpath, char *value)
 			}
 		}
 	}
-	
+
 	return 0;
+}
+
+static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
+{
+	int error = 0;
+	SRP_LOG_DBG("Xpath for dns-resolver: %s = %s", xpath, value);
+#ifdef SYSTEMD
+	// systemd part of the code
+
+#else
+#endif
+	return error;
 }
 
 static int set_contact_info(const char *value)
@@ -873,7 +903,7 @@ static int set_contact_info(const char *value)
 	do {
 		if (strcmp(pwd->pw_name, CONTACT_USERNAME) == 0) {
 			// TODO: check max allowed len of gecos field
-			pwd->pw_gecos = (char *)value;
+			pwd->pw_gecos = (char *) value;
 
 			if (putpwent(pwd, tmp_pwf) != 0) {
 				goto fail;
@@ -980,7 +1010,7 @@ static int set_timezone(const char *value)
 		goto fail;
 	}
 
-	if (access(LOCALTIME_FILE, F_OK) == 0 ) {
+	if (access(LOCALTIME_FILE, F_OK) == 0) {
 		// if the /etc/localtime symlink file exists
 		// unlink it
 		error = unlink(LOCALTIME_FILE);
@@ -1007,7 +1037,7 @@ static int get_timezone_name(char *value)
 	ssize_t len = 0;
 	size_t start = 0;
 
-	len = readlink(LOCALTIME_FILE, buf, sizeof(buf)-1);
+	len = readlink(LOCALTIME_FILE, buf, sizeof(buf) - 1);
 	if (len == -1) {
 		return -1;
 	}
@@ -1139,7 +1169,8 @@ static int store_values_to_datastore(sr_session_ctx_t *session, const char *requ
 }
 */
 
-static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine){
+static int get_os_info(char **os_name, char **os_release, char **os_version, char **machine)
+{
 	struct utsname uname_data = {0};
 
 	if (uname(&uname_data) < 0) {
@@ -1152,7 +1183,6 @@ static int get_os_info(char **os_name, char **os_release, char **os_version, cha
 	*machine = xstrndup(uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
 
 	return 0;
-
 }
 
 static int get_datetime_info(char current_datetime[], char boot_datetime[])
@@ -1331,13 +1361,13 @@ error_out:
 	}
 
 	return -1;
- }
+}
 
 static int get_location(char *location)
- {
+{
 	FILE *fp = NULL;
 	char *location_file_path = NULL;
-	
+
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
 		SRP_LOG_ERRMSG("get_location: couldn't get location file path");
@@ -1355,8 +1385,8 @@ static int get_location(char *location)
 		fp = NULL;
 		FREE_SAFE(location_file_path);
 		return -1;
-		}
-	
+	}
+
 	fclose(fp);
 	fp = NULL;
 	FREE_SAFE(location_file_path);

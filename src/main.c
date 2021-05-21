@@ -1,6 +1,7 @@
 #include <sysrepo.h>
 #include <signal.h>
 #include <unistd.h>
+#include <utils/dns/resolv_conf.h>
 #include "general.h"
 
 volatile int exit_application = 0;
