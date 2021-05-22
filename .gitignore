@@ -3,3 +3,4 @@ build/
 .clangd/
 .cache/
 .test/
+location_info

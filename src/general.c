@@ -16,11 +16,10 @@
 #include <fcntl.h>
 #define __USE_XOPEN // needed for strptime
 #include <time.h>
-
 #include <sysrepo/xpath.h>
-
-#include "utils/memory.h"
-#include "utils/ntp/server_list.h"
+#include <utils/memory.h>
+#include <utils/ntp/server_list.h>
+#include <utils/dns/search.h>
 
 /*
 typedef struct {
@@ -867,14 +866,32 @@ static int set_ntp(const char *xpath, char *value)
 
 static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 {
-	int error = 0;
-	SRP_LOG_DBG("Xpath for dns-resolver: %s = %s", xpath, value);
-#ifdef SYSTEMD
-	// systemd part of the code
+	int err = 0;
+	char *nn = sr_xpath_node_name(xpath);
 
-#else
-#endif
-	return error;
+	SRP_LOG_DBG("Xpath for dns-resolver: %s = %s", xpath, value);
+
+	if (strcmp(nn, "search") == 0) {
+		switch (operation) {
+			case SR_OP_CREATED:
+				SRP_LOG_DBG("Adding dns-resolver 'search' = '%s'", value);
+				err = dns_search_add(value);
+				break;
+			case SR_OP_MODIFIED:
+				break;
+			case SR_OP_DELETED:
+				SRP_LOG_DBG("Removing dns-resolver 'search' = '%s'", value);
+				err = dns_search_remove(value);
+				break;
+			case SR_OP_MOVED:
+				break;
+		}
+	} else if (strcmp(nn, "timeout") == 0) {
+		// unknown for systemd
+	} else if (strcmp(nn, "attempts") == 0) {
+		// unknown for systemd
+	}
+	return err;
 }
 
 static int set_contact_info(const char *value)
