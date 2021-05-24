@@ -1089,13 +1089,9 @@ static int set_datetime(char *datetime)
 
 static int set_location(const char *location)
 {
-	FILE *fp = NULL;
+	long int error = -1;
 	char *location_file_path = NULL;
-	
-	if (strnlen(location, MAX_LOCATION_LENGTH) > MAX_LOCATION_LENGTH) {
-		SRP_LOG_ERRMSG("set_location: location string overflow");
-		goto error_out;
-	}
+	int fd = -1;
 	
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
@@ -1103,16 +1099,28 @@ static int set_location(const char *location)
 		goto error_out;
 	}
 
-	fp = fopen(location_file_path, "w");
-	if (fp == NULL) {
+	fd = open(location_file_path, O_CREAT|O_WRONLY|O_TRUNC);
+	if (fd == -1) {
+		SRP_LOG_ERRMSG("set_location: couldn't open location file path");
 		goto error_out;
 	}
-		
-	fputs(location, fp);
-	fclose(fp);
-	fp = NULL;
+
+	error = write(fd, location, MAX_LOCATION_LENGTH);
+	if (error == -1) {
+		SRP_LOG_ERRMSG("set_location: couldn't write to location file path");
+		goto error_out;
+	}
+
+	error = close(fd);
+	if (error == -1) {
+		SRP_LOG_ERRMSG("set_location: couldn't close location file path");
+		goto error_out;
+	}
+
+	fd = -1;
 
 	FREE_SAFE(location_file_path);
+
 	return 0;
 
 error_out:
@@ -1120,8 +1128,8 @@ error_out:
 		FREE_SAFE(location_file_path);
 	}
 
-	if (fp != NULL) {
-		fclose(fp);
+	if (fd == -1) {
+		close(fd);
 	}
 
 	return -1;
@@ -1135,24 +1143,34 @@ static int get_location(char *location)
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
 		SRP_LOG_ERRMSG("get_location: couldn't get location file path");
-		return -1;
+		goto error_out;
 	}
 
 	fp = fopen(location_file_path, "r");
 	if (fp == NULL) {
-		FREE_SAFE(location_file_path);
-		return -1;
+		SRP_LOG_ERRMSG("get_location: couldn't open location file path");
+		goto error_out;
+
 	}
 
 	if (fgets(location, MAX_LOCATION_LENGTH, fp) == NULL) {
-		fclose(fp);
-		fp = NULL;
-		FREE_SAFE(location_file_path);
-		return -1;
-		}
-	
+		SRP_LOG_ERRMSG("get_location: couldn't read from location file path");
+		goto error_out;
+	}
+
 	fclose(fp);
 	fp = NULL;
-	FREE_SAFE(location_file_path);
+
 	return 0;
+
+error_out:
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	if (location_file_path != NULL) {
+		FREE_SAFE(location_file_path);
+	}
+
+	return -1;
 }
