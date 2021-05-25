@@ -1,6 +1,6 @@
-#include "general.h"
-#include "libyang/tree_schema.h"
-#include "sysrepo.h"
+#include <general.h>
+#include <libyang/tree_schema.h>
+#include <sysrepo.h>
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
@@ -20,6 +20,11 @@
 #include <utils/memory.h>
 #include <utils/ntp/server_list.h>
 #include <utils/dns/search.h>
+#include <utils/dns/server.h>
+#ifdef SYSTEMD
+#else
+#include <utils/dns/resolv_conf.h>
+#endif
 
 /*
 typedef struct {
@@ -33,6 +38,7 @@ typedef struct {
 } result_values_t;
 */
 static ntp_server_list_t *ntp_servers;
+static dns_server_list_t dns_servers;
 
 #define BASE_YANG_MODEL "ietf-system"
 #define SYSTEM_YANG_MODEL "/" BASE_YANG_MODEL ":system"
@@ -102,11 +108,16 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 
 static bool system_running_datastore_is_empty_check(void);
 static int load_data(sr_session_ctx_t *session);
+static int load_dns_data(sr_session_ctx_t *session);
 static char *system_xpath_get(const struct lyd_node *node);
 
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
 static int set_ntp(const char *xpath, char *value);
 static int set_dns(const char *xpath, char *value, sr_change_oper_t operation);
+#ifndef SYSTEMD
+static int set_dns_timeout(char *value);
+static int set_dns_attempts(char *value);
+#endif
 static int set_contact_info(const char *value);
 static int set_timezone(const char *value);
 
@@ -155,6 +166,8 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 		error = -1;
 		goto error_out;
 	}
+
+	dns_server_list_init(&dns_servers);
 
 	SRP_LOG_INFMSG("start session to startup datastore");
 
@@ -349,6 +362,9 @@ static int load_data(sr_session_ctx_t *session)
 		goto error_out;
 	}
 
+	// TODO: add DNS servers search, server, timeout and attempts info -> systemd + normal versions
+	error = load_dns_data(session);
+
 	// TODO: comment out for now because: "if-feature timezone-name;"
 	//		 the feature has to be enabled in order to set the item
 	/*
@@ -539,6 +555,8 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 		ntp_server_list_free(ntp_servers);
 	}
 
+	dns_server_list_free(&dns_servers);
+
 	SRP_LOG_INFMSG("plugin cleanup finished");
 }
 
@@ -557,6 +575,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 	struct lyd_node_leaf_list *node_leaf_list;
 	struct lys_node_leaf *schema_node_leaf;
 	bool ntp_change = false;
+	bool dns_servers_change = false;
 
 	SRP_LOG_INF("module_name: %s, xpath: %s, event: %d, request_id: %" PRIu32, module_name, xpath, event, request_id);
 
@@ -603,8 +622,12 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 						goto error_out;
 					}
 
-					if (strncmp(node_xpath, NTP_YANG_PATH, (sizeof(NTP_YANG_PATH) / sizeof(char))) == 0) {
+					if (strncmp(node_xpath, NTP_YANG_PATH, sizeof(NTP_YANG_PATH) - 1) == 0) {
 						ntp_change = true;
+					}
+
+					if (strncmp(node_xpath, DNS_RESOLVER_SERVER_YANG_PATH, sizeof(DNS_RESOLVER_SERVER_YANG_PATH) - 1) == 0) {
+						dns_servers_change = true;
 					}
 				} else if (operation == SR_OP_DELETED) {
 					error = set_config_value(node_xpath, node_value, operation);
@@ -627,6 +650,15 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 			error = save_ntp_config(ntp_servers);
 			if (error) {
 				SRP_LOG_ERR("save_ntp_config error (%d)", error);
+				goto error_out;
+			}
+		}
+
+		if (dns_servers_change == true) {
+			SRP_LOG_DBG("Dumping DNS servers configuration...");
+			error = dns_server_list_dump_config(&dns_servers);
+			if (error != 0) {
+				SRP_LOG_ERR("dns_server_list_dump_config (%d)", error);
 				goto error_out;
 			}
 		}
@@ -869,9 +901,28 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	int err = 0;
 	char *nn = sr_xpath_node_name(xpath);
 
-	SRP_LOG_DBG("Xpath for dns-resolver: %s = %s", xpath, value);
+	SRP_LOG_DBG("Xpath for dns-resolver: %s -> %s = %s", xpath, nn, value);
 
-	if (strcmp(nn, "search") == 0) {
+	// first check for server -> if not server change then watch for other leafs/leaf lists
+	if (strncmp(xpath, DNS_RESOLVER_SERVER_YANG_PATH, sizeof(DNS_RESOLVER_SERVER_YANG_PATH) - 1) == 0) {
+		char *name = NULL;
+		sr_xpath_ctx_t state = {0};
+
+		name = sr_xpath_key_value((char *) xpath, "server", "name", &state);
+
+		if (strcmp(nn, "name") == 0) {
+			// add new server to the list
+			SRP_LOG_DBG("Creating server '%s'", value);
+			err = dns_server_list_add_server(&dns_servers, value);
+		} else if (strcmp(nn, "address") == 0) {
+			// set server name
+			SRP_LOG_DBG("Setting server %s address to '%s'", name, value);
+			err = dns_server_list_set_address(&dns_servers, name, value);
+		} else if (strcmp(nn, "port") == 0) {
+			// set server port
+			err = dns_server_list_set_port(&dns_servers, name, atoi(value));
+		}
+	} else if (strcmp(nn, "search") == 0) {
 		switch (operation) {
 			case SR_OP_CREATED:
 				SRP_LOG_DBG("Adding dns-resolver 'search' = '%s'", value);
@@ -887,12 +938,95 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 				break;
 		}
 	} else if (strcmp(nn, "timeout") == 0) {
+#ifdef SYSTEMD
 		// unknown for systemd
+		SRP_LOG_ERR("Unsupported option 'timeout'... Aborting...");
+		err = -1;
+#else
+		err = set_dns_timeout(value);
+#endif
 	} else if (strcmp(nn, "attempts") == 0) {
+#ifdef SYSTEMD
 		// unknown for systemd
+		SRP_LOG_ERR("Unsupported option 'attempts'... Aborting...");
+		err = -1;
+#else
+		err = set_dns_attempts(value);
+#endif
 	}
 	return err;
 }
+
+static int load_dns_data(sr_session_ctx_t *session)
+{
+	int error = 0;
+#ifdef SYSTEMD
+	// load DNS and Domains properties from sd-bus and store the needed info
+#else
+	// load resolv.conf and read needed fields
+#endif
+	return error;
+}
+
+#ifndef SYSTEMD
+static int set_dns_timeout(char *value)
+{
+	int err = 0;
+	// load config and set timeout option in it
+	rconf_t cfg;
+	rconf_error_t rc_err = rconf_error_none;
+	int timeout = 0;
+	rconf_init(&cfg);
+	rc_err = rconf_load_file(&cfg, RESOLV_CONF_PATH);
+
+	if (rc_err != rconf_error_none) {
+		goto err_out;
+	}
+
+	timeout = atoi(value);
+	rc_err = rconf_set_timeout(&cfg, timeout);
+	if (rc_err) {
+		goto err_out;
+	}
+
+	goto out;
+
+err_out:
+	SRP_LOG_ERR("Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
+out:
+	rconf_free(&cfg);
+	return err;
+}
+
+static int set_dns_attempts(char *value)
+{
+	int err = 0;
+	// load config and set timeout option in it
+	rconf_t cfg;
+	rconf_error_t rc_err = rconf_error_none;
+	int attempts = 0;
+	rconf_init(&cfg);
+	rc_err = rconf_load_file(&cfg, RESOLV_CONF_PATH);
+
+	if (rc_err != rconf_error_none) {
+		goto err_out;
+	}
+
+	attempts = atoi(value);
+	rc_err = rconf_set_attempts(&cfg, attempts);
+	if (rc_err) {
+		goto err_out;
+	}
+
+	goto out;
+
+err_out:
+	SRP_LOG_ERR("Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
+out:
+	rconf_free(&cfg);
+	return err;
+}
+#endif
 
 static int set_contact_info(const char *value)
 {

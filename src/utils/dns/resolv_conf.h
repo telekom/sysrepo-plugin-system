@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <bits/types/res_state.h>
 
-#define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define RESOLV_CONF_PATH "/etc/resolv.conf"
 
 enum rconf_error_e {
 	rconf_error_none = 0,
@@ -17,6 +17,8 @@ enum rconf_error_e {
 	rconf_error_options_ndots,
 	rconf_error_options_timeout,
 	rconf_error_options_attempts,
+	rconf_error_no_search_found,
+	rconf_error_MAX,
 };
 
 typedef struct rconf_s rconf_t;
@@ -52,9 +54,11 @@ rconf_error_t rconf_load_file(rconf_t *cfg, const char *fpath);
 rconf_error_t rconf_export(rconf_t *cfg, const char *fpath);
 rconf_error_t rconf_add_nameserver(rconf_t *cfg, char *nameserver);
 rconf_error_t rconf_add_search(rconf_t *cfg, char *search);
+rconf_error_t rconf_remove_search(rconf_t *cfg, char *search);
 rconf_error_t rconf_set_ndots(rconf_t *cfg, int ndots);
 rconf_error_t rconf_set_timeout(rconf_t *cfg, int timeout);
 rconf_error_t rconf_set_attempts(rconf_t *cfg, int attempts);
+const char *rconf_error2str(rconf_error_t err);
 void rconf_print(rconf_t *cfg, FILE *fptr);
 void rconf_free(rconf_t *cfg);
 

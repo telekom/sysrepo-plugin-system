@@ -17,6 +17,7 @@ set(SOURCES
     src/utils/ntp/server_list.c
     src/utils/dns/resolv_conf.c
     src/utils/dns/search.c
+    src/utils/dns/server.c
 )
 
 if (NOT PLUGIN)
@@ -63,7 +64,12 @@ include_directories(
 )
 
 if(SYSTEMD_FOUND)
-    add_compile_definitions(SYSTEMD=1)
+    if(DEFINED SYSTEMD_IFINDEX)
+        add_compile_definitions(SYSTEMD_IFINDEX=${SYSTEMD_IFINDEX})
+    else()
+        message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
+    endif()
+    add_compile_definitions(SYSTEMD)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${SYSTEMD_LIBRARIES})
     include_directories(${SYSTEMD_INCLUDE_DIRS})    
 endif()

@@ -145,6 +145,7 @@ rconf_error_t rconf_load_file(rconf_t *cfg, const char *fpath)
 				// check for metadata -> add later
 				break;
 			case rconf_token_kind_word:
+				// error -> unknown token found
 				break;
 			case rconf_token_kind_kw_nameserver:
 				// add nameserver
@@ -214,6 +215,30 @@ rconf_error_t rconf_add_search(rconf_t *cfg, char *search)
 	return err;
 }
 
+rconf_error_t rconf_remove_search(rconf_t *cfg, char *search)
+{
+	rconf_error_t err = rconf_error_none;
+	int found = 0;
+	for (int i = 0; i < cfg->search_n; i++) {
+		if (strcmp(cfg->search[i], search) == 0) {
+			found = 1;
+			// remove string at position i -> free_safe + shift the array left one space
+			FREE_SAFE(cfg->search[i]);
+			for (int j = i + 1; j < cfg->search_n; j++) {
+				cfg->search[j - 1] = cfg->search[j];
+			}
+			// update number of search items in the array
+			--cfg->search_n;
+			break;
+		}
+	}
+	if (found == false) {
+		// no such value found to remove -> error
+		err = rconf_error_no_search_found;
+	}
+	return err;
+}
+
 rconf_error_t rconf_set_ndots(rconf_t *cfg, int ndots)
 {
 	rconf_error_t err = rconf_error_none;
@@ -248,6 +273,30 @@ rconf_error_t rconf_set_attempts(rconf_t *cfg, int attempts)
 		cfg->options.ndots = attempts;
 	}
 	return err;
+}
+
+const char *rconf_error2str(rconf_error_t err)
+{
+	const char *errs[] = {
+		[rconf_error_none] = "No error",
+		[rconf_error_loading_file] = "Error loading file",
+		[rconf_error_alloc] = "Error with allocation",
+		[rconf_error_invalid_format] = "Invalid format in the file",
+		[rconf_error_nameserver] = "Error parsing nameserver option",
+		[rconf_error_search] = "Error parsing search option",
+		[rconf_error_sortlist] = "Error parsing sortlist option",
+		[rconf_error_options_ndots] = "Invalid ndots option",
+		[rconf_error_options_timeout] = "Invalid timeout option",
+		[rconf_error_options_attempts] = "Invalid attempts option",
+		[rconf_error_no_search_found] = "No such search option found",
+	};
+	const char *err_unknown = "Unknown error code given";
+	char *ret_err = (char *) err_unknown;
+
+	if (err >= rconf_error_none && err < rconf_error_MAX) {
+		ret_err = (char *) errs[err];
+	}
+	return (const char *) ret_err;
 }
 
 void rconf_print(rconf_t *cfg, FILE *fptr)
