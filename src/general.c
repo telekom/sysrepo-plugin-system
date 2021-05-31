@@ -195,10 +195,18 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	SRP_LOG_INFMSG("plugin init done");
 
+	FREE_SAFE(location_file_path);
+
 	goto out;
 
 error_out:
-	sr_unsubscribe(subscription);
+	if (subscription != NULL) {
+		sr_unsubscribe(subscription);
+	}
+
+	if (location_file_path != NULL) {
+		FREE_SAFE(location_file_path);
+	}
 
 out:
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
@@ -1092,7 +1100,8 @@ static int set_location(const char *location)
 	long int error = -1;
 	char *location_file_path = NULL;
 	int fd = -1;
-	
+	size_t len = 0;
+
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
 		SRP_LOG_ERRMSG("set_location: couldn't get location file path");
@@ -1105,7 +1114,9 @@ static int set_location(const char *location)
 		goto error_out;
 	}
 
-	error = write(fd, location, MAX_LOCATION_LENGTH);
+	len = strnlen(location, MAX_LOCATION_LENGTH);
+		
+	error = write(fd, location, len);
 	if (error == -1) {
 		SRP_LOG_ERRMSG("set_location: couldn't write to location file path");
 		goto error_out;
@@ -1143,34 +1154,24 @@ static int get_location(char *location)
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
 		SRP_LOG_ERRMSG("get_location: couldn't get location file path");
-		goto error_out;
+		return -1;
 	}
 
 	fp = fopen(location_file_path, "r");
 	if (fp == NULL) {
-		SRP_LOG_ERRMSG("get_location: couldn't open location file path");
-		goto error_out;
-
+		FREE_SAFE(location_file_path);
+		return -1;
 	}
 
 	if (fgets(location, MAX_LOCATION_LENGTH, fp) == NULL) {
-		SRP_LOG_ERRMSG("get_location: couldn't read from location file path");
-		goto error_out;
-	}
-
+		fclose(fp);
+		fp = NULL;
+		FREE_SAFE(location_file_path);
+		return -1;
+		}
+	
 	fclose(fp);
 	fp = NULL;
-
+	FREE_SAFE(location_file_path);
 	return 0;
-
-error_out:
-	if (fp != NULL) {
-		fclose(fp);
-	}
-
-	if (location_file_path != NULL) {
-		FREE_SAFE(location_file_path);
-	}
-
-	return -1;
 }

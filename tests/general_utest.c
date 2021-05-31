@@ -560,6 +560,7 @@ static void test_correct_set_location(void **state)
 	int rc;
 
 	FILE *fp = NULL;
+	int fd = -1;
 	
 	char *location_file = NULL;
 
@@ -576,10 +577,10 @@ static void test_correct_set_location(void **state)
 	will_return(__wrap_getenv, "./");
 	will_return(__wrap_access, 0);
 
-	fp = __real_fopen(location_file, "w");
-	assert_non_null(fp);
-	
-	will_return(__wrap_fopen, fp);		
+	fd = __real_open(location_file, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
+	assert_int_not_equal(fd, -1);
+
+	will_return(__wrap_open, fd);
 
 	rc = set_location(location);
 	assert_int_equal(rc, 0);
