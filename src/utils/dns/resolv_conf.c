@@ -1,4 +1,5 @@
 #include "utils/memory.h"
+#include <bits/types/res_state.h>
 #include <utils/dns/resolv_conf.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -191,6 +192,24 @@ rconf_error_t rconf_export(rconf_t *cfg, const char *fpath)
 	return err;
 }
 
+rconf_error_t rconf_set_nameserver(rconf_t *cfg, int idx, char *nameserver, int replace)
+{
+	rconf_error_t err = rconf_error_none;
+	if (idx < MAXNS) {
+		if (cfg->nameserver[idx] == NULL) {
+			err = rconf_add_nameserver(cfg, nameserver);
+		} else if (cfg->nameserver[idx] != NULL && replace) {
+			FREE_SAFE(cfg->nameserver[idx]);
+			cfg->nameserver[idx] = xstrdup(nameserver);
+		} else {
+			err = rconf_error_nameserver;
+		}
+	} else {
+		err = rconf_error_nameserver;
+	}
+	return err;
+}
+
 rconf_error_t rconf_add_nameserver(rconf_t *cfg, char *nameserver)
 {
 	rconf_error_t err = rconf_error_none;
@@ -206,7 +225,7 @@ rconf_error_t rconf_add_nameserver(rconf_t *cfg, char *nameserver)
 rconf_error_t rconf_add_search(rconf_t *cfg, char *search)
 {
 	rconf_error_t err = rconf_error_none;
-	if (cfg->search_n < MAXNS) {
+	if (cfg->search_n < MAXDNSRCH) {
 		cfg->search[cfg->search_n] = xstrdup(search);
 		++cfg->search_n;
 	} else {
@@ -258,7 +277,7 @@ rconf_error_t rconf_set_timeout(rconf_t *cfg, int timeout)
 	if (timeout > RES_MAXRETRANS || timeout <= 0) {
 		err = rconf_error_options_timeout;
 	} else {
-		cfg->options.ndots = timeout;
+		cfg->options.timeout = timeout;
 	}
 	return err;
 }
@@ -270,7 +289,7 @@ rconf_error_t rconf_set_attempts(rconf_t *cfg, int attempts)
 	if (attempts > RES_MAXRETRY || attempts <= 0) {
 		err = rconf_error_options_attempts;
 	} else {
-		cfg->options.ndots = attempts;
+		cfg->options.attempts = attempts;
 	}
 	return err;
 }
@@ -471,7 +490,7 @@ static rconf_error_t set_options(rconf_t *cfg, int *idx, rconf_token_t *tokens, 
 			} else if (strncmp(opt.name, "timeout", sizeof("timeout")) == 0) {
 				cfg->options.timeout = opt.val;
 			} else if (strncmp(opt.name, "ndots", sizeof("ndots")) == 0) {
-				cfg->options.timeout = opt.val;
+				cfg->options.ndots = opt.val;
 			}
 			free(opt.name);
 		}

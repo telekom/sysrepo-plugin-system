@@ -69,6 +69,8 @@ out:
 		goto err_out;
 	}
 
+	SRP_LOG_DBG("No error for now...\n");
+
 	// file read normally -> add new search domain if possible
 	rc_err = rconf_add_search(&cfg, search_val);
 	if (rc_err != rconf_error_none) {

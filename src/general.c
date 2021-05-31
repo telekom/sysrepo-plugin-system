@@ -108,7 +108,6 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 
 static bool system_running_datastore_is_empty_check(void);
 static int load_data(sr_session_ctx_t *session);
-static int load_dns_data(sr_session_ctx_t *session);
 static char *system_xpath_get(const struct lyd_node *node);
 
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
@@ -361,9 +360,6 @@ static int load_data(sr_session_ctx_t *session)
 		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
-
-	// TODO: add DNS servers search, server, timeout and attempts info -> systemd + normal versions
-	error = load_dns_data(session);
 
 	// TODO: comment out for now because: "if-feature timezone-name;"
 	//		 the feature has to be enabled in order to set the item
@@ -943,6 +939,7 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 		SRP_LOG_ERR("Unsupported option 'timeout'... Aborting...");
 		err = -1;
 #else
+		SRP_LOG_DBG("Setting DNS timeout value...");
 		err = set_dns_timeout(value);
 #endif
 	} else if (strcmp(nn, "attempts") == 0) {
@@ -951,21 +948,11 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 		SRP_LOG_ERR("Unsupported option 'attempts'... Aborting...");
 		err = -1;
 #else
+		SRP_LOG_DBG("Setting DNS attempts value...");
 		err = set_dns_attempts(value);
 #endif
 	}
 	return err;
-}
-
-static int load_dns_data(sr_session_ctx_t *session)
-{
-	int error = 0;
-#ifdef SYSTEMD
-	// load DNS and Domains properties from sd-bus and store the needed info
-#else
-	// load resolv.conf and read needed fields
-#endif
-	return error;
 }
 
 #ifndef SYSTEMD
@@ -977,14 +964,21 @@ static int set_dns_timeout(char *value)
 	rconf_error_t rc_err = rconf_error_none;
 	int timeout = 0;
 	rconf_init(&cfg);
-	rc_err = rconf_load_file(&cfg, RESOLV_CONF_PATH);
 
+	rc_err = rconf_load_file(&cfg, RESOLV_CONF_PATH);
 	if (rc_err != rconf_error_none) {
 		goto err_out;
 	}
 
 	timeout = atoi(value);
+	SRP_LOG_DBG("New timeout value: %d", timeout);
+
 	rc_err = rconf_set_timeout(&cfg, timeout);
+	if (rc_err) {
+		goto err_out;
+	}
+
+	rc_err = rconf_export(&cfg, RESOLV_CONF_PATH);
 	if (rc_err) {
 		goto err_out;
 	}
@@ -1001,7 +995,7 @@ out:
 static int set_dns_attempts(char *value)
 {
 	int err = 0;
-	// load config and set timeout option in it
+	// load config and set attempts option in it
 	rconf_t cfg;
 	rconf_error_t rc_err = rconf_error_none;
 	int attempts = 0;
@@ -1013,7 +1007,14 @@ static int set_dns_attempts(char *value)
 	}
 
 	attempts = atoi(value);
+	SRP_LOG_DBG("New attempts value: %d", attempts);
+
 	rc_err = rconf_set_attempts(&cfg, attempts);
+	if (rc_err) {
+		goto err_out;
+	}
+
+	rc_err = rconf_export(&cfg, RESOLV_CONF_PATH);
 	if (rc_err) {
 		goto err_out;
 	}

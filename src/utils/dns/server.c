@@ -18,9 +18,13 @@ static int str_to_ipv6(ip_addr_t *ip, char *addr);*/
 
 void dns_server_init(dns_server_t *s)
 {
+#ifdef SYSTEMD
 	s->addr = (ip_addr_t){
 		.af = -1,
 	};
+#else
+	s->addr.value = NULL;
+#endif
 	s->name = NULL;
 	s->port = 0;
 }
@@ -41,12 +45,10 @@ int dns_server_set_address(dns_server_t *s, char *addr)
 	} else {
 		// should not be possible -> yang model already checks this, but just in case return an error
 		err = -1;
-		goto out;
 	}
 #else
 	s->addr.value = xstrdup(addr);
 #endif
-out:
 	return err;
 }
 
@@ -60,6 +62,11 @@ void dns_server_free(dns_server_t *s)
 	if (s->name) {
 		FREE_SAFE(s->name);
 	}
+#ifndef SYSTEMD
+	if (s->addr.value) {
+		FREE_SAFE(s->addr.value);
+	}
+#endif
 	dns_server_init(s);
 }
 
@@ -146,7 +153,6 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 		goto invalid;
 	}
 
-	// set ifindex to 0 for now -> TODO: test and see if it's possible to use index 0 for all interfaces, if not -> find a way to get the 'default' interface
 	r = sd_bus_message_append(msg, "i", SYSTEMD_IFINDEX);
 	if (r < 0) {
 		goto invalid;
@@ -235,6 +241,35 @@ finish:
 	sd_bus_message_unref(msg);
 	sd_bus_flush_close_unref(bus);
 #else
+	rconf_t cfg;
+	rconf_error_t rc_err = 0;
+
+	rconf_init(&cfg);
+
+	rc_err = rconf_load_file(&cfg, RESOLV_CONF_PATH);
+
+	if (rc_err != rconf_error_none) {
+		goto invalid;
+	}
+
+	for (int i = 0; i < sl->size; i++) {
+		rc_err = rconf_set_nameserver(&cfg, i, sl->list[i].addr.value, 1);
+		if (rc_err != rconf_error_none) {
+			goto invalid;
+		}
+	}
+
+	rc_err = rconf_export(&cfg, RESOLV_CONF_PATH);
+	if (rc_err != rconf_error_none) {
+		goto invalid;
+	}
+
+	goto finish;
+
+invalid:
+	err = -1;
+finish:
+	rconf_free(&cfg);
 #endif
 	return err;
 }

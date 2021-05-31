@@ -52,6 +52,7 @@ struct rconf_s {
 void rconf_init(rconf_t *cfg);
 rconf_error_t rconf_load_file(rconf_t *cfg, const char *fpath);
 rconf_error_t rconf_export(rconf_t *cfg, const char *fpath);
+rconf_error_t rconf_set_nameserver(rconf_t *cfg, int idx, char *nameserver, int replace);
 rconf_error_t rconf_add_nameserver(rconf_t *cfg, char *nameserver);
 rconf_error_t rconf_add_search(rconf_t *cfg, char *search);
 rconf_error_t rconf_remove_search(rconf_t *cfg, char *search);
