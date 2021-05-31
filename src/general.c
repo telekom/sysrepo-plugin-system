@@ -925,7 +925,7 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 	if (*parent == NULL) {
 		ly_ctx = sr_get_context(sr_session_get_connection(session));
 		if (ly_ctx == NULL) {
-			return -1;
+			goto out;
 		}
 		*parent = lyd_new_path(NULL, ly_ctx, SYSTEM_STATE_YANG_MODEL, NULL, 0, 0);
 	}
@@ -939,14 +939,21 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 	lyd_new_path(*parent, NULL, BOOT_DATETIME_YANG_PATH, boot_datetime, 0, 0);
 
 	//values = NULL;
-	FREE_SAFE(os_name);
-	FREE_SAFE(os_release);
-	FREE_SAFE(os_version);
-	FREE_SAFE(machine);
-
-	return SR_ERR_OK;
 
 out:
+	if (os_name != NULL) {
+		FREE_SAFE(os_name);
+	}
+	if (os_release != NULL) {
+		FREE_SAFE(os_release);
+	}
+	if (os_version != NULL) {
+		FREE_SAFE(os_version);
+	}
+	if (machine != NULL) {
+		FREE_SAFE(machine);
+	}
+
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
 }
 /*
@@ -976,15 +983,10 @@ static int get_os_info(char **os_name, char **os_release, char **os_version, cha
 		return -1;
 	}
 
-	*os_name = xmalloc(strnlen(uname_data.sysname, UTS_LEN + 1));
-	*os_release = xmalloc(strnlen(uname_data.release, UTS_LEN + 1));
-	*os_version = xmalloc(strnlen(uname_data.version, UTS_LEN + 1));
-	*machine = xmalloc(strnlen(uname_data.machine, UTS_LEN + 1));
-
-	strncpy(*os_name, uname_data.sysname, strnlen(uname_data.sysname, UTS_LEN + 1));
-	strncpy(*os_release, uname_data.release, strnlen(uname_data.release, UTS_LEN + 1));
-	strncpy(*os_version, uname_data.version, strnlen(uname_data.version, UTS_LEN + 1));
-	strncpy(*machine, uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
+	*os_name = xstrndup(uname_data.sysname, strnlen(uname_data.sysname, UTS_LEN + 1));
+	*os_release = xstrndup(uname_data.release, strnlen(uname_data.release, UTS_LEN + 1));
+	*os_version = xstrndup(uname_data.version, strnlen(uname_data.version, UTS_LEN + 1));
+	*machine = xstrndup(uname_data.machine, strnlen(uname_data.machine, UTS_LEN + 1));
 
 	return 0;
 
