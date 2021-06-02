@@ -3,6 +3,8 @@ import sysrepo
 import os
 import subprocess
 import pwd
+import signal
+import time
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -16,9 +18,10 @@ class SystemTestCase(unittest.TestCase):
         self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": data_dir})
         self.conn = sysrepo.SysrepoConnection()
         self.session = self.conn.start_session("running")
+        time.sleep(2)
 
     def tearDown(self):
-        self.plugin.terminate()
+        self.plugin.send_signal(signal.SIGINT)
         self.session.stop()
         self.conn.disconnect()
 
