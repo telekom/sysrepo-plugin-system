@@ -22,9 +22,10 @@ class SystemTestCase(unittest.TestCase):
         time.sleep(2)
 
     def tearDown(self):
-        self.plugin.send_signal(signal.SIGINT)
         self.session.stop()
         self.conn.disconnect()
+        self.plugin.send_signal(signal.SIGINT)
+        self.plugin.wait()
 
     def load_initial_data(self, path):
         ctx = self.conn.get_ly_ctx()
