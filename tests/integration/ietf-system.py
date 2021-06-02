@@ -51,5 +51,19 @@ class ContactTestCase(SystemTestCase):
         self.assertEqual(passwd.pw_gecos, "test_contact", "unexpected contact info in /etc/passwd")
         data.free()
 
+class HostnameTestCase(SystemTestCase):
+    def test_hostname(self):
+        expected_hostname = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><hostname>test_hostname</hostname></system>'
+
+        self.load_initial_data("system_hostname.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/hostname')
+        hostname = data.print_mem("xml")
+        self.assertEqual(hostname, expected_hostname, "hostname data is wrong")
+
+        real_hostname = os.uname()[1]
+        self.assertEqual(real_hostname, "test_hostname", "hostname on system doesn't match set hostname")
+        data.free()
+
 if __name__ == '__main__':
     unittest.main()
