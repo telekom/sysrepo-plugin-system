@@ -166,3 +166,201 @@ $ ls -al /etc/localtime
 lrwxrwxrwx 1 root root 33 Mar 22 16:28 /etc/localtime -> /usr/share/zoneinfo/Europe/Zagreb
 ```
 
+#### NTP
+If the ntp feature is enabled, we can retrieve and change the ntp node.
+The NTP data is retrieved and set in /etc/ntp.conf and use of the ntpd NTP daemon is assumed.
+
+```
+sysrepocfg -X -x '/ietf-system:system/ntp'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+    <server>
+      <name>hr.pool.ntp.org</name>
+      <udp>
+        <address>162.159.200.123</address>
+      </udp>
+    </server>
+  </ntp>
+</system>
+```
+
+The enabled node can be set to true or false. Enabling or disabling it calls systemctl in the backgruond
+and disables or enables ntpd.
+
+The NTP config would then look something like this
+
+```
+# /etc/ntp.conf, configuration for ntpd; see ntp.conf(5) for help
+
+driftfile /var/lib/ntp/ntp.drift
+
+# Leap seconds definition provided by tzdata
+leapfile /usr/share/zoneinfo/leap-seconds.list
+
+# Enable this if you want statistics to be logged.
+#statsdir /var/log/ntpstats/
+
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+
+# Specify one or more NTP servers.
+
+# Use servers from the NTP Pool Project. Approved by Ubuntu Technical Board
+# on 2011-02-08 (LP: #104525). See http://www.pool.ntp.org/join.html for
+# more information.
+
+# Use Ubuntu's ntp server as a fallback.
+
+# Access control configuration; see /usr/share/doc/ntp-doc/html/accopt.html for
+# details.  The web page <http://support.ntp.org/bin/view/Support/AccessRestrictions>
+# might also be helpful.
+#
+# Note that "restrict" applies to both servers and clients, so a configuration
+# that might be intended to block requests from certain clients could also end
+# up blocking replies from your own upstream servers.
+
+# By default, exchange time with everybody, but don't allow configuration.
+restrict -4 default kod notrap nomodify nopeer noquery limited
+restrict -6 default kod notrap nomodify nopeer noquery limited
+
+# Local users may interrogate the ntp server more closely.
+restrict 127.0.0.1
+restrict ::1
+
+# Needed for adding pool entries
+restrict source notrap nomodify noquery
+
+# Clients from this (example!) subnet have unlimited access, but only if
+# cryptographically authenticated.
+#restrict 192.168.123.0 mask 255.255.255.0 notrust
+
+
+# If you want to provide time to your local subnet, change the next line.
+# (Again, the address is an example only.)
+#broadcast 192.168.123.255
+
+# If you want to listen to time broadcasts on your local subnet, de-comment the
+# next lines.  Please do this only if you trust everybody on the network!
+#disable auth
+#broadcastclient
+server 162.159.200.123 
+```
+
+We can rename the server:
+```
+sysrepocfg -E vim -f json -m ietf-system
+```
+
+After which the name should change:
+
+```
+sysrepocfg -X -x '/ietf-system:system/ntp'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+    <server>
+      <name>hr.pool2.ntp.org</name>
+      <udp>
+        <address>162.159.200.123</address>
+      </udp>
+    </server>
+  </ntp>
+</system>
+```
+
+As the server is renamed, the plugin adds a new server entry to `/etc/ntp.conf`.
+The names are not seen in the config file but are tracked internally by the plugin.
+
+We can also change the IP:
+
+```
+sysrepocfg -X -x '/ietf-system:system/ntp'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+    <server>
+      <name>hr.pool2.ntp.org</name>
+      <udp>
+        <address>162.159.200.124</address>
+      </udp>
+    </server>
+  </ntp>
+</system>
+```
+
+After those two changes, the end of `/etc/ntp.conf` looks something like this:
+
+```
+# If you want to listen to time broadcasts on your local subnet, de-comment the
+# next lines.  Please do this only if you trust everybody on the network!
+#disable auth
+#broadcastclient
+    
+server 162.159.200.123   
+    
+server 162.159.200.124   
+```
+
+Furthermore, various settings for the server nodes can be adjusted.
+
+We can set the association type:
+```
+sysrepocfg -Evim -f json -m ietf-system
+
+sysrepocfg -X -x '/ietf-system:system/ntp'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+    <server>
+      <name>hr.pool2.ntp.org</name>
+      <udp>
+        <address>162.159.200.124</address>
+      </udp>
+      <association-type>pool</association-type>
+    </server>
+  </ntp>
+</system>
+```
+
+After that the association type will be changed in `ntp.conf` with the end looking something like this:
+```
+server 162.159.200.123   
+    
+pool 162.159.200.124
+```
+
+The association type can also be changed to peer, with the default being server.
+
+iburst and prefer options can also be set:
+```
+sysrepocfg -Evim -f json -m ietf-system
+
+sysrepocfg -X -x '/ietf-system:system/ntp'
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+    <server>
+      <name>hr.pool2.ntp.org</name>
+      <udp>
+        <address>162.159.200.124</address>
+      </udp>
+      <association-type>pool</association-type>
+      <iburst>true</iburst>
+      <prefer>true</prefer>
+    </server>
+  </ntp>
+</system>
+```
+
+The default values for both nodes are false.
+
+The changes are again reflected in `/etc/ntp.conf`
+
+```
+server 162.159.200.123   
+    
+pool 162.159.200.124  iburst prefer
+```
