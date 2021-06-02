@@ -31,6 +31,13 @@ class SystemTestCase(unittest.TestCase):
         self.session.replace_config_ly(data, "ietf-system")
         f.close()
 
+class ContactTestCase(SystemTestCase):
+    def setUp(self):
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+
     def test_contact_get(self):
         expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contac</contact></system>'
 
