@@ -37,12 +37,6 @@ class SystemTestCase(unittest.TestCase):
         f.close()
 
 class ContactTestCase(SystemTestCase):
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-
     def test_contact(self):
         expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contact</contact></system>'
 
