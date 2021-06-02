@@ -15,7 +15,8 @@ class SystemTestCase(unittest.TestCase):
         data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
         if data_dir is None:
             self.fail("GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
-        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": data_dir})
+        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": data_dir}, \
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.conn = sysrepo.SysrepoConnection()
         self.session = self.conn.start_session("running")
         time.sleep(2)
