@@ -2,6 +2,7 @@ import unittest
 import sysrepo
 import os
 import subprocess
+import pwd
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -46,6 +47,10 @@ class ContactTestCase(SystemTestCase):
         data = self.session.get_data_ly('/ietf-system:system/contact')
         contact = data.print_mem("xml")
         self.assertEqual(contact, expected_contact, "contact data is wrong")
+
+        passwd = pwd.getpwuid(0)
+        self.assertEqual(passwd.pw_name, "root", "uid 0 is not named root")
+        self.assertEqual(passwd.pw_gecos, "test_contact", "unexpected contact info in /etc/passwd")
         data.free()
 
 if __name__ == '__main__':
