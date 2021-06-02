@@ -5,17 +5,21 @@ import subprocess
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
-        self.conn = sysrepo.SysrepoConnection()
-        self.session = self.conn.start_session("running")
         plugin_path = os.environ.get('SYSREPO_GENERAL_PLUGIN_PATH')
         if plugin_path is None:
             self.fail("SYSREPO_GENRAL_PLUGIN_PATH has to point to general plugin executable")
-        self.plugin = subprocess.Popen([plugin_path])
+
+        data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
+        if data_dir is None:
+            self.fail("GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
+        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": data_dir})
+        self.conn = sysrepo.SysrepoConnection()
+        self.session = self.conn.start_session("running")
 
     def tearDown(self):
+        self.plugin.terminate()
         self.session.stop()
         self.conn.disconnect()
-        self.plugin.terminate()
 
     def load_initial_data(self, path):
         ctx = self.conn.get_ly_ctx()
