@@ -1,5 +1,5 @@
 <system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
-    <contact>test_contac</contact>
+    <contact>test_contact</contact>
 
     <hostname>test_hostname</hostname>
 

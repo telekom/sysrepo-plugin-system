@@ -43,7 +43,7 @@ class ContactTestCase(SystemTestCase):
         super().tearDown()
 
     def test_contact_get(self):
-        expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contac</contact></system>'
+        expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contact</contact></system>'
 
         self.load_initial_data("system_contact.xml")
 
