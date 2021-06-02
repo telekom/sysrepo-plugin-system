@@ -12,10 +12,10 @@ class SystemTestCase(unittest.TestCase):
         if plugin_path is None:
             self.fail("SYSREPO_GENRAL_PLUGIN_PATH has to point to general plugin executable")
 
-        data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
-        if data_dir is None:
+        self.data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
+        if self.data_dir is None:
             self.fail("GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
-        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": data_dir}, \
+        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": self.data_dir}, \
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.conn = sysrepo.SysrepoConnection()
         self.session = self.conn.start_session("running")
@@ -65,6 +65,23 @@ class HostnameTestCase(SystemTestCase):
         real_hostname = os.uname()[1]
         self.assertEqual(real_hostname, "test_hostname", "hostname on system doesn't match set hostname")
         data.free()
+
+class LocationTestCase(SystemTestCase):
+    def test_location(self):
+        expected_location= '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><location>test_location</location></system>'
+
+        self.load_initial_data("system_location.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/location')
+        location = data.print_mem("xml")
+        self.assertEqual(location, expected_location, "location data is wrong")
+
+        real_location = ""
+        with open(self.data_dir + "location_info", "r") as f:
+            real_location = f.read()
+        self.assertEqual(real_location, "test_location", "location on system doesn't match set location")
+        data.free()
+
 
 if __name__ == '__main__':
     unittest.main()
