@@ -41,7 +41,7 @@ class ContactTestCase(SystemTestCase):
     def test_contact(self):
         expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contact</contact></system>'
 
-        self.load_initial_data("system_contact.xml")
+        self.load_initial_data("data/system_contact.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/contact')
         contact = data.print_mem("xml")
@@ -56,7 +56,7 @@ class HostnameTestCase(SystemTestCase):
     def test_hostname(self):
         expected_hostname = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><hostname>test_hostname</hostname></system>'
 
-        self.load_initial_data("system_hostname.xml")
+        self.load_initial_data("data/system_hostname.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/hostname')
         hostname = data.print_mem("xml")
@@ -70,7 +70,7 @@ class LocationTestCase(SystemTestCase):
     def test_location(self):
         expected_location= '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><location>test_location</location></system>'
 
-        self.load_initial_data("system_location.xml")
+        self.load_initial_data("data/system_location.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/location')
         location = data.print_mem("xml")
