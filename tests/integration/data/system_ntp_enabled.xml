@@ -1,0 +1,5 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <ntp>
+    <enabled>true</enabled>
+  </ntp>
+</system>

@@ -82,6 +82,39 @@ class LocationTestCase(SystemTestCase):
         self.assertEqual(real_location, "test_location", "location on system doesn't match set location")
         data.free()
 
+class NTPTestCase(SystemTestCase):
+    def get_ntp_status(self):
+        p = subprocess.run(['systemctl', 'show', 'ntp'], capture_output=True, encoding="ascii")
+        status = list(filter(lambda x : x.split('=')[0] == 'ActiveState', p.stdout.split()))
+        self.assertEqual(len(status), 1, "invalid systemctl show output, got more than one ActiveStatus")
+
+        return status[0].split("=")[1]
+
+    def test_ntp_enabled(self):
+        expected_ntp_enabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled></ntp></system>'
+        expected_ntp_disabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>false</enabled></ntp></system>'
+
+        self.load_initial_data("data/system_ntp_disabled.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        ntp = data.print_mem("xml")
+        self.assertEqual(ntp, expected_ntp_disabled, "ntp data is wrong")
+
+        self.assertEqual(self.get_ntp_status(), "inactive", "ntp service is running")
+
+        self.load_initial_data("data/system_ntp_enabled.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        ntp = data.print_mem("xml")
+        self.assertEqual(ntp, expected_ntp_enabled, "ntp data is wrong")
+
+        self.assertEqual(self.get_ntp_status(), "active", "ntp service is not running")
+
+        # disable NTP so that we are back in an initial state
+        self.load_initial_data("data/system_ntp_disabled.xml")
+        self.assertEqual(self.get_ntp_status(), "inactive", "ntp service is running")
+
+        data.free()
 
 if __name__ == '__main__':
     unittest.main()
