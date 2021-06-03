@@ -90,6 +90,11 @@ class NTPTestCase(SystemTestCase):
 
         return status[0].split("=")[1]
 
+    def get_ntp_server_ips(self):
+        with open('/etc/ntp.conf', 'r') as f:
+            return [l.split()[1] for l in f if 'server' in l and l[0] != '#']
+
+
     def test_ntp_enabled(self):
         expected_ntp_enabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled></ntp></system>'
         expected_ntp_disabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>false</enabled></ntp></system>'
@@ -115,6 +120,46 @@ class NTPTestCase(SystemTestCase):
         self.assertEqual(self.get_ntp_status(), "inactive", "ntp service is running")
 
         data.free()
+    def test_ntp_server(self):
+        expected_ntp_server_initial = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server></ntp></system>'
+
+        self.load_initial_data("data/system_ntp_server_initial.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        ntp = data.print_mem("xml")
+        self.assertEqual(ntp, expected_ntp_server_initial, "ntp data is wrong")
+
+        self.assertEqual(self.get_ntp_status(), "active", "ntp service is not running")
+        ips = self.get_ntp_server_ips()
+        self.assertEqual(len(ips), 1, "unexpected number of servers in /etc/ntp.conf")
+        self.assertEqual(ips[0], "162.159.200.123", "unexpected server ip")
+
+        expected_ntp_server_add = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
+
+        self.load_initial_data("data/system_ntp_server_add.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        ntp = data.print_mem("xml")
+        self.assertEqual(ntp, expected_ntp_server_add, "ntp data is wrong")
+
+        self.assertEqual(self.get_ntp_status(), "active", "ntp service is not running")
+        ips = self.get_ntp_server_ips()
+        self.assertEqual(len(ips), 2, "unexpected number of servers in /etc/ntp.conf")
+        self.assertEqual(ips[0], "162.159.200.123", "unexpected server ip")
+        self.assertEqual(ips[1], "162.159.200.124", "unexpected server ip")
+
+        expected_ntp_server_remove = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
+
+        self.load_initial_data("data/system_ntp_server_remove.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        ntp = data.print_mem("xml")
+        self.assertEqual(ntp, expected_ntp_server_remove, "ntp data is wrong")
+
+        self.assertEqual(self.get_ntp_status(), "active", "ntp service is not running")
+        ips = self.get_ntp_server_ips()
+        self.assertEqual(len(ips), 1, "unexpected number of servers in /etc/ntp.conf")
+        self.assertEqual(ips[0], "162.159.200.124", "unexpected server ip")
 
 if __name__ == '__main__':
     unittest.main()
