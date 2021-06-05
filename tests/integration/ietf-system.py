@@ -31,11 +31,10 @@ class SystemTestCase(unittest.TestCase):
         ctx = self.conn.get_ly_ctx()
 
         self.session.replace_config_ly(None, "ietf-system")
-        f = open(path, "r")
-        data = f.read()
-        data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
-        self.session.replace_config_ly(data, "ietf-system")
-        f.close()
+        with open(path, "r") as f:
+            data = f.read()
+            data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
+            self.session.replace_config_ly(data, "ietf-system")
 
 class ContactTestCase(SystemTestCase):
     def test_contact(self):
