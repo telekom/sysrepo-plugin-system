@@ -36,6 +36,27 @@ class SystemTestCase(unittest.TestCase):
             data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
             self.session.replace_config_ly(data, "ietf-system")
 
+class SystemStateTestCase(unittest.TestCase):
+    def setUp(self):
+        plugin_path = os.environ.get('SYSREPO_GENERAL_PLUGIN_PATH')
+        if plugin_path is None:
+            self.fail("SYSREPO_GENRAL_PLUGIN_PATH has to point to general plugin executable")
+
+        self.data_dir = os.environ.get('GEN_PLUGIN_DATA_DIR')
+        if self.data_dir is None:
+            self.fail("GEN_PLUGIN_DATA_DIR has to point to general plugin executable")
+        self.plugin = subprocess.Popen([plugin_path], env={"GEN_PLUGIN_DATA_DIR": self.data_dir}, \
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.conn = sysrepo.SysrepoConnection()
+        self.session = self.conn.start_session("operational")
+        time.sleep(2)
+
+    def tearDown(self):
+        self.session.stop()
+        self.conn.disconnect()
+        self.plugin.send_signal(signal.SIGINT)
+        self.plugin.wait()
+
 class ContactTestCase(SystemTestCase):
     def test_contact(self):
         expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contact</contact></system>'
