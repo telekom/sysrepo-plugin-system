@@ -5,6 +5,8 @@ import subprocess
 import pwd
 import signal
 import time
+import json
+import platform
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -180,6 +182,19 @@ class NTPTestCase(SystemTestCase):
         ips = self.get_ntp_server_ips()
         self.assertEqual(len(ips), 1, "unexpected number of servers in /etc/ntp.conf")
         self.assertEqual(ips[0], "162.159.200.124", "unexpected server ip")
+
+class PlatformTestCase(SystemStateTestCase):
+    def test_platform(self):
+        data = self.session.get_data_ly('/ietf-system:system-state/platform')
+        plugin_platform = json.loads(data.print_mem("json"))
+        plugin_platform = plugin_platform['ietf-system:system-state']['platform']
+
+        self.assertEqual(plugin_platform['os-name'], platform.system(), "unexpected os-name")
+        self.assertEqual(plugin_platform['os-release'], platform.release(), "unexpected os-release")
+        self.assertEqual(plugin_platform['os-version'], platform.version(), "unexpected os-version")
+        self.assertEqual(plugin_platform['machine'], platform.machine(), "unexpected machine")
+
+        data.free()
 
 if __name__ == '__main__':
     unittest.main()
