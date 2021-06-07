@@ -1311,9 +1311,6 @@ fail:
 static int get_contact_info(char *value)
 {
 	struct passwd *pwd = {0};
-	errno = 0;
-
-	setpwent();
 	pwd = getpwent();
 
 	if (pwd == NULL) {
@@ -1325,8 +1322,6 @@ static int get_contact_info(char *value)
 			strncpy(value, pwd->pw_gecos, strnlen(pwd->pw_gecos, MAX_GECOS_LEN));
 		}
 	} while ((pwd = getpwent()) != NULL);
-
-	endpwent();
 
 	return 0;
 }
