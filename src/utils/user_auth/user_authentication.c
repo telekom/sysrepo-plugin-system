@@ -140,10 +140,10 @@ next_3:
 			s.sp_min = 0;
 			s.sp_warn = 7;
 
-		/*	s.sp_expire = 0;
-			s.sp_flag = 0;
-			s.sp_inact = 0;
-		*/
+			s.sp_expire = (unsigned long)-1; // -1 value corresponds to an empty string
+			s.sp_flag = (unsigned long)-1;
+			s.sp_inact = (unsigned long)-1;
+
 			if (putspent(&s, tmp_shf) != 0) {
 				goto fail;
 			}
@@ -382,7 +382,7 @@ next_2:
 			
 			p.pw_name = strndup (ul->users[i].name, username_len);
 			p.pw_passwd = strdup("x");
-			p.pw_shell = strdup ("bin/bash");
+			p.pw_shell = strdup ("/bin/bash");
 			uid++;
 			gid++;
 			p.pw_uid = uid;
@@ -456,21 +456,6 @@ fail:
 	return -1;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int copy_file(char *src, char *dst)
 {
