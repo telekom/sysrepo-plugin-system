@@ -7,6 +7,7 @@ import signal
 import time
 import json
 import platform
+import datetime
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -195,6 +196,29 @@ class PlatformTestCase(SystemStateTestCase):
         self.assertEqual(plugin_platform['machine'], platform.machine(), "unexpected machine")
 
         data.free()
+
+class SetCurrentDateTimeTestCase(SystemStateTestCase):
+	def test_set_current_date_time(self):
+	    ctx = self.conn.get_ly_ctx()
+
+	    expected_rpc_output = '<set-current-datetime xmlns="urn:ietf:params:xml:ns:yang:ietf-system"/>'
+	    expected_date_string = '09/02/2021 09:02'
+	    old = datetime.datetime.now()
+	    with open('data/system_set_current_date_time.xml') as rpc:
+		    rpc_input = ctx.parse_data_mem(
+				rpc.read(),
+				"xml",
+				rpc=True,
+				strict=False
+			    )
+		    rpc_output = self.session.rpc_send_ly(rpc_input)
+		    rpc_input.free()
+		    self.assertEqual(rpc_output.print_mem("xml"), expected_rpc_output, "Unexpected rpc response when calling set-current-date-time")
+		    rpc_output.free()
+		    now = datetime.datetime.now()
+		    date_string = now.strftime("%d/%m/%Y %H:%M")
+		    self.assertEqual(date_string, expected_date_string, "lol")
+
 
 if __name__ == '__main__':
     unittest.main()
