@@ -1253,7 +1253,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERR("ntp_set_server_name: couldn't get ntp_names file path");
+		SRP_LOG_ERRMSG("ntp_set_server_name: couldn't get ntp_names file path");
 		goto error_out;
 	}
 
@@ -1265,7 +1265,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	tmp_ntp_names_file_path = get_plugin_file_path(NTP_TMP_NAMES_FILENAME, true);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERR("ntp_set_server_name: couldn't get tmp_ntp_names file path");
+		SRP_LOG_ERRMSG("ntp_set_server_name: couldn't get tmp_ntp_names file path");
 		goto error_out;
 	}
 
@@ -1350,7 +1350,7 @@ int ntp_get_server_name(char **name, char *address)
 
 	ntp_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_file_path == NULL) {
-		SRP_LOG_ERR("ntp_get_server_name: couldn't get ntp_names file path");
+		SRP_LOG_ERRMSG("ntp_get_server_name: couldn't get ntp_names file path");
 		return -1;
 	}
 
