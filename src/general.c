@@ -83,6 +83,12 @@ static ntp_server_list_t *ntp_servers;
 #define PLUGIN_DIR_ENV_VAR "GEN_PLUGIN_DATA_DIR"
 #define MAX_LOCATION_LENGTH 100
 
+#define NTP_NAMES_FILENAME "/ntp_names"
+#define NTP_TMP_NAMES_FILENAME "/tmp_ntp_names"
+#define NTP_MAX_ENTRY_LEN 100
+
+
+
 static int system_module_change_cb(sr_session_ctx_t *session, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data);
 static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
 static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data);
@@ -104,10 +110,13 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[]);
 
 static int set_datetime(char *datetime);
 
-static char *get_plugin_file_path(const char *filename, bool create);
+char *get_plugin_file_path(const char *filename, bool create);
 
 static int set_location(const char *location);
 static int get_location(char *location);
+
+int ntp_set_server_name(char *name, char *address);
+int ntp_get_server_name(char **name, char *address);
 
 int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 {
@@ -127,8 +136,11 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 		goto error_out;
 	}
 
-
-	ntp_server_list_init(&ntp_servers);
+	error = ntp_server_list_init(&ntp_servers);
+	if (error != 0) {
+		SRP_LOG_ERR("ntp_server_list_init error: %s", strerror(errno));
+		goto error_out;
+	}
 
 	SRP_LOG_INFMSG("start session to startup datastore");
 
@@ -237,7 +249,7 @@ out:
 }
 
 
-static char *get_plugin_file_path(const char *filename, bool create)
+char *get_plugin_file_path(const char *filename, bool create)
 {
 	char *plugin_dir = NULL;
 	char *file_path = NULL;
@@ -251,9 +263,10 @@ static char *get_plugin_file_path(const char *filename, bool create)
 	}
 
 	filename_len = strlen(plugin_dir) + strlen(filename) + 1;
-	file_path= xmalloc(filename_len);
+	file_path = xmalloc(filename_len);
 
 	if (snprintf(file_path, filename_len, "%s%s", plugin_dir, filename) < 0) {
+		FREE_SAFE(file_path);
 		return NULL;
 	}
 
@@ -263,11 +276,13 @@ static char *get_plugin_file_path(const char *filename, bool create)
 			tmp = fopen(file_path, "w");
 			if (tmp == NULL) {
 				SRP_LOG_ERR("Error creating %s", file_path);
+				FREE_SAFE(file_path);
 				return NULL;
 			}
 			fclose(tmp);
 		} else {
 			SRP_LOG_ERR("Filename %s doesn't exist in dir %s", filename, plugin_dir);
+			FREE_SAFE(file_path);
 			return NULL;
 		}
 	}
@@ -356,6 +371,9 @@ static int load_data(sr_session_ctx_t *session)
 			goto error_out;
 		}
 	}
+
+	// add ntp server info to datastore
+	//set_ntp_servers_sr_items(ntp_servers);
 
 	error = sr_apply_changes(session, 0, 0);
 	if (error) {
@@ -575,11 +593,8 @@ static int set_ntp(const char *xpath, char *value)
 	int error = 0;
 
 	if (strcmp(xpath, NTP_ENABLED_YANG_PATH) == 0) {
-		SRP_LOG_DBG("set_ntp enabled: %s", value);
-
 		if (strcmp(value, "true") == 0){
 			// TODO: replace "system()" call with sd-bus later if needed
-
 			error = system("systemctl enable --now ntpd");
 			if (error != 0) {
 				SRP_LOG_ERR("\"systemctl enable --now ntpd\" failed with return value: %d", error);
@@ -652,6 +667,12 @@ static int set_ntp(const char *xpath, char *value)
 				SRP_LOG_ERRMSG("error setting ntp server address");
 				return -1;
 			}
+			// set the address and name to a file
+			error = ntp_set_server_name(value, ntp_server_name);
+			if (error != 0) {
+				SRP_LOG_ERRMSG("ntp_set_server_name error");
+				return -1;
+			}
 
 		} else if (strcmp(ntp_node, "port") == 0) {
 			error = ntp_server_list_set_port(ntp_servers, ntp_server_name, value);
@@ -701,7 +722,6 @@ static int set_ntp(const char *xpath, char *value)
 	
 	return 0;
 }
-
 
 static int set_contact_info(const char *value)
 {
@@ -1216,5 +1236,153 @@ static int get_location(char *location)
 	fclose(fp);
 	fp = NULL;
 	FREE_SAFE(location_file_path);
+	return 0;
+}
+
+int ntp_set_server_name(char *address, char *name)
+{
+	FILE *fp = NULL;
+	FILE *fp_tmp = NULL;
+	char entry[NTP_MAX_ENTRY_LEN] = {0};
+	char *ntp_names_file_path = NULL;
+	char *tmp_ntp_names_file_path = NULL;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read = 0;
+	bool entry_updated = false;
+
+	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
+	if (ntp_names_file_path == NULL) {
+		SRP_LOG_ERR("ntp_set_server_name: couldn't get ntp_names file path");
+		goto error_out;
+	}
+
+	if (strcmp(address, "") != 0) { // leave entry empty if it needs to be deleted
+		if (snprintf(entry, NTP_MAX_ENTRY_LEN, "%s=%s\n", name, address) < 0) {
+			goto error_out;
+		}
+	}
+
+	tmp_ntp_names_file_path = get_plugin_file_path(NTP_TMP_NAMES_FILENAME, true);
+	if (ntp_names_file_path == NULL) {
+		SRP_LOG_ERR("ntp_set_server_name: couldn't get tmp_ntp_names file path");
+		goto error_out;
+	}
+
+	fp = fopen(ntp_names_file_path, "r");
+	if (fp == NULL) {
+		goto error_out;
+	}
+
+	fp_tmp = fopen(tmp_ntp_names_file_path, "a");
+	if (fp_tmp == NULL) {
+		goto error_out;
+	}
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+		// check if ntp server with name already exists
+		if (strncmp(line, name, strlen(name)) == 0) {
+			// update it
+			fputs(entry, fp_tmp);
+			entry_updated = true;
+		} else {
+			fputs(line, fp_tmp);
+		}
+	}
+
+	FREE_SAFE(line);
+	fclose(fp);
+	fp = NULL;
+	fclose(fp_tmp);
+	fp_tmp = NULL;
+
+	// rename the tmp file
+	if (rename(tmp_ntp_names_file_path, ntp_names_file_path) != 0) {
+		goto error_out;
+	}
+
+	FREE_SAFE(tmp_ntp_names_file_path);
+
+	// if the current entry wasn't updated, append it
+	if (!entry_updated) {
+		fp = fopen(ntp_names_file_path, "a");
+		if (fp == NULL) {
+			goto error_out;
+		}
+
+		fputs(entry, fp);
+
+		fclose(fp);
+		fp = NULL;
+	}
+
+	FREE_SAFE(ntp_names_file_path);
+	return 0;
+
+error_out:
+	if (ntp_names_file_path != NULL) {
+		FREE_SAFE(ntp_names_file_path);
+	}
+
+	if (tmp_ntp_names_file_path != NULL) {
+		FREE_SAFE(tmp_ntp_names_file_path);
+	}
+
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	if (fp_tmp != NULL) {
+		fclose(fp_tmp);
+	}
+
+	return -1;
+}
+
+int ntp_get_server_name(char **name, char *address)
+{
+	FILE *fp = NULL;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read = 0;
+	char *ntp_file_path = NULL;
+	bool entry_found = false;
+
+	ntp_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
+	if (ntp_file_path == NULL) {
+		SRP_LOG_ERR("ntp_get_server_name: couldn't get ntp_names file path");
+		return -1;
+	}
+
+	fp = fopen(ntp_file_path, "r");
+	if (fp == NULL) {
+		FREE_SAFE(ntp_file_path);
+		return -1;
+	}
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+		// find name for given ntp server address
+		if (strstr(line, address) != NULL) {
+			// remove the newline char from line
+			line[strlen(line) - 1] = '\0';
+
+			char *tmp_name = strchr(line, '=');
+			*tmp_name = 0;
+
+			*name = xstrdup(line); // line now contains the name
+
+			entry_found = true;
+			break;
+		}
+	}
+
+	fclose(fp);
+	FREE_SAFE(line);
+	FREE_SAFE(ntp_file_path);
+
+	if (!entry_found) {
+		SRP_LOG_INF("No name for ntp server with address %s was found", address);
+	}
+
 	return 0;
 }
