@@ -32,7 +32,6 @@ struct local_user_list_s {
 	uint8_t count;
 };
 
-/////////////////////////////////////////////////////////////////
 int set_new_users(local_user_list_t *ul);
 
 int local_user_list_init(local_user_list_t **ul); 
@@ -68,8 +67,6 @@ int set_passwd_file(local_user_list_t *ul, char **temp_array, int *temp_array_le
 int set_key(local_user_list_t *ul);
 int copy_file(char *src, char *dst);
 
-
-////////////////////////////////////////////////////////////////funkcije koje ce se pobrisati poslije
 void print_test_fja(local_user_list_t *p);
 
 #endif /* USER_AUTHENTICATION_H_ONCE */

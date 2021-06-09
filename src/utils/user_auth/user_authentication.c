@@ -34,8 +34,7 @@
 
 uid_t uid = 0;
 gid_t gid = 0;
-//////////////////////////////////////////////////////////////////////////////////////
-//pomocne fje
+
 bool has_pub_extension(char *name)
 {
 	size_t len = strlen (name);
@@ -92,10 +91,6 @@ int set_new_users(local_user_list_t *ul)
 		goto fail;
 	}
 
-//////////////////////////////////////////////////////////////////////////////////////
-//ZA SHADOW FILE
-//temp_array je vec podesen, njega ne treba nanovo mjenjati, jer sve sto se nadodavalo za passwd, treba ici i u shadow file
-
 	tmp_shf = fopen(USER_TEMP_SHADOW_FILE, "w");
 	if (!tmp_shf) {
 		goto fail;
@@ -107,7 +102,6 @@ int set_new_users(local_user_list_t *ul)
 	if (shd == NULL) {
 		goto fail;
 	}
-//////////////////////////////////////////////////////////////////////////////////////
 
 	do {
 		if (putspent(shd, tmp_shf) != 0) {
@@ -115,8 +109,6 @@ int set_new_users(local_user_list_t *ul)
 		}
 
 	} while ((shd = getspent()) != NULL);
-
-	//dosao je do kraja, sada treba dodati nove usere
 
 	for (int i = 0; i < ul->count; i++) {
 		flag = 0;
@@ -127,8 +119,7 @@ int set_new_users(local_user_list_t *ul)
 			}
 		}
 next_3:
-		if (!flag) {	//u ovome if-u se nadodaju novi useri
-						//POGLEDATI TREBA LI JOS DODATI I PERMISSIONE
+		if (!flag) {
 			username_len = strlen (ul->users[i].name) + 1;
 			s.sp_namp = strndup(ul->users[i].name, username_len);
 
@@ -151,8 +142,6 @@ next_3:
 			FREE_SAFE(s.sp_pwdp); 
 		}
 	}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 	
 	fclose(tmp_shf);
 	tmp_shf = NULL;
@@ -173,8 +162,6 @@ next_3:
 	if (remove(USER_TEMP_SHADOW_FILE) != 0)
 		goto fail;
 
-//////////////////////////////////////////////////////////////////////////////////////
-//DODAVANJE KEYEVA
 	if (set_key(ul)) {
 		printf("set_key error: %s", strerror(errno));
 		goto fail;
@@ -348,7 +335,7 @@ int set_passwd_file(local_user_list_t *ul, char **temp_array, int *temp_array_le
 	if (pwd == NULL) {
 		goto fail;
 	}
-///////////////////////////////////////////////////////////////////////////////////////
+
 	do {
 		for(int i = 0; i < ul->count; i++) {
 			if (strncmp(pwd->pw_name, ul->users[i].name, strlen(ul->users[i].name)) == 0) {
@@ -367,7 +354,7 @@ next_1:
 		}
 	} while ((pwd = getpwent()) != NULL);
 
-	//preparing to add new users
+	// preparing to add new users
 	for (int i = 0; i < ul->count; i++) {
 		flag = 0;
 		for (int j = 0; j < *temp_array_len; j++) {
@@ -377,7 +364,7 @@ next_1:
 			}
 		}
 next_2:
-		if (!flag) {	//adding_new_users
+		if (!flag) { // adding_new_users
 			username_len = strlen (ul->users[i].name) + 1;
 			
 			p.pw_name = strndup (ul->users[i].name, username_len);
@@ -517,8 +504,6 @@ void authorized_key_free(authorized_key_t *k)
 
 void authorized_key_list_init(authorized_key_list_t *ul)
 {
-	//ul = xmalloc(sizeof(authorized_key_list_t));
-	
 	for (int i = 0; i < MAX_AUTH_KEYS; i++) {
 		authorized_key_init(&ul->authorized_keys[i]);
 	}
@@ -534,8 +519,6 @@ void authorized_key_list_free(authorized_key_list_t *ul)
 	
 void local_user_init(local_user_t *u)
 {
-	//u = xmalloc(sizeof(local_user_t));
-	
 	u->name = NULL;
 	u->password = NULL;
 
@@ -575,7 +558,7 @@ int local_user_set_password(local_user_list_t *ul, char *name, char *password)
 
 	for (int i = 0; i < ul->count; i++ ) {
 		if (strcmp(ul->users[i].name, name) == 0) {
-			//if password was already set, free it first, and then reset it
+			// if password was already set, free it first, and then reset it
 			if (ul->users[i].password != NULL) {
 				FREE_SAFE(ul->users[i].password);
 			}
@@ -684,7 +667,7 @@ void clear_string(char *str)
 	for (size_t i = 0; i < str_len; i++) {
 		str[i] = 0;
 	}
-	//str[0] = '\0';
+
 }
 
 int get_key_info(char *in_dir, local_user_list_t *ul, int i)
@@ -692,7 +675,7 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 	FILE *entry_file;
 	DIR* FD;
 	struct dirent* in_file;
-	int error1 = 0;
+	int error = 0;
 	
 	char* file_path;
 	char *line1 = NULL;
@@ -710,7 +693,7 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 			if (in_file_len <= 4) {
 				continue;
 			}
-			//otvaranje svih .pub datoteka
+
 			if (has_pub_extension(in_file->d_name)) {
 				string_len = strlen(in_dir) + strlen("/") + strlen(in_file->d_name) + 1;
 				file_path = xmalloc(string_len);
@@ -725,13 +708,10 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 				}
 
 				//adding key: key_name is name of file
-				//clear_string(key_name);
-				//strncat(key_name, in_file->d_name, strlen(in_file->d_name));
 				snprintf(key_name, strlen(in_file->d_name)+1, "%s", in_file->d_name);
-				//ako treba nadodati:
-				//remove_file_name_extension(key_name);
-				error1 = local_user_add_key(ul, ul->users[i].name, key_name);
-				if (error1) {
+
+				error = local_user_add_key(ul, ul->users[i].name, key_name);
+				if (error) {
 					fprintf(stderr, "Error : Failed to add key - %s\n", strerror(errno));
 					fclose(entry_file);
 					return 1;
@@ -773,7 +753,7 @@ int add_existing_local_users(local_user_list_t *ul)
 	char* in_dir;
 	size_t string_len = 0;
 
-	//adding username
+	// adding username
 	while ((pwd = getpwent()) != NULL) {
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)){ 
 			if (pwd->pw_uid > uid) {
@@ -783,7 +763,7 @@ int add_existing_local_users(local_user_list_t *ul)
 			local_user_add_user(ul, pwd->pw_name);			
 		}
 	} 
-	//adding password
+	// adding password
 	while((pwdshd = getspent()) != NULL) {
 		for(i = 0; i< ul->count; i++) {
 			if(strncmp(ul->users[i].name, pwdshd->sp_namp, strlen(pwdshd->sp_namp)) == 0) {
@@ -797,10 +777,7 @@ int add_existing_local_users(local_user_list_t *ul)
 		}
 	} 
 exit_adding_pass:
-	//adding key; u slucaju provjere, zakomentirati ovaj if sa rootom jer je samo 1 username na kompu
 	for(i = 0; i< ul->count; i++) {
-		
-		//clear_string(in_dir);
 		if (strncmp(ul->users[i].name, "root", 4) == 0) {
 			string_len = strlen ("/root/.ssh") + 1;
 			in_dir = xmalloc(string_len);
@@ -834,8 +811,6 @@ fail:
 	return -1;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-//user list: dovrsiti zadnje linije kod inita i free-a
 int local_user_list_init(local_user_list_t **ul)
 {
 	int error = 0;

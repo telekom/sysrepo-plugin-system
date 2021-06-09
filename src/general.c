@@ -1464,7 +1464,6 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 	lyd_new_path(*parent, NULL, CURR_DATETIME_YANG_PATH, current_datetime, 0, 0);
 	lyd_new_path(*parent, NULL, BOOT_DATETIME_YANG_PATH, boot_datetime, 0, 0);
 
-	//ZA LOCAL_USERS
 	for (int i = 0; i < user_list->count; i++) {
 		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/name", user_list->users[i].name);
 		if (error < 0) {
