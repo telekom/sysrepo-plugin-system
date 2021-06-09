@@ -2,41 +2,12 @@
 #include "../memory.h"
 #include <errno.h>
 #include <string.h>
-#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/sendfile.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-
-extern char *get_plugin_file_path(const char *filename, bool create);
-extern int ntp_get_server_name(char **name, char *address);
-
-#define NTP_MAX_SERVERS 20 // TODO: update if needed
-#define NTP_CONFIG_FILE "/etc/ntp.conf"
-#define NTP_TEMP_FILE "/tmp/tmp_ntp.conf"
-#define NTP_BAK_FILE "/etc/ntp.conf.bak"
-#define NTP_NAMES_FILENAME "/ntp_names"
-#define NTP_MAX_ADDR_LEN 45
-#define NTP_MAX_PORT_LEN 5
-#define NTP_MAX_IBURST_LEN 6
-#define NTP_MAX_PREFER_LEN 6
-
-struct ntp_server_s {
-	char *name;
-	char *address;
-	char *port;
-	char *assoc_type;
-	char *iburst;
-	char *prefer;
-	bool delete;
-};
-
-struct ntp_server_list_s {
-	ntp_server_t servers[NTP_MAX_SERVERS];
-	uint8_t count;
-};
 
 void ntp_server_init(ntp_server_t *s)
 {
@@ -85,10 +56,9 @@ void ntp_server_free(ntp_server_t *s)
 	s->delete = false;
 }
 
-int ntp_server_list_init(ntp_server_list_t **sl)
+int ntp_server_list_init(sr_session_ctx_t *session, ntp_server_list_t **sl)
 {
 	int error = 0;
-	char *ntp_names_file_path = NULL;
 
 	*sl = xmalloc(sizeof(ntp_server_list_t));
 
@@ -98,34 +68,22 @@ int ntp_server_list_init(ntp_server_list_t **sl)
 	(*sl)->count = 0;
 
 	// add existing ntp servers to internal list
-	// check if ntp_names file exists
-	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
-
-	if (ntp_names_file_path != NULL) {
-		error = ntp_server_list_add_existing_servers(*sl);
-		if (error != 0) {
-			FREE_SAFE(ntp_names_file_path);
-			return -1;
-		}
-	} else {
-		// if it doesn't exist at init, create it
-		ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, true);
-		if (ntp_names_file_path == NULL) {
-			return -1;
-		}
+	error = ntp_server_list_add_existing_servers(session, *sl);
+	if (error != 0) {
+		return -1;
 	}
 
-	FREE_SAFE(ntp_names_file_path);
 	return 0;
 }
 
-int ntp_server_list_add_existing_servers(ntp_server_list_t *sl)
+int ntp_server_list_add_existing_servers(sr_session_ctx_t *session, ntp_server_list_t *sl)
 {
 	int error = 0;
 	FILE *fp = NULL;
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read = 0;
+	ntp_server_t server_entry = {0};
 
 	// open ntp.conf file for reading
 	fp = fopen(NTP_CONFIG_FILE, "r");
@@ -145,16 +103,26 @@ int ntp_server_list_add_existing_servers(ntp_server_list_t *sl)
 			line[strlen(line) - 1] = '\0';
 
 			// parse the line for assoc_type, server_name, address, port, iburst, prefer
-			ntp_server_t server_entry = {0};
 			error = ntp_parse_config(&server_entry, line);
 			if (error != 0) {
-				return -1;
+				goto error_out;
 			}
 
-			// call ntp_server_list_add_server and company (ntp_server_list_set_address etc.)
+			// save server entry to internal ntp server list
 			error = ntp_add_server_entry_to_list(sl, &server_entry);
 			if (error != 0) {
-				return -1;
+				goto error_out;
+			}
+
+			// check if name is same as address
+			if (strncmp(server_entry.name, server_entry.address, strlen(server_entry.address)) == 0) {
+				// this means that the server entry was already in the /etc/ntp.conf
+				// and since we don't know the name, we set it to match the address
+				// now we have to save the entry to the datastore as well
+				error = ntp_set_entry_datastore(session, &server_entry);
+				if (error != 0) {
+					goto error_out;
+				}
 			}
 
 			// free allocated server_entry members
@@ -175,6 +143,8 @@ error_out:
 	if (fp != NULL) {
 		fclose(fp);
 	}
+
+	ntp_server_free(&server_entry);
 
 	return -1;
 }
@@ -257,6 +227,7 @@ int ntp_parse_config(ntp_server_t *server_entry, char *line)
 	return 0;
 
 error_out:
+
 	return -1;
 }
 
@@ -502,12 +473,6 @@ int ntp_server_list_set_delete(ntp_server_list_t *sl, char *name, bool delete_va
 int save_ntp_config(ntp_server_list_t *sl)
 {
 	char *cfg_entry = NULL;
-	size_t entry_len = 0;
-	size_t assoc_len = 0;
-	size_t addr_len = 0;
-	size_t port_len = 0;
-	size_t iburst_len = 0;
-	size_t prefer_len = 0;
 	FILE *fp = NULL;
 	FILE *fp_tmp = NULL;
 	char *line = NULL;
@@ -550,40 +515,17 @@ int save_ntp_config(ntp_server_list_t *sl)
 			continue;
 		}
 
-		assoc_len = strlen(sl->servers[i].assoc_type) + 1; // +1 for space
-		addr_len = strlen(sl->servers[i].address) + 1; // +1 for space
-
-		if (sl->servers[i].port == NULL) {
-			port_len = 1;
-		} else {
-			port_len = strlen(sl->servers[i].port) + 1; // +1 for space
-		}
-
-		if (sl->servers[i].iburst == NULL) {
-			iburst_len = 1;
-		} else {
-			iburst_len = strlen(sl->servers[i].iburst) + 1; // +1 for space
-		}
-
-		if (sl->servers[i].prefer == NULL) {
-			prefer_len = 1;
-		} else {
-			prefer_len = strlen(sl->servers[i].prefer);
-		}
-
 		if (sl->servers[i].delete == true) {
 			ntp_server_free(&sl->servers[i]);
 		} else {
-			entry_len = assoc_len + addr_len + port_len + iburst_len + prefer_len + 2; // newline char and '\0'
-
-			cfg_entry = xmalloc(entry_len);
+			cfg_entry = xmalloc(NTP_MAX_ENTRY_LEN);
 
 			// construct the entry string
-			snprintf(cfg_entry, entry_len, "%s %s%c%s %s %s\n",
+			snprintf(cfg_entry, NTP_MAX_ENTRY_LEN, "%s %s%c%s %s %s\n",
 					sl->servers[i].assoc_type,
 					sl->servers[i].address,
 					(sl->servers[i].port == NULL) ? ' ' : ':',
-					sl->servers[i].port,
+					(sl->servers[i].port == NULL) ? "" : sl->servers[i].port,
 					(sl->servers[i].iburst == NULL) ? "" : sl->servers[i].iburst,
 					(sl->servers[i].prefer == NULL) ? "" : sl->servers[i].prefer);
 
