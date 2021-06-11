@@ -15,22 +15,6 @@
 #include <shadow.h>
 #include <dirent.h>
 
-#define MAX_USERNAME_LEN LOGIN_NAME_MAX
-#define MAX_ALG_SIZE 50
-#define MAX_KEY_DATA_SIZE 16384 // maximum RSA key size
-#define ROOT_PATH "/root"
-#define HOME_PATH "/home"
-#define SLASH "/"
-#define SSH "/.ssh" 
-
-#define ROOT_USERNAME "root"
-#define USER_TEMP_PASSWD_FILE "/tmp/tmp_passwd"
-#define USER_TEMP_SHADOW_FILE "/tmp/tmp_shadow"
-#define PASSWD_FILE "/etc/passwd"
-#define SHADOW_FILE "/etc/shadow"
-#define PASSWD_BAK_FILE PASSWD_FILE ".bak"
-#define SHADOW_BAK_FILE SHADOW_FILE ".bak"
-
 uid_t uid = 0;
 gid_t gid = 0;
 
@@ -71,139 +55,77 @@ void remove_file_name_extension(char *name)
 
 int set_new_users(local_user_list_t *ul)
 {
-	// TODO: please refactor
 	int error = 0;
+	char *existing_users[MAX_LOCAL_USERS] = {0};
+	int num_existing_users = 0;
 	size_t username_len = 0;
-	int flag = 0;
-	int temp_array_len = 0;
-	char **temp_array = NULL; 
-	struct spwd *shd = {0};
-	struct spwd s = {0};
-	FILE *tmp_shf = NULL;
-
-	// removing users or ssh public key files
+	bool user_exists = false;
 
 	// check if username password or public key algorithm is an empty string
+	// remove users or ssh public key files if so
 	error = delete_users(ul);
 	if (error != 0) {
-		goto fail;
+		goto error_out;
 	}
 
-	temp_array = xmalloc(ul->count * sizeof(char*));
+	// get list of already existing user names from passwd file
+	error = get_existing_users_from_passwd(existing_users, &num_existing_users);
+
+	// iterate through internal user list
 	for (int i = 0; i < ul->count; i++) {
-		temp_array[i] = (char*)xmalloc(MAX_USERNAME_LEN * sizeof(char));
-	}
-
-	if (set_passwd_file(ul, temp_array, &temp_array_len)) {
-		fprintf(stderr, "Error : Failed to set passwd file - %s\n", strerror(errno));
-		goto fail;
-	}
-
-	tmp_shf = fopen(USER_TEMP_SHADOW_FILE, "w");
-	if (!tmp_shf) {
-		goto fail;
-	}
-
-	endspent(); 
-
-	shd = getspent();
-	if (shd == NULL) {
-		goto fail;
-	}
-
-	do {
-		if (putspent(shd, tmp_shf) != 0) {
-			goto fail;
-		}
-
-	} while ((shd = getspent()) != NULL);
-
-	for (int i = 0; i < ul->count; i++) {
-		flag = 0;
 		if (ul->users[i].name == NULL) {
-			continue;
+			continue; // in case a user was deleted somewhere in the internal list
 		}
-		for (int j = 0; j < temp_array_len; j++) {
-			if (strncmp(temp_array [j], ul->users[i].name, strlen(ul->users[i].name)) == 0) {
-				flag = 1;
-				goto next_3;	
+
+		user_exists = false;
+
+		// iterate through existing users in passwd file
+		for (int j = 0; j < num_existing_users; j++) {
+			username_len = strnlen(existing_users[j], MAX_USERNAME_LEN);
+
+			// check if current user from internal list is already in passwd file
+			if (strncmp(ul->users[i].name, existing_users[j], username_len) == 0 ) {
+				// user is already in passwd
+				// skip this user
+				user_exists = true;
+				break;
 			}
 		}
-next_3:
-		if (!flag) {
-			username_len = strlen (ul->users[i].name) + 1;
-			s.sp_namp = strndup(ul->users[i].name, username_len);
 
-			username_len = strlen (ul->users[i].password) + 1;
-			s.sp_pwdp = strndup(ul->users[i].password, username_len);
-
-			s.sp_lstchg = 18655;
-			s.sp_max = 99999;
-			s.sp_min = 0;
-			s.sp_warn = 7;
-
-			s.sp_expire = (unsigned long)-1; // -1 value corresponds to an empty string
-			s.sp_flag = (unsigned long)-1;
-			s.sp_inact = (unsigned long)-1;
-
-			if (putspent(&s, tmp_shf) != 0) {
-				goto fail;
+		if (!user_exists) { // if the user doesn't already exist in passwd, add the user
+			// add this user to passwd
+			error = set_passwd_file(ul->users[i].name);
+			if (error != 0) {
+				goto error_out;
 			}
-			FREE_SAFE(s.sp_namp);
-			FREE_SAFE(s.sp_pwdp); 
+
+			// add this user to shadow
+			error = set_shadow_file(ul->users[i].name, ul->users[i].password);
+			if (error != 0) {
+				goto error_out;
+			}
 		}
 	}
-	
-	fclose(tmp_shf);
-	tmp_shf = NULL;
 
-	// create a backup file of /etc/shadow
-	if (copy_file(SHADOW_FILE, SHADOW_BAK_FILE) != 0) {
-		printf("copy_file error: %s", strerror(errno));
-		goto fail;
+	// set ssh keys for users
+	error = set_key(ul);
+	if (error != 0) {
+		goto error_out;
 	}
 
-	// copy the temp file to /etc/shadow
-	if (copy_file(USER_TEMP_SHADOW_FILE, SHADOW_FILE) != 0) {
-		printf("copy_file error: %s", strerror(errno));
-		goto fail;
-	}
-
-	// remove the temp file
-	if (remove(USER_TEMP_SHADOW_FILE) != 0) {
-		goto fail;
-	}
-
-	if (set_key(ul)) {
-		printf("set_key error: %s", strerror(errno));
-		goto fail;
-	}
-
-	for (int i = 0; i < ul->count; i++){
-		if (temp_array[i] != NULL)
-			FREE_SAFE(temp_array[i]);
-	}
-	if (temp_array != NULL) {
-		FREE_SAFE(temp_array);
+	// cleanup existing_users
+	for (int i = 0; i < num_existing_users; i++) {
+		FREE_SAFE(existing_users[i]);
 	}
 
 	return 0;
 
-fail:
-	for (int i = 0; i < ul->count; i++){
-		if (temp_array[i] != NULL)
-			FREE_SAFE(temp_array[i]);
+error_out:
+	if (num_existing_users > 0) {
+		for (int i = 0; i < num_existing_users; i++) {
+			FREE_SAFE(existing_users[i]);
+		}
 	}
-	if (temp_array != NULL) {
-		FREE_SAFE(temp_array);
-	}
-
-	if (access(PASSWD_FILE, F_OK) != 0 )
-		rename(PASSWD_BAK_FILE, PASSWD_FILE);
-	
-	if (tmp_shf != NULL)
-		fclose(tmp_shf);
-
 	return -1;
 }
 
@@ -214,9 +136,12 @@ int delete_users(local_user_list_t *ul)
 	bool remove_file = false;
 
 	for (int i = 0; i < ul->count; i++) {
+		remove_user = false;
+
 		if (ul->users[i].name == NULL) {
 			continue;
 		}
+
 		if (strcmp(ul->users[i].password, "") == 0) {
 			// remove the user from passwd and shadow file
 			error = remove_user_entry(ul->users[i].name);
@@ -228,9 +153,11 @@ int delete_users(local_user_list_t *ul)
 		}
 
 		for (int j = 0; j < ul->users[i].auth.count; j++) {
+			remove_file = false;
 			if (ul->users[i].auth.authorized_keys[j].algorithm == NULL) {
 				continue;
 			}
+
 			if (strcmp(ul->users[i].auth.authorized_keys[j].algorithm, "") == 0) {
 				// remove the ssh public key file
 				error = remove_ssh_file(ul->users[i].name, ul->users[i].auth.authorized_keys[j].name);
@@ -240,14 +167,14 @@ int delete_users(local_user_list_t *ul)
 
 				remove_file = true;
 			}
-		}
 
-		if (remove_file == true) {
-			// remove the ssh file info from internal list
-			authorized_key_list_free(&ul->users[i].auth);
+			if (remove_file == true) {
+				// remove the ssh file info from internal list
+				authorized_key_list_free(&ul->users[i].auth);
 
-			// decrease the counter
-			ul->users[i].auth.count--;
+				// decrease the counter
+				ul->users[i].auth.count--;
+			}
 		}
 
 		if (remove_user == true) {
@@ -297,7 +224,7 @@ int remove_home_dir(char *username)
 	size_t username_len = 0;
 	size_t path_len = 0;
 
-	username_len = strnlen(username, MAX_USERNAME_LEN);
+	username_len = strnlen(username, MAX_USERNAME_LEN) + 1;
 
 	// check if username is not root
 	if (strncmp(username, "root", username_len) != 0) {
@@ -392,7 +319,7 @@ error_out:
 }
 
 int remove_ssh_file(char *username, char *filename)
-{	
+{
 	int error = 0;
 	char file_path[PATH_MAX] = {0};
 	size_t username_len = 0;
@@ -425,6 +352,43 @@ int remove_ssh_file(char *username, char *filename)
 	if (error != 0) {
 		goto error_out;
 	}
+
+	return 0;
+
+error_out:
+	return -1;
+}
+
+int get_existing_users_from_passwd(char *existing_users[], int *num_users)
+{
+	struct passwd *pwd = {0};
+	int count = 1; // counter starts at 1 because we manually added "root" first
+	size_t len = 0;
+
+	// root will always be present, so set it as first element
+	existing_users[0] = xstrdup("root");
+
+	setpwent();
+
+	pwd = getpwent();
+	if (pwd == NULL) {
+		goto error_out;
+	}
+
+	do {
+		// check if user has uid => 1000 and iss < 65534
+		// uid 65534 belongs to the "nobody" user
+		if (pwd->pw_uid >= 1000 && pwd->pw_uid < 65534) {
+			len = strnlen(pwd->pw_name, MAX_USERNAME_LEN);
+			existing_users[count] = xstrndup(pwd->pw_name, len);
+
+			count++;
+		}
+	} while ((pwd = getpwent()) != NULL);
+
+	endpwent();
+
+	*num_users = count;
 
 	return 0;
 
@@ -472,6 +436,7 @@ int set_key(local_user_list_t *ul)
 	size_t in_file_len = 0;
 	char *file_key_name = NULL;
 	struct stat st = {0};
+	struct passwd *pwd = {0};
 
 	for (i = 0; i < ul->count; i++) {
 		if (ul->users[i].name == NULL) {
@@ -493,8 +458,27 @@ int set_key(local_user_list_t *ul)
 		}
 		
 		if (stat(in_dir, &st) == -1) {
-			printf("Creating new folder: \n");
     		mkdir(in_dir, 0700);
+
+			// find uid and gid of user
+			setpwent();
+
+			pwd = getpwent();
+			if (pwd == NULL) {
+				goto fail;
+			}
+
+			do {
+				if (strcmp(ul->users[i].name, pwd->pw_name) == 0) {
+					// set permissions to dir
+					if (chown(in_dir, pwd->pw_uid, pwd->pw_gid)) {
+						goto fail;
+					}
+					break;
+				}
+			} while ((pwd = getpwent()) != NULL);
+
+			endpwent();
 		}	
 
 		if ((FD = opendir(in_dir)) == NULL) {
@@ -558,99 +542,64 @@ fail:
 	return -1;
 }
 
-int set_passwd_file(local_user_list_t *ul, char **temp_array, int *temp_array_len)
+int set_passwd_file(char *username)
 {
-	int flag = 0;
-	int read_fd = -1;
-	int write_fd = -1;
-	struct stat st = {0};
-	struct stat stat_buf = {0};
 	struct passwd *pwd = {0};
 	struct passwd p = {0};
-	off_t offset = 0;
+	struct stat buf = {0};
 	size_t username_len = 0;
 	FILE *tmp_pwf = NULL; // temporary passwd file
 
 	tmp_pwf = fopen(USER_TEMP_PASSWD_FILE, "w");
 	if (!tmp_pwf) {
-		printf("error while opening temporary passwd file: %s", strerror(errno));
-		goto fail;
+		goto error_out;
 	}
-	
+
 	setpwent();
 
 	pwd = getpwent();
 	if (pwd == NULL) {
-		goto fail;
+		goto error_out;
 	}
 
 	do {
-		for(int i = 0; i < ul->count; i++) {
-			if (ul->users[i].name == NULL) {
-				continue;
-			}
-			if (strncmp(pwd->pw_name, ul->users[i].name, strlen(ul->users[i].name)) == 0) {
-				(*temp_array_len) = *temp_array_len + 1;
-				if (*temp_array_len > MAX_LOCAL_USERS) {
-					goto fail;
-				} else {
-					temp_array[*temp_array_len - 1] = strndup(ul->users[i].name, strlen(ul->users[i].name));
-					goto next_1;
-				}
-			}
-		}
-next_1:
+		// copy passwd file to temp file
 		if (putpwent(pwd, tmp_pwf) != 0) {
-			goto fail;
+			goto error_out;
 		}
 	} while ((pwd = getpwent()) != NULL);
 
-	// preparing to add new users
-	for (int i = 0; i < ul->count; i++) {
-		flag = 0;
-		if (ul->users[i].name == NULL) {
-			continue;
-		}
-		for (int j = 0; j < *temp_array_len; j++) {
-			if (strncmp(temp_array [j], ul->users[i].name, strlen(ul->users[i].name)) == 0) {
-				flag = 1;
-				break;	
-			}
-		}
+	// add the new users entry into the temp file
+	p.pw_name = xstrdup(username);
+	p.pw_passwd = strdup("x");
+	p.pw_shell = strdup ("/bin/bash");
+	uid++;
+	gid++;
+	p.pw_uid = uid;
+	p.pw_gid = gid;
 
-		if (!flag) { // adding_new_users
-			username_len = strlen (ul->users[i].name) + 1;
-			
-			p.pw_name = strndup (ul->users[i].name, username_len);
-			p.pw_passwd = strdup("x");
-			p.pw_shell = strdup ("/bin/bash");
-			uid++;
-			gid++;
-			p.pw_uid = uid;
-			p.pw_gid = gid;
+	username_len = strlen ("/home/") + strlen(p.pw_name) + 1;
+	p.pw_dir = xmalloc(username_len);
+	if (snprintf(p.pw_dir, username_len, "/home/%s", p.pw_name) < 0) {
+		goto error_out;
+	} 
 
-			username_len = strlen ("/home/") + strlen(p.pw_name) + 1;
-			p.pw_dir = xmalloc(username_len);
-			if (snprintf(p.pw_dir, username_len, "/home/%s", p.pw_name) < 0) {
-				goto fail;
-			} 
-			if (stat(p.pw_dir, &st) == -1) {
-    			mkdir(p.pw_dir, 0700);
-			}
-			if (chown(p.pw_dir, p.pw_uid, p.pw_gid)) {
-				goto fail;
-			}
-	
-			if (putpwent(&p, tmp_pwf) != 0) {
-				goto fail;
-			}
-
-			FREE_SAFE(p.pw_name);
-			FREE_SAFE(p.pw_passwd);
-			FREE_SAFE(p.pw_shell);
-			FREE_SAFE(p.pw_dir);
-		}
+	if (stat(p.pw_dir, &buf) == -1) {
+		mkdir(p.pw_dir, 0700);
 	}
+
+	if (chown(p.pw_dir, p.pw_uid, p.pw_gid)) {
+		goto error_out;
+	}
+
+	if (putpwent(&p, tmp_pwf) != 0) {
+		goto error_out;
+	}
+
+	FREE_SAFE(p.pw_name);
+	FREE_SAFE(p.pw_passwd);
+	FREE_SAFE(p.pw_shell);
+	FREE_SAFE(p.pw_dir);
 
 	endpwent();
 
@@ -659,45 +608,130 @@ next_1:
 
 	// create a backup file of /etc/passwd
 	if (rename(PASSWD_FILE, PASSWD_BAK_FILE) != 0)
-		goto fail;
+		goto error_out;
 
 	// copy the temp file to /etc/passwd
-	read_fd = open(USER_TEMP_PASSWD_FILE, O_RDONLY);
-	if (read_fd == -1)
-		goto fail;
-
-	if (fstat(read_fd, &stat_buf) != 0)
-		goto fail;
-
-	write_fd = open(PASSWD_FILE, O_WRONLY | O_CREAT, stat_buf.st_mode);
-	if (write_fd == -1)
-		goto fail;
-
-	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1)
-		goto fail;
+	if (copy_file(USER_TEMP_PASSWD_FILE, PASSWD_FILE) != 0) {
+		goto error_out;
+	}
 
 	// remove the temp file
 	if (remove(USER_TEMP_PASSWD_FILE) != 0)
-		goto fail;
-
-	close(read_fd);
-	close(write_fd);
+		goto error_out;
 
 	return 0;
 
-fail:
-	if (tmp_pwf != NULL)
+error_out:
+	if (tmp_pwf != NULL) {
 		fclose(tmp_pwf);
+	}
 
-	if (read_fd != -1)
-		close(read_fd);
+	if (p.pw_name != NULL) {
+		FREE_SAFE(p.pw_name);
+	}
 
-	if (write_fd != -1)
-		close(write_fd);
+	if (p.pw_passwd != NULL) {
+		FREE_SAFE(p.pw_passwd);
+	}
 
+	if (p.pw_shell != NULL) {
+		FREE_SAFE(p.pw_shell);
+	}
+
+	if (p.pw_dir != NULL) {
+		FREE_SAFE(p.pw_dir);
+	}
 
 	return -1;
+}
 
+int set_shadow_file(char *username, char *password)
+{
+	struct spwd *shd = {0};
+	struct spwd s = {0};
+	FILE *tmp_shf = NULL;
+	size_t username_len = 0;
+
+	tmp_shf = fopen(USER_TEMP_SHADOW_FILE, "w");
+	if (!tmp_shf) {
+		goto error_out;
+	}
+
+	setspent();
+
+	shd = getspent();
+	if (shd == NULL) {
+		goto error_out;
+	}
+
+	do {
+		if (putspent(shd, tmp_shf) != 0) {
+			goto error_out;
+		}
+
+	} while ((shd = getspent()) != NULL);
+
+	username_len = strlen(username) + 1;
+	s.sp_namp = strndup(username, username_len);
+
+	username_len = strlen (password) + 1;
+	s.sp_pwdp = strndup(password, username_len);
+
+	s.sp_lstchg = (unsigned long)-1; // -1 value corresponds to an empty string;
+	s.sp_max = 99999;
+	s.sp_min = 0;
+	s.sp_warn = 7;
+
+	s.sp_expire = (unsigned long)-1;
+	s.sp_flag = (unsigned long)-1;
+	s.sp_inact = (unsigned long)-1;
+
+	if (putspent(&s, tmp_shf) != 0) {
+		goto error_out;
+	}
+
+	FREE_SAFE(s.sp_namp);
+	FREE_SAFE(s.sp_pwdp); 
+
+	endspent();
+	fclose(tmp_shf);
+	tmp_shf = NULL;
+
+	// create a backup file of /etc/shadow
+	if (copy_file(SHADOW_FILE, SHADOW_BAK_FILE) != 0) {
+		printf("copy_file error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	// copy the temp file to /etc/shadow
+	if (copy_file(USER_TEMP_SHADOW_FILE, SHADOW_FILE) != 0) {
+		printf("copy_file error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	// remove the temp file
+	if (remove(USER_TEMP_SHADOW_FILE) != 0) {
+		goto error_out;
+	}
+
+	return 0;
+
+error_out:
+	if (s.sp_namp != NULL) {
+		FREE_SAFE(s.sp_namp);
+	}
+
+	if (s.sp_pwdp != NULL) {
+		FREE_SAFE(s.sp_pwdp);
+	}
+
+	if (access(PASSWD_FILE, F_OK) != 0 )
+		rename(PASSWD_BAK_FILE, PASSWD_FILE);
+	
+	if (tmp_shf != NULL)
+		fclose(tmp_shf);
+
+	return -1;
 }
 
 int copy_file(char *src, char *dst)
@@ -714,7 +748,7 @@ int copy_file(char *src, char *dst)
 	if (fstat(read_fd, &stat_buf) != 0)
 		goto error_out;
 
-	write_fd = open(dst, O_CREAT|O_WRONLY|O_TRUNC, S_IWUSR);
+	write_fd = open(dst, O_CREAT|O_WRONLY|O_TRUNC, stat_buf.st_mode);
 	if (write_fd == -1)
 		goto error_out;
 
@@ -1065,6 +1099,7 @@ exit_adding_pass:
 			} 
 			error1 = get_key_info(in_dir, ul, i);
 			if(error1) {
+				FREE_SAFE(in_dir);
 				continue;
 			}
 
@@ -1077,6 +1112,7 @@ exit_adding_pass:
 			
 			error1 = get_key_info(in_dir, ul, i);
 			if(error1) {
+				FREE_SAFE(in_dir);
 				continue;
 			}
 		}
@@ -1086,7 +1122,10 @@ exit_adding_pass:
 	return 0;
 
 fail:
-	FREE_SAFE(in_dir);
+	if (in_dir != NULL) {
+		FREE_SAFE(in_dir);
+	}
+
 	return -1;
 }
 
