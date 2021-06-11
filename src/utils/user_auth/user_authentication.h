@@ -53,6 +53,11 @@ void authorized_key_list_free(authorized_key_list_t *ul);
 void authorized_key_init(authorized_key_t *k);
 void authorized_key_free(authorized_key_t *k);
 
+int delete_users(local_user_list_t *ul);
+int remove_user_entry(char *name);
+int remove_line_from_file(char *orig, char *tmp, char *backup, char *username);
+int remove_ssh_file(char *username, char *filename);
+int remove_home_dir(char *username);
 
 bool has_pub_extension(char *name);
 // int add_pub_extension(char *name);

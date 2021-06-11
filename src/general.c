@@ -718,6 +718,10 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 					if (strncmp(node_xpath, DNS_RESOLVER_SERVER_YANG_PATH, strlen(DNS_RESOLVER_SERVER_YANG_PATH)) == 0) {
 						dns_servers_change = true;
 					}
+
+					if (strncmp(node_xpath, AUTHENTICATION_USER_YANG_PATH, strlen(AUTHENTICATION_USER_YANG_PATH)) == 0) {
+						user_change = true;
+					}
 				}
 			}
 			FREE_SAFE(node_xpath);
@@ -804,7 +808,6 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 				SRP_LOG_ERR("setlocation error: %s", strerror(errno));
 			}
 		}
-
 	} else if (strcmp(xpath, TIMEZONE_NAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
 			// check if the /etc/localtime symlink exists
@@ -846,7 +849,10 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 		}
 	} else if (strncmp(xpath, AUTHENTICATION_USER_YANG_PATH, strlen(AUTHENTICATION_USER_YANG_PATH)) == 0) {
 		if (operation == SR_OP_DELETED) {
-			// TODO
+			error = set_user_authentication(xpath, "");
+			if (error != 0) {
+				SRP_LOG_ERRMSG("set_authentication_user error");
+			}
 		} else {
 			error = set_user_authentication(xpath, (char *)value);
 			if (error != 0) {
@@ -1311,6 +1317,9 @@ fail:
 static int get_contact_info(char *value)
 {
 	struct passwd *pwd = {0};
+
+	setpwent();
+
 	pwd = getpwent();
 
 	if (pwd == NULL) {
@@ -1322,6 +1331,8 @@ static int get_contact_info(char *value)
 			strncpy(value, pwd->pw_gecos, strnlen(pwd->pw_gecos, MAX_GECOS_LEN));
 		}
 	} while ((pwd = getpwent()) != NULL);
+
+	endpwent();
 
 	return 0;
 }
@@ -1502,7 +1513,6 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 			lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].auth.authorized_keys[j].key_data, 0, 0);
 		}
 	}
-
 
 	//values = NULL;
 

@@ -15,18 +15,17 @@
 #include <shadow.h>
 #include <dirent.h>
 
-
-#define MAX_USERNAME_LEN 50
+#define MAX_USERNAME_LEN LOGIN_NAME_MAX
 #define MAX_ALG_SIZE 50
-#define MAX_KEY_DATA_SIZE 1000
+#define MAX_KEY_DATA_SIZE 16384 // maximum RSA key size
 #define ROOT_PATH "/root"
 #define HOME_PATH "/home"
 #define SLASH "/"
 #define SSH "/.ssh" 
 
 #define ROOT_USERNAME "root"
-#define USER_TEMP_FILE "/tmp/tempfile"
-#define USER_TEMP_SHADOW_FILE "/tmp/tempshadowfile"
+#define USER_TEMP_PASSWD_FILE "/tmp/tmp_passwd"
+#define USER_TEMP_SHADOW_FILE "/tmp/tmp_shadow"
 #define PASSWD_FILE "/etc/passwd"
 #define SHADOW_FILE "/etc/shadow"
 #define PASSWD_BAK_FILE PASSWD_FILE ".bak"
@@ -73,6 +72,7 @@ void remove_file_name_extension(char *name)
 int set_new_users(local_user_list_t *ul)
 {
 	// TODO: please refactor
+	int error = 0;
 	size_t username_len = 0;
 	int flag = 0;
 	int temp_array_len = 0;
@@ -80,9 +80,17 @@ int set_new_users(local_user_list_t *ul)
 	struct spwd *shd = {0};
 	struct spwd s = {0};
 	FILE *tmp_shf = NULL;
-	
-	temp_array = xmalloc(MAX_LOCAL_USERS * sizeof(char*));
-	for (int i = 0; i < MAX_LOCAL_USERS; i++) {
+
+	// removing users or ssh public key files
+
+	// check if username password or public key algorithm is an empty string
+	error = delete_users(ul);
+	if (error != 0) {
+		goto fail;
+	}
+
+	temp_array = xmalloc(ul->count * sizeof(char*));
+	for (int i = 0; i < ul->count; i++) {
 		temp_array[i] = (char*)xmalloc(MAX_USERNAME_LEN * sizeof(char));
 	}
 
@@ -112,6 +120,9 @@ int set_new_users(local_user_list_t *ul)
 
 	for (int i = 0; i < ul->count; i++) {
 		flag = 0;
+		if (ul->users[i].name == NULL) {
+			continue;
+		}
 		for (int j = 0; j < temp_array_len; j++) {
 			if (strncmp(temp_array [j], ul->users[i].name, strlen(ul->users[i].name)) == 0) {
 				flag = 1;
@@ -146,41 +157,46 @@ next_3:
 	fclose(tmp_shf);
 	tmp_shf = NULL;
 
-	// create a backup file of /etc/passwd
+	// create a backup file of /etc/shadow
 	if (copy_file(SHADOW_FILE, SHADOW_BAK_FILE) != 0) {
 		printf("copy_file error: %s", strerror(errno));
 		goto fail;
 	}
 
-	// copy the temp file to /etc/passwd
+	// copy the temp file to /etc/shadow
 	if (copy_file(USER_TEMP_SHADOW_FILE, SHADOW_FILE) != 0) {
 		printf("copy_file error: %s", strerror(errno));
 		goto fail;
 	}
 
 	// remove the temp file
-	if (remove(USER_TEMP_SHADOW_FILE) != 0)
+	if (remove(USER_TEMP_SHADOW_FILE) != 0) {
 		goto fail;
+	}
 
 	if (set_key(ul)) {
 		printf("set_key error: %s", strerror(errno));
 		goto fail;
 	}
 
-	for (int i = 0; i < MAX_LOCAL_USERS; i++){
+	for (int i = 0; i < ul->count; i++){
 		if (temp_array[i] != NULL)
 			FREE_SAFE(temp_array[i]);
 	}
-	FREE_SAFE(temp_array);
+	if (temp_array != NULL) {
+		FREE_SAFE(temp_array);
+	}
 
 	return 0;
 
 fail:
-	for (int i = 0; i < MAX_LOCAL_USERS; i++){
+	for (int i = 0; i < ul->count; i++){
 		if (temp_array[i] != NULL)
 			FREE_SAFE(temp_array[i]);
 	}
-	FREE_SAFE(temp_array);
+	if (temp_array != NULL) {
+		FREE_SAFE(temp_array);
+	}
 
 	if (access(PASSWD_FILE, F_OK) != 0 )
 		rename(PASSWD_BAK_FILE, PASSWD_FILE);
@@ -188,6 +204,231 @@ fail:
 	if (tmp_shf != NULL)
 		fclose(tmp_shf);
 
+	return -1;
+}
+
+int delete_users(local_user_list_t *ul)
+{
+	int error = 0;
+	bool remove_user = false;
+	bool remove_file = false;
+
+	for (int i = 0; i < ul->count; i++) {
+		if (ul->users[i].name == NULL) {
+			continue;
+		}
+		if (strcmp(ul->users[i].password, "") == 0) {
+			// remove the user from passwd and shadow file
+			error = remove_user_entry(ul->users[i].name);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			remove_user = true;
+		}
+
+		for (int j = 0; j < ul->users[i].auth.count; j++) {
+			if (ul->users[i].auth.authorized_keys[j].algorithm == NULL) {
+				continue;
+			}
+			if (strcmp(ul->users[i].auth.authorized_keys[j].algorithm, "") == 0) {
+				// remove the ssh public key file
+				error = remove_ssh_file(ul->users[i].name, ul->users[i].auth.authorized_keys[j].name);
+				if (error != 0) {
+					goto error_out;
+				}
+
+				remove_file = true;
+			}
+		}
+
+		if (remove_file == true) {
+			// remove the ssh file info from internal list
+			authorized_key_list_free(&ul->users[i].auth);
+
+			// decrease the counter
+			ul->users[i].auth.count--;
+		}
+
+		if (remove_user == true) {
+			// remove home dir as well
+			error = remove_home_dir(ul->users[i].name);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			// remove user from internal list
+			local_user_free(&ul->users[i]);
+
+			// decrease the counter
+			ul->count--;
+		}
+	}
+
+	return 0;
+
+error_out:
+	return -1;
+}
+
+int remove_user_entry(char *name)
+{
+	int error = 0;
+
+	// remove entry in passwd file
+	error = remove_line_from_file(PASSWD_FILE, USER_TEMP_PASSWD_FILE, PASSWD_BAK_FILE, name);
+	if (error != 0) {
+		return -1;
+	}
+
+	// remove entry in shadow file
+	error = remove_line_from_file(SHADOW_FILE, USER_TEMP_SHADOW_FILE, SHADOW_BAK_FILE, name);
+	if (error != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int remove_home_dir(char *username)
+{
+	int error = 0;
+	char cmd[PATH_MAX] = {0};
+	size_t username_len = 0;
+	size_t path_len = 0;
+
+	username_len = strnlen(username, MAX_USERNAME_LEN);
+
+	// check if username is not root
+	if (strncmp(username, "root", username_len) != 0) {
+		// non-root user
+		path_len = username_len + strlen("rm -rf /home/%s") + 1; // TODO: remove "rm -rf" when nftw() is used
+
+		error = snprintf(cmd, path_len, "rm -rf /home/%s", username);
+		if (error < 0) {
+			goto error_out;
+		}
+	}
+
+	// remove the home dir
+	// TODO: implement recursive deletion of files and directories in home dir
+	//		 use nftw() instead of system
+	error = system(cmd);
+	if (error != 0) {
+		goto error_out;
+	}
+
+	return 0;
+
+error_out:
+	return -1;
+}
+
+int remove_line_from_file(char *orig, char *tmp, char *backup, char *username)
+{
+	FILE *fp = NULL;
+	FILE *fp_tmp = NULL;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read = 0;
+
+	// create a backup file
+	if (copy_file(orig, backup) != 0) {
+		goto error_out;
+	}
+
+	fp = fopen(orig, "r");
+	if (fp == NULL) {
+		goto error_out;
+	}
+
+	fp_tmp = fopen(tmp, "w");
+	if (fp_tmp == NULL) {
+		goto error_out;
+	}
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+		// skip line that start with name
+		if (strncmp(line, username, strnlen(username, MAX_USERNAME_LEN)) != 0) {
+			// copy line to temp file
+			fputs(line, fp_tmp);
+		}
+	}
+
+	FREE_SAFE(line);
+	fclose(fp);
+	fclose(fp_tmp);
+
+	// copy the temp file to the real file
+	if (copy_file(tmp, orig) != 0) {
+		goto error_out;
+	}
+
+	// remove the temp file
+	if (remove(tmp) != 0) {
+		goto error_out;
+	}
+
+	return 0;
+
+error_out:
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	if (fp_tmp != NULL) {
+		fclose(fp_tmp);
+	}
+
+	if (line != NULL) {
+		FREE_SAFE(line);
+	}
+
+	if (access(orig, F_OK) != 0 ) {
+		rename(backup, orig);
+	}
+
+	return -1;
+}
+
+int remove_ssh_file(char *username, char *filename)
+{	
+	int error = 0;
+	char file_path[PATH_MAX] = {0};
+	size_t username_len = 0;
+	size_t filename_len = 0;
+	size_t file_path_len = 0;
+
+	username_len = strnlen(username, MAX_USERNAME_LEN);
+	filename_len = strnlen(filename, NAME_MAX);
+
+	// check if username is root, .ssh dir of root is located separate from users .ssh dir
+	if (strncmp(username, "root", username_len) == 0) {
+		file_path_len = username_len + filename_len + strlen("/root/.ssh/%s") + 1;
+
+		error = snprintf(file_path, file_path_len, "/root/.ssh/%s", filename);
+		if (error < 0) {
+			goto error_out;
+		}
+	} else {
+		// non-root user
+		file_path_len = username_len + filename_len + strlen("/home/%s/.ssh/%s") + 1;
+
+		error = snprintf(file_path, file_path_len, "/home/%s/.ssh/%s", username, filename);
+		if (error < 0) {
+			goto error_out;
+		}
+	}
+
+	// remove the file
+	error = remove(file_path);
+	if (error != 0) {
+		goto error_out;
+	}
+
+	return 0;
+
+error_out:
 	return -1;
 }
 
@@ -233,6 +474,9 @@ int set_key(local_user_list_t *ul)
 	struct stat st = {0};
 
 	for (i = 0; i < ul->count; i++) {
+		if (ul->users[i].name == NULL) {
+			continue;
+		}
 		if (strcmp(ul->users[i].name, ROOT_USERNAME) == 0) {
 			string_len = strlen("/") + strlen(ul->users[i].name) + strlen("/.ssh") + 1;
 			in_dir = xmalloc(string_len);
@@ -259,6 +503,9 @@ int set_key(local_user_list_t *ul)
 			goto fail;        	
 		} else {
 			for(j = 0; j < ul->users[i].auth.count; j++) {
+				if (ul->users[i].auth.authorized_keys[j].name == NULL) {
+					continue;
+				}
 				flag = 0;
 				while ((in_file = readdir(FD))) {
 					in_file_len = strlen(in_file->d_name);
@@ -324,12 +571,13 @@ int set_passwd_file(local_user_list_t *ul, char **temp_array, int *temp_array_le
 	size_t username_len = 0;
 	FILE *tmp_pwf = NULL; // temporary passwd file
 
-	tmp_pwf = fopen(USER_TEMP_FILE, "w");
+	tmp_pwf = fopen(USER_TEMP_PASSWD_FILE, "w");
 	if (!tmp_pwf) {
 		printf("error while opening temporary passwd file: %s", strerror(errno));
 		goto fail;
 	}
-	endpwent(); 
+	
+	setpwent();
 
 	pwd = getpwent();
 	if (pwd == NULL) {
@@ -338,6 +586,9 @@ int set_passwd_file(local_user_list_t *ul, char **temp_array, int *temp_array_le
 
 	do {
 		for(int i = 0; i < ul->count; i++) {
+			if (ul->users[i].name == NULL) {
+				continue;
+			}
 			if (strncmp(pwd->pw_name, ul->users[i].name, strlen(ul->users[i].name)) == 0) {
 				(*temp_array_len) = *temp_array_len + 1;
 				if (*temp_array_len > MAX_LOCAL_USERS) {
@@ -357,13 +608,16 @@ next_1:
 	// preparing to add new users
 	for (int i = 0; i < ul->count; i++) {
 		flag = 0;
+		if (ul->users[i].name == NULL) {
+			continue;
+		}
 		for (int j = 0; j < *temp_array_len; j++) {
 			if (strncmp(temp_array [j], ul->users[i].name, strlen(ul->users[i].name)) == 0) {
 				flag = 1;
-				goto next_2;	
+				break;	
 			}
 		}
-next_2:
+
 		if (!flag) { // adding_new_users
 			username_len = strlen (ul->users[i].name) + 1;
 			
@@ -398,6 +652,8 @@ next_2:
 		}
 	}
 
+	endpwent();
+
 	fclose(tmp_pwf);
 	tmp_pwf = NULL;
 
@@ -406,7 +662,7 @@ next_2:
 		goto fail;
 
 	// copy the temp file to /etc/passwd
-	read_fd = open(USER_TEMP_FILE, O_RDONLY);
+	read_fd = open(USER_TEMP_PASSWD_FILE, O_RDONLY);
 	if (read_fd == -1)
 		goto fail;
 
@@ -421,7 +677,7 @@ next_2:
 		goto fail;
 
 	// remove the temp file
-	if (remove(USER_TEMP_FILE) != 0)
+	if (remove(USER_TEMP_PASSWD_FILE) != 0)
 		goto fail;
 
 	close(read_fd);
@@ -458,7 +714,7 @@ int copy_file(char *src, char *dst)
 	if (fstat(read_fd, &stat_buf) != 0)
 		goto error_out;
 
-	write_fd = open(dst, O_WRONLY | O_CREAT, stat_buf.st_mode);
+	write_fd = open(dst, O_CREAT|O_WRONLY|O_TRUNC, S_IWUSR);
 	if (write_fd == -1)
 		goto error_out;
 
@@ -539,17 +795,40 @@ void local_user_free(local_user_t *u)
 
 int local_user_add_user(local_user_list_t *ul, char *name)
 {
-	int error = 0;
-	size_t tmp_len = strlen(name);
+	bool name_found = false;
 
 	if (ul->count >= MAX_LOCAL_USERS) {
-		error = EINVAL;
-	} else {
-		ul->users[ul->count].name = strndup(name, tmp_len + 1);
-		(ul->count)++;
+		return EINVAL;
 	}
 
-	return error;
+	for (int i = 0; i < ul->count; i++) {
+		if (ul->users[i].name != NULL) { // in case we deleted a user it will be NULL
+			if (strcmp(ul->users[i].name, name) == 0) {
+				name_found = true;
+				break;
+			}
+		}
+	}
+
+	if (!name_found) {
+		// set the new user to the first free one in the list
+		// the one with name == 0
+		int pos = ul->count;
+		for (int i = 0; i < ul->count; i++) {
+			if (ul->users[i].name == NULL) {
+				pos = i;
+				break;
+			}
+		}
+
+		ul->users[pos].name = xstrdup(name);
+
+		if (pos == ul->count) {
+			++ul->count;
+		}
+	}
+
+	return 0;
 }
 
 int local_user_set_password(local_user_list_t *ul, char *name, char *password)
