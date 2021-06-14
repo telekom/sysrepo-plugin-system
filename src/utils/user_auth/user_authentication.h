@@ -12,7 +12,7 @@
 #define ROOT_PATH "/root"
 #define HOME_PATH "/home"
 #define SLASH "/"
-#define SSH "/.ssh" 
+#define SSH "/.ssh"
 
 #define ROOT_USERNAME "root"
 #define USER_TEMP_PASSWD_FILE "/tmp/tmp_passwd"
@@ -75,6 +75,9 @@ int remove_line_from_file(char *orig, char *tmp, char *backup, char *username);
 int remove_ssh_file(char *username, char *filename);
 int remove_home_dir(char *username);
 
+int create_dir(char *dir_path, char *username);
+int writing_to_key_file(char* in_dir, char *key_name, char *key_algorithm, char *key_data);
+
 bool has_pub_extension(char *name);
 // int add_pub_extension(char *name);
 void remove_file_name_extension(char *name);
@@ -86,8 +89,11 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i);
 
 int set_passwd_file(char *username);
 int set_shadow_file(char *username, char *password);
-int set_key(local_user_list_t *ul);
+int set_ssh_key(authorized_key_list_t *user_auth, char *ssh_dir_path);
 int copy_file(char *src, char *dst);
+int create_home_dir(char *username, char **home_dir_path);
+int create_ssh_dir(char *username, char *home_dir_path, char **ssh_dir_path);
+int set_owner(char *path);
 
 void print_test_fja(local_user_list_t *p);
 

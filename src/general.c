@@ -882,15 +882,21 @@ static int set_user_authentication(const char *xpath, char *value)
 
 	if (user_ssh_file_name == NULL) {
 		if (strcmp(user_node, "name") == 0) {
+			// don't set empty string as a new user
+			// only happens when you delete a user
+			if (strcmp(value, "") == 0) {
+				FREE_SAFE(tmp_xpath);
+				return 0;
+			}
 			error = local_user_add_user(user_list, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error adding new user");
+				SRP_LOG_ERRMSG("local_user_add_user error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "password") == 0) {
 			error = local_user_set_password(user_list, user_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting user's password");
+				SRP_LOG_ERRMSG("local_user_set_password error");
 				return -1;
 			}
 		}
@@ -898,7 +904,6 @@ static int set_user_authentication(const char *xpath, char *value)
 		// check if ssh public key file has .pub extension
 		if (!has_pub_extension(user_ssh_file_name)) {
 			// if it doesn't, add it
-
 			size_t ssh_file_len = 0;
 
 			ssh_file_len = strlen(user_ssh_file_name) + 5; // ".pub" + "\0"
@@ -911,19 +916,19 @@ static int set_user_authentication(const char *xpath, char *value)
 		if (strcmp(user_node, "name") == 0) {
 			error = local_user_add_key(user_list, user_name, user_ssh_file_name);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting user's key");
+				SRP_LOG_ERRMSG("local_user_add_key error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "algorithm") == 0) {
 			error = local_user_add_algorithm(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting key's algorithm");
+				SRP_LOG_ERRMSG("local_user_add_algorithm error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "key-data") == 0) {
 			error = local_user_add_key_data(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting key's data");
+				SRP_LOG_ERRMSG("local_user_add_key_data error");
 				return -1;
 			}
 		}

@@ -15,6 +15,11 @@
 #include <shadow.h>
 #include <dirent.h>
 
+/* TODO:
+ * 		- add entry to /etc/group
+ *		- fix permissions of home and ssh dir and ssh file
+ */
+
 uid_t uid = 0;
 gid_t gid = 0;
 
@@ -60,6 +65,8 @@ int set_new_users(local_user_list_t *ul)
 	int num_existing_users = 0;
 	size_t username_len = 0;
 	bool user_exists = false;
+	char *user_home_dir_path = NULL;
+	char *user_ssh_dir_path = NULL;
 
 	// check if username password or public key algorithm is an empty string
 	// remove users or ssh public key files if so
@@ -72,7 +79,7 @@ int set_new_users(local_user_list_t *ul)
 	error = get_existing_users_from_passwd(existing_users, &num_existing_users);
 
 	// iterate through internal user list
-	for (int i = 0; i < ul->count; i++) {
+	for (int i = 0; i < MAX_LOCAL_USERS; i++) {
 		if (ul->users[i].name == NULL) {
 			continue; // in case a user was deleted somewhere in the internal list
 		}
@@ -105,12 +112,31 @@ int set_new_users(local_user_list_t *ul)
 				goto error_out;
 			}
 		}
-	}
 
-	// set ssh keys for users
-	error = set_key(ul);
-	if (error != 0) {
-		goto error_out;
+		// create home dir if it doesn't exist
+		error = create_home_dir(ul->users[i].name, &user_home_dir_path);
+		if (error != 0) {
+			goto error_out;
+		}
+
+		if (ul->users[i].auth.count > 0) {
+			// create ssh dir, if it doesn't exist
+			error = create_ssh_dir(ul->users[i].name, user_home_dir_path, &user_ssh_dir_path);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			// set ssh keys for users
+			error = set_ssh_key(&ul->users[i].auth, user_ssh_dir_path);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			FREE_SAFE(user_ssh_dir_path);
+		}
+
+		FREE_SAFE(user_home_dir_path);
+
 	}
 
 	// cleanup existing_users
@@ -126,8 +152,103 @@ error_out:
 			FREE_SAFE(existing_users[i]);
 		}
 	}
+
+	if (user_home_dir_path != NULL) {
+		FREE_SAFE(user_home_dir_path);
+	}
+
+	if (user_ssh_dir_path != NULL) {
+		FREE_SAFE(user_ssh_dir_path);
+	}
+
 	return -1;
 }
+
+int create_home_dir(char *username, char **home_dir_path)
+{
+	int error = 0;
+	size_t len = 0;
+	DIR *home_dir = NULL;
+
+	// create home dir path
+	if (strcmp(username, ROOT_USERNAME) == 0) {
+		len = strlen("/root/") + 1;
+		*home_dir_path = xstrndup("/root/", len);
+	} else {
+		// regular users
+		len = strlen("/home/") + strlen(username) + 1;
+		*home_dir_path = xmalloc(len);
+		if (snprintf(*home_dir_path, len, "/home/%s", username) < 0) {
+			goto error_out;
+		}
+	}
+
+	// check if home dir exists
+	home_dir = opendir(*home_dir_path);
+	if (home_dir != NULL) {
+		// dir exists
+	} else if (ENOENT == errno) {
+		// dir doesn't exist
+		// create home dir
+		error = create_dir(*home_dir_path, username);
+		if (error != 0) {
+			goto error_out;
+		}
+	} else {
+		// opendir failed
+		goto error_out;
+	}
+
+	closedir(home_dir);
+	return 0;
+
+error_out:
+	if (home_dir != NULL){
+		closedir(home_dir);
+	}
+	return -1;
+}
+
+int create_ssh_dir(char *username, char *home_dir_path, char **ssh_dir_path)
+{
+	int error = 0;
+	size_t len = 0;
+	DIR *ssh_dir = NULL;
+
+	// create .ssh dir path
+	len = strlen(home_dir_path) + strlen("/.ssh") + 1;
+	*ssh_dir_path = xmalloc(len);
+	if (snprintf(*ssh_dir_path, len, "%s/.ssh", home_dir_path) < 0) {
+		goto error_out;
+	}
+
+	// check if .ssh dir exists
+	ssh_dir = opendir(*ssh_dir_path);
+	if (ssh_dir != NULL) {
+		// dir exists
+	} else if (ENOENT == errno) {
+		// dir doesn't exist
+		// create home dir
+		error = create_dir(*ssh_dir_path, username);
+		if (error != 0) {
+			goto error_out;
+		}
+	} else {
+		// opendir failed
+		goto error_out;
+	}
+
+	closedir(ssh_dir);
+	return 0;
+
+error_out:
+	if (ssh_dir != NULL) {
+		closedir(ssh_dir);
+	}
+	return -1;
+}
+
+
 
 int delete_users(local_user_list_t *ul)
 {
@@ -138,7 +259,7 @@ int delete_users(local_user_list_t *ul)
 	for (int i = 0; i < ul->count; i++) {
 		remove_user = false;
 
-		if (ul->users[i].name == NULL) {
+		if (ul->users[i].name == NULL || strlen(ul->users[i].name ) == 0) {
 			continue;
 		}
 
@@ -259,11 +380,6 @@ int remove_line_from_file(char *orig, char *tmp, char *backup, char *username)
 	size_t len = 0;
 	ssize_t read = 0;
 
-	// create a backup file
-	if (copy_file(orig, backup) != 0) {
-		goto error_out;
-	}
-
 	fp = fopen(orig, "r");
 	if (fp == NULL) {
 		goto error_out;
@@ -285,6 +401,11 @@ int remove_line_from_file(char *orig, char *tmp, char *backup, char *username)
 	FREE_SAFE(line);
 	fclose(fp);
 	fclose(fp_tmp);
+
+	// create a backup file
+	if (copy_file(orig, backup) != 0) {
+		goto error_out;
+	}
 
 	// copy the temp file to the real file
 	if (copy_file(tmp, orig) != 0) {
@@ -396,159 +517,193 @@ error_out:
 	return -1;
 }
 
-int writing_to_key_file(local_user_list_t *ul, int i, int j, char* in_dir) 
+int writing_to_key_file(char* in_dir, char *key_name, char *key_algorithm, char *key_data) 
 {
 	size_t string_len = 0;
 	FILE *file_key = NULL;
 	char* file_path = NULL;
 
-	string_len = strlen(in_dir) + strlen("/") + strlen(ul->users[i].auth.authorized_keys[j].name) + 1;
+	string_len = strlen(in_dir) + strlen("/") + strlen(key_name) + 1;
 	file_path = xmalloc(string_len);
-	snprintf(file_path, string_len, "%s/%s", in_dir, ul->users[i].auth.authorized_keys[j].name);
+
+	snprintf(file_path, string_len, "%s/%s", in_dir, key_name);
+
 	file_key = fopen(file_path, "w");
-
-	FREE_SAFE(file_path);
-
-	fprintf(file_key, "%s\n", ul->users[i].auth.authorized_keys[j].algorithm);
-	fprintf(file_key, "%s", ul->users[i].auth.authorized_keys[j].key_data);
 	if (file_key == NULL) {
 		fprintf(stderr, "Error : Failed to open entry file - %s\n", strerror(errno));
-		goto fail;
-	} else {
-		fclose(file_key);
-		file_key = NULL;
-		return 0;
+		FREE_SAFE(file_path);
+		return -1;
 	}
-fail:
-	return -1;
-	
+
+	fprintf(file_key, "%s\n", key_algorithm);
+	fprintf(file_key, "%s", key_data);
+
+	if (set_owner(file_path) != 0) {
+		FREE_SAFE(file_path);
+		return -1;
+	}
+
+	if (chmod(in_dir, 0700) != 0) {
+		FREE_SAFE(file_path);
+		return -1;
+	}
+
+	fclose(file_key);
+	FREE_SAFE(file_path);
+
+	return 0;
 }
 
-int set_key(local_user_list_t *ul)
+int set_owner(char *path)
 {
-	int i = 0;
-	int j = 0;
-	char *in_dir = NULL;
-	size_t string_len = 0;
-	DIR *FD;
-	int flag = 0;
-	struct dirent *in_file;
-	size_t in_file_len = 0;
-	char *file_key_name = NULL;
-	struct stat st = {0};
-	struct passwd *pwd = {0};
+	struct passwd *pwd = NULL;
+	setpwent();
 
-	for (i = 0; i < ul->count; i++) {
-		if (ul->users[i].name == NULL) {
+	pwd = getpwent();
+	if (pwd == NULL) {
+		return -1;
+	}
+
+	do {
+		// check if username in dir path
+		if (strstr(pwd->pw_name, path) != 0) {
+			// set ownership of file
+			if (chown(path, pwd->pw_uid, pwd->pw_gid)) {
+				return -1;
+			}
+			break;
+		}
+	} while ((pwd = getpwent()) != NULL);
+
+	endpwent();
+	return 0;
+}
+
+int set_ssh_key(authorized_key_list_t *user_auth, char *ssh_dir_path)
+{
+	int error = 0;
+	char *username = NULL;
+	char *ssh_filename = NULL;
+	char *ssh_key_algo = NULL;
+	char *ssh_key_data = NULL;
+	/*
+	size_t len = 0;
+	DIR *ssh_dir = NULL;
+	bool ssh_file_exists = false;
+	struct dirent *in_file = {0};
+	size_t in_file_len = 0;
+	char *file_key_name = NULL;*/
+
+	for(int i = 0; i < user_auth->count; i++) {
+		username = user_auth->authorized_keys[i].name;
+
+		if (username== NULL) {
 			continue;
 		}
-		if (strcmp(ul->users[i].name, ROOT_USERNAME) == 0) {
-			string_len = strlen("/") + strlen(ul->users[i].name) + strlen("/.ssh") + 1;
-			in_dir = xmalloc(string_len);
-			if (snprintf(in_dir, string_len, "%s/.ssh", ROOT_PATH) < 0) {
-				goto fail;
-			}
-		} else {
 
-			string_len = strlen(ul->users[i].name) + strlen("/home/") + strlen("/.ssh") + 1;
-			in_dir = xmalloc(string_len);
-			if (snprintf(in_dir, string_len, "/home/%s/.ssh", ul->users[i].name) < 0) {
-				goto fail;
+		ssh_filename = user_auth->authorized_keys[i].name;
+		ssh_key_algo = user_auth->authorized_keys[i].algorithm;
+		ssh_key_data = user_auth->authorized_keys[i].key_data;
+
+		/*ssh_dir = opendir(ssh_dir_path);
+		if (ssh_dir == NULL) {
+			goto error_out;
+		}*/
+
+		error = writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data);
+		if (error != 0) {
+			goto error_out;
+		}
+
+		/*ssh_file_exists = false;
+		// iterate through all files in ssh dir
+		while ((in_file = readdir(ssh_dir))) {
+			in_file_len = strlen(in_file->d_name);
+			if (in_file_len <= 4) {
+				continue;
+			}
+
+			len = strlen(in_file->d_name) + 1;
+			file_key_name = xmalloc(len);
+			if (snprintf(file_key_name, len, "%s", in_file->d_name) < 0) {
+				goto error_out;
+			}
+
+			// check if current filename is the one we are looking for
+			if (strncmp(file_key_name, ssh_filename, strlen(ssh_filename)) == 0) {
+				ssh_file_exists = true;
+				error = writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data);
+				if (error != 0) {
+					goto error_out;
+				}
+			}
+			FREE_SAFE(file_key_name);
+		}
+
+		// if the file doesn't exist
+		if (ssh_file_exists == false) {
+			if(!writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data)) {
+				continue;
+			} else {
+				goto error_out;
 			}
 		}
-		
-		if (stat(in_dir, &st) == -1) {
-    		mkdir(in_dir, 0700);
-
-			// find uid and gid of user
-			setpwent();
-
-			pwd = getpwent();
-			if (pwd == NULL) {
-				goto fail;
-			}
-
-			do {
-				if (strcmp(ul->users[i].name, pwd->pw_name) == 0) {
-					// set permissions to dir
-					if (chown(in_dir, pwd->pw_uid, pwd->pw_gid)) {
-						goto fail;
-					}
-					break;
-				}
-			} while ((pwd = getpwent()) != NULL);
-
-			endpwent();
-		}	
-
-		if ((FD = opendir(in_dir)) == NULL) {
-    		fprintf(stderr, "Error : Failed to open input directory %s - %s\n", in_dir, strerror(errno));
-			FREE_SAFE(in_dir);
-			goto fail;        	
-		} else {
-			for(j = 0; j < ul->users[i].auth.count; j++) {
-				if (ul->users[i].auth.authorized_keys[j].name == NULL) {
-					continue;
-				}
-				flag = 0;
-				while ((in_file = readdir(FD))) {
-					in_file_len = strlen(in_file->d_name);
-					if (in_file_len <= 4) {
-						continue;
-					}
-
-					string_len = strlen(in_file->d_name) + 1;
-					file_key_name = xmalloc(string_len);
-					if (snprintf(file_key_name, string_len, "%s", in_file->d_name) < 0) {
-						goto fail;
-					}
-
-					if (strncmp(file_key_name, ul->users[i].auth.authorized_keys[j].name, strlen(ul->users[i].auth.authorized_keys[j].name)) == 0) {
-						flag = 1;
-						if(!writing_to_key_file(ul, i, j, in_dir)) {
-							FREE_SAFE(file_key_name);
-							continue;
-						} else {
-							goto fail;
-						}
-					}
-					FREE_SAFE(file_key_name);
-				}
-				if (!flag) {
-					if(!writing_to_key_file(ul, i, j, in_dir)) {
-						continue;
-					} else {
-						goto fail;
-					}
-				}
-			}
-		}
-		FREE_SAFE(in_dir);
-		closedir(FD);
+		closedir(ssh_dir);*/
 	}
-	
-	return 0;
-fail:
-	FREE_SAFE(in_dir);
 
+	return 0;
+
+error_out:
+	/*if (ssh_dir != NULL) {
+		closedir(ssh_dir);
+	}
 	if (file_key_name != NULL) {
 		FREE_SAFE(file_key_name);
-	}
-
-	if (FD != NULL) {
-		closedir(FD);
-	}
+	}*/
 
 	return -1;
+}
+
+int create_dir(char *dir_path, char *username)
+{
+	int error = 0;
+	struct passwd *pwd = {0};
+
+	error = mkdir(dir_path, 0700);
+	if (error != 0) {
+		return -1;
+	}
+
+	setpwent();
+
+	pwd = getpwent();
+	if (pwd == NULL) {
+		return -1;
+	}
+
+	do {
+		if (strcmp(username, pwd->pw_name) == 0) {
+			// set permissions to dir
+			if (chown(dir_path, pwd->pw_uid, pwd->pw_gid)) {
+				return -1;
+			}
+			break;
+		}
+	} while ((pwd = getpwent()) != NULL);
+
+	endpwent();
+
+	return 0;
 }
 
 int set_passwd_file(char *username)
 {
 	struct passwd *pwd = {0};
 	struct passwd p = {0};
-	struct stat buf = {0};
 	size_t username_len = 0;
 	FILE *tmp_pwf = NULL; // temporary passwd file
+	uid_t last_uid = 0;
+	gid_t last_gid = 0;
 
 	tmp_pwf = fopen(USER_TEMP_PASSWD_FILE, "w");
 	if (!tmp_pwf) {
@@ -567,28 +722,25 @@ int set_passwd_file(char *username)
 		if (putpwent(pwd, tmp_pwf) != 0) {
 			goto error_out;
 		}
+
+		if (pwd->pw_uid >= 1000) {
+			last_uid = pwd->pw_uid;
+			last_gid = pwd->pw_gid;
+		}
+
 	} while ((pwd = getpwent()) != NULL);
 
 	// add the new users entry into the temp file
 	p.pw_name = xstrdup(username);
 	p.pw_passwd = strdup("x");
 	p.pw_shell = strdup ("/bin/bash");
-	uid++;
-	gid++;
-	p.pw_uid = uid;
-	p.pw_gid = gid;
+
+	p.pw_uid = ++last_uid;
+	p.pw_gid = ++last_gid;
 
 	username_len = strlen ("/home/") + strlen(p.pw_name) + 1;
 	p.pw_dir = xmalloc(username_len);
 	if (snprintf(p.pw_dir, username_len, "/home/%s", p.pw_name) < 0) {
-		goto error_out;
-	} 
-
-	if (stat(p.pw_dir, &buf) == -1) {
-		mkdir(p.pw_dir, 0700);
-	}
-
-	if (chown(p.pw_dir, p.pw_uid, p.pw_gid)) {
 		goto error_out;
 	}
 
@@ -657,6 +809,7 @@ int set_shadow_file(char *username, char *password)
 		goto error_out;
 	}
 
+	// copy existing shadow entries to temp file
 	setspent();
 
 	shd = getspent();
@@ -671,27 +824,27 @@ int set_shadow_file(char *username, char *password)
 
 	} while ((shd = getspent()) != NULL);
 
+	// set new users shadow entry
 	username_len = strlen(username) + 1;
 	s.sp_namp = strndup(username, username_len);
 
 	username_len = strlen (password) + 1;
 	s.sp_pwdp = strndup(password, username_len);
-
-	s.sp_lstchg = (unsigned long)-1; // -1 value corresponds to an empty string;
+	s.sp_lstchg = -1; // -1 value corresponds to an empty string
 	s.sp_max = 99999;
 	s.sp_min = 0;
 	s.sp_warn = 7;
 
-	s.sp_expire = (unsigned long)-1;
-	s.sp_flag = (unsigned long)-1;
-	s.sp_inact = (unsigned long)-1;
+	s.sp_expire = -1;
+	//s.sp_flag = 0; // not used
+	s.sp_inact =  -1;
 
 	if (putspent(&s, tmp_shf) != 0) {
 		goto error_out;
 	}
 
 	FREE_SAFE(s.sp_namp);
-	FREE_SAFE(s.sp_pwdp); 
+	FREE_SAFE(s.sp_pwdp);
 
 	endspent();
 	fclose(tmp_shf);
@@ -727,7 +880,7 @@ error_out:
 
 	if (access(PASSWD_FILE, F_OK) != 0 )
 		rename(PASSWD_BAK_FILE, PASSWD_FILE);
-	
+
 	if (tmp_shf != NULL)
 		fclose(tmp_shf);
 
@@ -742,18 +895,22 @@ int copy_file(char *src, char *dst)
 	off_t offset = 0;
 
 	read_fd = open(src, O_RDONLY);
-	if (read_fd == -1)
+	if (read_fd == -1) {
 		goto error_out;
+	}
 
-	if (fstat(read_fd, &stat_buf) != 0)
+	if (fstat(read_fd, &stat_buf) != 0) {
 		goto error_out;
+	}
 
 	write_fd = open(dst, O_CREAT|O_WRONLY|O_TRUNC, stat_buf.st_mode);
-	if (write_fd == -1)
+	if (write_fd == -1) {
 		goto error_out;
+	}
 
-	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1)
+	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1) {
 		goto error_out;
+	}
 
 	close(read_fd);
 	close(write_fd);
