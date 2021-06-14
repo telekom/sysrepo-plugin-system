@@ -111,6 +111,8 @@ This plugin is installed as the `sysrepo-plugin-general` binary to `${SYSREPO_DI
 ```
 $ sysrepoctl --change ietf-system --enable-feature timezone-name
 $ sysrepoctl --change ietf-system --enable-feature ntp
+$ sysrepoctl --change ietf-system --enable-feature authentication
+$ sysrepoctl --change ietf-system --enable-feature local-users
 ```
 
 After the timezone-name and ntp features are enabled we can initialize the datastore with appropriate example data:
@@ -275,12 +277,12 @@ module: ietf-system
   |  +--rw authentication {authentication}?
   |     +--rw user-authentication-order*   identityref                      NA
   |     +--rw user* [name] {local-users}?
-  |        +--rw name              string                                   IN PROGRESS
-  |        +--rw password?         ianach:crypt-hash                        IN PROGRESS
+  |        +--rw name              string                                   DONE
+  |        +--rw password?         ianach:crypt-hash                        DONE
   |        +--rw authorized-key* [name]
-  |           +--rw name         string                                     IN PROGRESS
-  |           +--rw algorithm    string                                     IN PROGRESS
-  |           +--rw key-data     binary                                     IN PROGRESS
+  |           +--rw name         string                                     DONE
+  |           +--rw algorithm    string                                     DONE
+  |           +--rw key-data     binary                                     DONE
   +--ro system-state
      +--ro platform
      |  +--ro os-name?      string                                          DONE
