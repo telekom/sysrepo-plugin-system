@@ -27,4 +27,15 @@
 		    </udp-and-tcp>
 	    </server>
     </dns-resolver>
+    <authentication>
+        <user>
+            <name>test_user</name>
+            <password>$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1</password>
+            <authorized-key>
+                <name>test_rsa.pub</name>
+                <algorithm>ssh-rsa</algorithm>
+                <key-data>AAAAB3NzaC1yc2EAAAADAQABAAABAQCiIf32L0B77f//ldk1QpUyfaJQUgI4mXSPtkmaokxUUlj8j9pxlwpFDSmsrZn2H0DJhZZ3ktAGsbFJabZJhV73l7HhQggC/6uzrNPSe+R3lOMGYIAhHaWbGSnT/uvpPMBVA/nWulDkBphiXv606WQHDxqGkngF1kzvvpd5FPpc/jy2vv+66HaP6XA9MgzHLYTOTb3ct3dVoz7HDAQ8tC5l3/3YYLyMhc3LxOBQLZ9PklWvQeSyO6neKi3Au0T13SpUGjtuqKpiCvE/X0ZuFtZSZzPo5UDASD65Er8jOqqYDcfHR1hsfJJjJA/nP+VKoGeBzUBxhxNetqswnEcPDEBv</key-data>
+            </authorized-key>
+        </user>
+    </authentication>
 </system>
