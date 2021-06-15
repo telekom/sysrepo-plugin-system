@@ -17,7 +17,6 @@
 
 /* TODO:
  * 		- add entry to /etc/group
- *		- fix permissions of home and ssh dir and ssh file
  */
 
 uid_t uid = 0;
@@ -586,13 +585,6 @@ int set_ssh_key(authorized_key_list_t *user_auth, char *ssh_dir_path)
 	char *ssh_filename = NULL;
 	char *ssh_key_algo = NULL;
 	char *ssh_key_data = NULL;
-	/*
-	size_t len = 0;
-	DIR *ssh_dir = NULL;
-	bool ssh_file_exists = false;
-	struct dirent *in_file = {0};
-	size_t in_file_len = 0;
-	char *file_key_name = NULL;*/
 
 	for(int i = 0; i < user_auth->count; i++) {
 		username = user_auth->authorized_keys[i].name;
@@ -605,61 +597,15 @@ int set_ssh_key(authorized_key_list_t *user_auth, char *ssh_dir_path)
 		ssh_key_algo = user_auth->authorized_keys[i].algorithm;
 		ssh_key_data = user_auth->authorized_keys[i].key_data;
 
-		/*ssh_dir = opendir(ssh_dir_path);
-		if (ssh_dir == NULL) {
-			goto error_out;
-		}*/
-
 		error = writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data);
 		if (error != 0) {
 			goto error_out;
 		}
-
-		/*ssh_file_exists = false;
-		// iterate through all files in ssh dir
-		while ((in_file = readdir(ssh_dir))) {
-			in_file_len = strlen(in_file->d_name);
-			if (in_file_len <= 4) {
-				continue;
-			}
-
-			len = strlen(in_file->d_name) + 1;
-			file_key_name = xmalloc(len);
-			if (snprintf(file_key_name, len, "%s", in_file->d_name) < 0) {
-				goto error_out;
-			}
-
-			// check if current filename is the one we are looking for
-			if (strncmp(file_key_name, ssh_filename, strlen(ssh_filename)) == 0) {
-				ssh_file_exists = true;
-				error = writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data);
-				if (error != 0) {
-					goto error_out;
-				}
-			}
-			FREE_SAFE(file_key_name);
-		}
-
-		// if the file doesn't exist
-		if (ssh_file_exists == false) {
-			if(!writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data)) {
-				continue;
-			} else {
-				goto error_out;
-			}
-		}
-		closedir(ssh_dir);*/
 	}
 
 	return 0;
 
 error_out:
-	/*if (ssh_dir != NULL) {
-		closedir(ssh_dir);
-	}
-	if (file_key_name != NULL) {
-		FREE_SAFE(file_key_name);
-	}*/
 
 	return -1;
 }
