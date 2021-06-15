@@ -380,6 +380,7 @@ static void test_correct_get_contact_info(void **state)
 
 	will_return(__wrap_getpwent, pwd1);
 	will_return(__wrap_getpwent, NULL);
+	expect_function_call(__wrap_endpwent);
 	rc = get_contact_info(value);
 	assert_int_equal(rc, 0);
 	assert_string_equal(value, pwd1->pw_gecos);
