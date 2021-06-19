@@ -1,6 +1,4 @@
 #include <general.h>
-#include <libyang/tree_schema.h>
-#include <sysrepo.h>
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
