@@ -2,7 +2,7 @@ image: "debian:sid"
 
 before_script:
   - apt-get update
-  - apt-get -y install clang cmake libcmocka0 libcmocka-dev valgrind libyang1 libyang-dev sysrepo libsysrepo-dev
+  - apt-get -y install clang cmake libcmocka0 libcmocka-dev valgrind libyang1 libyang-dev sysrepo libsysrepo-dev libsystemd-dev
 
   # resolve time issues
   - ln -snf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime && echo 'Europe/Zagreb' > /etc/timezone
