@@ -69,7 +69,7 @@ out:
 		goto err_out;
 	}
 
-	SRP_LOG_DBG("No error for now...\n");
+	SRP_LOG_DBGMSG("No error for now...\n");
 
 	// file read normally -> add new search domain if possible
 	rc_err = rconf_add_search(&cfg, search_val);
@@ -287,7 +287,7 @@ static int set_domains(domain_list_t *list)
 		goto invalid;
 	}
 
-	SRP_LOG_INF("Set domains successfully!");
+	SRP_LOG_INFMSG("Set domains successfully!");
 	goto finish;
 
 invalid:

@@ -230,7 +230,7 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 		goto invalid;
 	}
 
-	SRP_LOG_INF("Set DNS servers successfully!");
+	SRP_LOG_INFMSG("Set DNS servers successfully!");
 	goto finish;
 
 invalid:

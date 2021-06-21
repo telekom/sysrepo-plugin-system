@@ -649,7 +649,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 		}
 
 		if (dns_servers_change == true) {
-			SRP_LOG_DBG("Dumping DNS servers configuration...");
+			SRP_LOG_DBGMSG("Dumping DNS servers configuration...");
 			error = dns_server_list_dump_config(&dns_servers);
 			if (error != 0) {
 				SRP_LOG_ERR("dns_server_list_dump_config (%d)", error);
@@ -672,7 +672,7 @@ out:
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
-	SRP_LOG_DBG("Setting config value");
+	SRP_LOG_DBGMSG("Setting config value");
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
@@ -934,19 +934,19 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	} else if (strcmp(nn, "timeout") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERR("Unsupported option 'timeout'... Aborting...");
+		SRP_LOG_ERRMSG("Unsupported option 'timeout'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBG("Setting DNS timeout value...");
+		SRP_LOG_DBGMSG("Setting DNS timeout value...");
 		err = set_dns_timeout(value);
 #endif
 	} else if (strcmp(nn, "attempts") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERR("Unsupported option 'attempts'... Aborting...");
+		SRP_LOG_ERRMSG("Unsupported option 'attempts'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBG("Setting DNS attempts value...");
+		SRP_LOG_DBGMSG("Setting DNS attempts value...");
 		err = set_dns_attempts(value);
 #endif
 	}
