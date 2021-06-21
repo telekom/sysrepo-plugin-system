@@ -239,6 +239,7 @@ invalid:
 
 finish:
 	sd_bus_message_unref(msg);
+	sd_bus_message_unref(reply);
 	sd_bus_flush_close_unref(bus);
 #else
 	rconf_t cfg;
