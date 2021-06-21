@@ -320,17 +320,23 @@ const char *rconf_error2str(rconf_error_t err)
 
 void rconf_print(rconf_t *cfg, FILE *fptr)
 {
-	fprintf(fptr, "# nameservers\n");
-	for (int i = 0; i < cfg->nameserver_n; i++) {
-		fprintf(fptr, "nameserver %s\n", cfg->nameserver[i]);
+	if (cfg->nameserver_n > 0) {
+		fprintf(fptr, "# nameservers\n");
+		for (int i = 0; i < cfg->nameserver_n; i++) {
+			fprintf(fptr, "nameserver %s\n", cfg->nameserver[i]);
+		}
 	}
-	fprintf(fptr, "\n");
-	fprintf(fptr, "# search list\n");
-	fprintf(fptr, "search ");
-	for (int i = 0; i < cfg->search_n; i++) {
-		fprintf(fptr, "%s ", cfg->search[i]);
+
+	if (cfg->search_n > 0) {
+		fprintf(fptr, "\n");
+		fprintf(fptr, "# search list\n");
+		fprintf(fptr, "search ");
+		for (int i = 0; i < cfg->search_n; i++) {
+			fprintf(fptr, "%s ", cfg->search[i]);
+		}
+		fprintf(fptr, "\n\n");
 	}
-	fprintf(fptr, "\n\n");
+
 	fprintf(fptr, "# options\n");
 	fprintf(fptr, "options timeout:%d attempts:%d ndots:%d\n", cfg->options.timeout, cfg->options.attempts, cfg->options.ndots);
 }
