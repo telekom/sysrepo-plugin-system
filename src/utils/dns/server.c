@@ -1,5 +1,3 @@
-#include <utils/memory.h>
-#include <utils/dns/server.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysrepo.h>
@@ -7,8 +5,10 @@
 #ifdef SYSTEMD
 #include <systemd/sd-bus.h>
 #else
-#include <utils/dns/resolv_conf.h>
+#include "utils/dns/resolv_conf.h"
 #endif
+#include "utils/memory.h"
+#include "utils/dns/server.h"
 
 // helper functions
 static dns_server_t *get_server_from_list(dns_server_list_t *list, char *name);

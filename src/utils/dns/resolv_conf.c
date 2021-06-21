@@ -1,11 +1,11 @@
-#include "utils/memory.h"
 #include <bits/types/res_state.h>
-#include <utils/dns/resolv_conf.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <resolv.h>
+#include "utils/memory.h"
+#include "utils/dns/resolv_conf.h"
 
 enum rconf_token_kind_e {
 	rconf_token_kind_none = 0,

@@ -1,12 +1,12 @@
-#include <utils/dns/search.h>
-#include <utils/memory.h>
 #include <sysrepo.h>
 #include <string.h>
 #ifdef SYSTEMD
 #include <systemd/sd-bus.h>
 #else
-#include <utils/dns/resolv_conf.h>
+#include "utils/dns/resolv_conf.h"
 #endif
+#include "utils/dns/search.h"
+#include "utils/memory.h"
 
 enum dns_search_error_e {
 	dns_search_error_none = 0,

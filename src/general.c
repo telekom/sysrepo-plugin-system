@@ -1,4 +1,3 @@
-#include <general.h>
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,13 +14,14 @@
 #define __USE_XOPEN // needed for strptime
 #include <time.h>
 #include <sysrepo/xpath.h>
-#include <utils/memory.h>
-#include <utils/ntp/server_list.h>
-#include <utils/dns/search.h>
-#include <utils/dns/server.h>
+#include "general.h"
+#include "utils/memory.h"
+#include "utils/ntp/server_list.h"
+#include "utils/dns/search.h"
+#include "utils/dns/server.h"
 #ifdef SYSTEMD
 #else
-#include <utils/dns/resolv_conf.h>
+#include "utils/dns/resolv_conf.h"
 #endif
 
 /*
