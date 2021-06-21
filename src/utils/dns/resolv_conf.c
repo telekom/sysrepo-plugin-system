@@ -359,11 +359,9 @@ static inline file_content_t load_file(const char *fpath)
 		fseek(file, 0, SEEK_END);
 		fc.size = (unsigned long) ftell(file);
 		fseek(file, 0, SEEK_SET);
-		fc.data = malloc(sizeof(char) * (fc.size + 1));
-		if (fc.data) {
-			fread(fc.data, sizeof(char), fc.size, file);
-			fc.data[fc.size] = 0;
-		}
+		fc.data = xmalloc(sizeof(char) * (fc.size + 1));
+		fread(fc.data, sizeof(char), fc.size, file);
+		fc.data[fc.size] = 0;
 		fclose(file);
 	}
 
@@ -386,7 +384,7 @@ static inline rconf_error_t add_token_string(rconf_token_t **tok_ls, int *tok_n,
 
 	// set token value
 	rconf_token_t *tptr = &(*tok_ls)[*tok_n - 1];
-	tptr->value = (char *) malloc(sizeof(char) * slen);
+	tptr->value = xmalloc(sizeof(char) * slen);
 	memcpy(tptr->value, last, slen - 1);
 	tptr->value[slen - 1] = 0;
 
@@ -516,7 +514,7 @@ static rconf_option_t get_option_value(char *opt)
 	if (*iter == ':') {
 		// two parts => name:value
 		const unsigned long len = (unsigned long) (iter - opt);
-		o.name = (char *) malloc(sizeof(char) * (len + 1));
+		o.name = xmalloc(sizeof(char) * (len + 1));
 		memcpy(o.name, opt, len);
 		o.name[len] = 0;
 		o.val = atoi(iter + 1);
