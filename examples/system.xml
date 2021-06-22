@@ -19,4 +19,12 @@
         </udp>
         </server>
     </ntp>
+    <dns-resolver>
+	    <server>
+		    <name>google DNS 1</name>
+		    <udp-and-tcp>
+			    <address>8.8.8.8</address>
+		    </udp-and-tcp>
+	    </server>
+    </dns-resolver>
 </system>

@@ -1,3 +1,6 @@
 build/
 .vscode/
 .clangd/
+.cache/
+.test/
+location_info

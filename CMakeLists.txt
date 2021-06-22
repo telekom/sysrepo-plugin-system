@@ -15,6 +15,9 @@ set(SOURCES
     src/general.c
     src/utils/memory.c
     src/utils/ntp/server_list.c
+    src/utils/dns/resolv_conf.c
+    src/utils/dns/search.c
+    src/utils/dns/server.c
 )
 
 if (NOT PLUGIN)
@@ -47,6 +50,7 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${CMAKE_PROJE
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
+find_package(LIBSYSTEMD)
 
 target_link_libraries(
     ${PROJECT_NAME}
@@ -58,6 +62,17 @@ include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
 )
+
+if(SYSTEMD_FOUND)
+    if(DEFINED SYSTEMD_IFINDEX)
+        add_compile_definitions(SYSTEMD_IFINDEX=${SYSTEMD_IFINDEX})
+    else()
+        message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
+    endif()
+    add_compile_definitions(SYSTEMD)
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${SYSTEMD_LIBRARIES})
+    include_directories(${SYSTEMD_INCLUDE_DIRS})    
+endif()
 
 if(ENABLE_BUILD_TESTS)
 	find_package(CMOCKA REQUIRED)

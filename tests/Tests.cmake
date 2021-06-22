@@ -1,11 +1,15 @@
 add_executable(general_utest 
 	tests/general_utest.c 
+	src/utils/dns/resolv_conf.c
+	src/utils/dns/server.c
+	src/utils/dns/search.c
 	src/utils/ntp/server_list.c
 	src/utils/memory.c)
 target_link_libraries(general_utest
 	${CMOCKA_LIBRARIES}
 	${SYSREPO_LIBRARIES}
 	${LIBYANG_LIBRARIES}
+	${SYSTEMD_LIBRARIES}
 	"-Wl,--wrap=clock_settime"
 	"-Wl,--wrap=time"
 	"-Wl,--wrap=sysinfo"

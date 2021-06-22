@@ -2,7 +2,7 @@ image: "debian:sid"
 
 before_script:
   - apt-get update
-  - apt-get -y install clang cmake libcmocka0 libcmocka-dev valgrind libyang1 libyang-dev sysrepo libsysrepo-dev
+  - apt-get -y install clang cmake libcmocka0 libcmocka-dev valgrind libyang1 libyang-dev sysrepo libsysrepo-dev libsystemd-dev
 
   # resolve time issues
   - ln -snf /usr/share/zoneinfo/Europe/Zagreb /etc/localtime && echo 'Europe/Zagreb' > /etc/timezone
@@ -15,7 +15,7 @@ build:default:
   stage: build
   script:
     - mkdir build && cd build
-    - CC=clang cmake -DENABLE_BUILD_TESTS=ON ..
+    - CC=clang cmake -DENABLE_BUILD_TESTS=ON -DSYSTEMD_IFINDEX=1 ..
     - make 
   artifacts:
     paths:
@@ -25,7 +25,7 @@ build:sanitized:
   stage: build
   script:
     - mkdir build_sanitized && cd build_sanitized
-    - CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=address,undefined\" -DENABLE_SANITIZER=ON ..
+    - CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=address,undefined\" -DENABLE_SANITIZER=ON -DSYSTEMD_IFINDEX=1 ..
     - make
   artifacts:
     paths:
@@ -35,7 +35,7 @@ build:sanitized_memory:
   stage: build
   script:
     - mkdir build_sanitized_memory && cd build_sanitized_memory
-    - CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=memory\" -DENABLE_SANITIZER=ON ..
+    - CC=clang cmake -DCMAKE_C_FLAGS=\"-fsanitize=memory\" -DENABLE_SANITIZER=ON -DSYSTEMD_IFINDEX=1 ..
     - make
   artifacts:
     paths:
