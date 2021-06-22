@@ -27,6 +27,7 @@ void dns_server_init(dns_server_t *s)
 #endif
 	s->name = NULL;
 	s->port = 0;
+	s->delete = false;
 }
 
 void dns_server_set_name(dns_server_t *s, char *name)
@@ -50,6 +51,11 @@ int dns_server_set_address(dns_server_t *s, char *addr)
 	s->addr.value = xstrdup(addr);
 #endif
 	return err;
+}
+
+static void dns_server_set_delete(dns_server_t *s, bool delete)
+{
+	s->delete = delete;
 }
 
 void dns_server_set_port(dns_server_t *s, int port)
@@ -79,14 +85,55 @@ void dns_server_list_init(dns_server_list_t *sl)
 int dns_server_list_add_server(dns_server_list_t *sl, char *name)
 {
 	int err = 0;
-	sl->list = xrealloc(sl->list, sizeof(dns_server_t) * (unsigned long) (sl->size + 1));
-	if (sl->list == NULL) {
-		err = -1;
-	} else {
-		dns_server_init(&sl->list[sl->size]);
-		dns_server_set_name(&sl->list[sl->size], name);
-		++sl->size;
+	bool name_found = false;
+
+	for (int i = 0; i < sl->size; i++) {
+		if (sl->list[i].name == NULL) {
+			continue;
+		}
+
+		if (strcmp(sl->list[i].name, name) == 0) {
+			name_found = true;
+			break;
+		}
 	}
+
+	if (!name_found) {
+		int pos = sl->size;
+		for (int i = 0; i < sl->size; i++) {
+			if (sl->list[i].name == NULL) {
+				pos = i;
+				break;
+			}
+		}
+
+		if (pos == sl->size) {
+			sl->list = xrealloc(sl->list, sizeof(dns_server_t) * (unsigned long) (sl->size + 1));
+		}
+		dns_server_init(&sl->list[pos]);
+		dns_server_set_name(&sl->list[pos], name);
+		if (pos == sl->size) {
+			++sl->size;
+		}
+	}
+
+	return err;
+}
+
+int dns_server_list_set_server_delete(dns_server_list_t *sl, char *name)
+{
+	int err = 0;
+	dns_server_t *srv = NULL;
+
+	srv = get_server_from_list(sl, name);
+	if (srv == NULL) {
+		// unable to set value to unexisting server -> quit
+		err = -1;
+		goto out;
+	}
+
+	dns_server_set_delete(srv, true);
+out:
 	return err;
 }
 
@@ -166,6 +213,16 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 
 	for (int i = 0; i < sl->size; i++) {
 		dns_server_t *srv = sl->list + i;
+
+		if (srv->name == NULL) {
+			continue;
+		}
+
+		if (srv->delete) {
+			dns_server_free(srv);
+			continue;
+		}
+
 		// enter a struct first
 		r = sd_bus_message_open_container(msg, 'r', "iay");
 		if (r < 0) {
@@ -254,9 +311,48 @@ finish:
 	}
 
 	for (int i = 0; i < sl->size; i++) {
+		if (sl->list[i].name == NULL) {
+			continue;
+		}
+
+		if (sl->list[i].delete) {
+			rc_err = rconf_remove_nameserver(&cfg, sl->list[i].addr.value);
+			if (rc_err != rconf_error_none) {
+				goto invalid;
+			}
+
+			dns_server_free(&sl->list[i]);
+
+			continue;
+		}
+
 		rc_err = rconf_set_nameserver(&cfg, i, sl->list[i].addr.value, 1);
 		if (rc_err != rconf_error_none) {
 			goto invalid;
+		}
+	}
+
+	for (int i = 0; i < cfg.nameserver_n; i++) {
+		bool found = false;
+		for (int j = 0; j < sl->size; j++) {
+			if (sl->list[j].addr.value == NULL) {
+				continue;
+			}
+
+			if (strcmp(sl->list[j].addr.value, cfg.nameserver[i]) == 0) {
+				found = true;
+				break;
+			}
+
+		}
+
+		if (!found) {
+			rc_err = rconf_remove_nameserver(&cfg, cfg.nameserver[i]);
+			if (rc_err != rconf_error_none) {
+				goto invalid;
+			}
+
+			i--;
 		}
 	}
 
@@ -291,6 +387,10 @@ static dns_server_t *get_server_from_list(dns_server_list_t *list, char *name)
 	dns_server_t *srv = NULL;
 
 	for (int i = 0; i < list->size; i++) {
+		if (list->list[i].name == NULL) {
+			continue;
+		}
+
 		if (strcmp(list->list[i].name, name) == 0) {
 			srv = list->list + i;
 			break;

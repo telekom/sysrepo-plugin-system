@@ -633,6 +633,10 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 					if (strncmp(node_xpath, NTP_YANG_PATH, strlen(NTP_YANG_PATH)) == 0) {
 						ntp_change = true;
 					}
+
+					if (strncmp(node_xpath, DNS_RESOLVER_SERVER_YANG_PATH, strlen(DNS_RESOLVER_SERVER_YANG_PATH)) == 0) {
+						dns_servers_change = true;
+					}
 				}
 			}
 			FREE_SAFE(node_xpath);
@@ -905,9 +909,13 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 		name = sr_xpath_key_value((char *) xpath, "server", "name", &state);
 
 		if (strcmp(nn, "name") == 0) {
-			// add new server to the list
-			SRP_LOG_DBG("Creating server '%s'", value);
-			err = dns_server_list_add_server(&dns_servers, value);
+			if (operation == SR_OP_CREATED) {
+				SRP_LOG_DBG("Creating server '%s'", value);
+				err = dns_server_list_add_server(&dns_servers, value);
+			} else if (operation == SR_OP_DELETED) {
+				SRP_LOG_DBG("deleting server '%s'", value);
+				err = dns_server_list_set_server_delete(&dns_servers, value);
+			}
 		} else if (strcmp(nn, "address") == 0) {
 			// set server name
 			SRP_LOG_DBG("Setting server %s address to '%s'", name, value);

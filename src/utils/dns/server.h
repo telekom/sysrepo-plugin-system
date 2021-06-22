@@ -2,6 +2,7 @@
 #define DNS_SERVER_H
 
 #include <bits/types/res_state.h>
+#include <stdbool.h>
 
 typedef struct ip_addr_s ip_addr_t;
 typedef struct dns_server_s dns_server_t;
@@ -26,6 +27,7 @@ struct dns_server_s {
 	char *name;
 	ip_addr_t addr;
 	int port;
+	bool delete;
 };
 
 struct dns_server_list_s {
@@ -43,6 +45,7 @@ void dns_server_free(dns_server_t *s);
 // server list functions
 void dns_server_list_init(dns_server_list_t *sl);
 int dns_server_list_add_server(dns_server_list_t *sl, char *name);
+int dns_server_list_set_server_delete(dns_server_list_t *sl, char *name);
 int dns_server_list_set_address(dns_server_list_t *sl, char *name, char *address);
 int dns_server_list_set_port(dns_server_list_t *sl, char *name, int port);
 int dns_server_list_dump_config(dns_server_list_t *sl);

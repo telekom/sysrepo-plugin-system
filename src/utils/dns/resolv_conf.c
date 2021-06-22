@@ -222,6 +222,31 @@ rconf_error_t rconf_add_nameserver(rconf_t *cfg, char *nameserver)
 	return err;
 }
 
+rconf_error_t rconf_remove_nameserver(rconf_t *cfg, char *name)
+{
+	rconf_error_t err = rconf_error_none;
+	int found = 0;
+
+	for (int i = 0; i < cfg->nameserver_n; i++) {
+		if (strcmp(cfg->nameserver[i], name) == 0) {
+			found = 1;
+			FREE_SAFE(cfg->nameserver[i]);
+			for (int j = i + 1; j < cfg->nameserver_n; j++) {
+				cfg->nameserver[j - 1] = cfg->nameserver[j];
+			}
+
+			--cfg->nameserver_n;
+			break;
+		}
+	}
+
+	if (found == false) {
+		err = rconf_error_no_search_found;
+	}
+
+	return err;
+}
+
 rconf_error_t rconf_add_search(rconf_t *cfg, char *search)
 {
 	rconf_error_t err = rconf_error_none;
