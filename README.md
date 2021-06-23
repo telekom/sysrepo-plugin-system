@@ -248,17 +248,17 @@ module: ietf-system
   |  |     +--rw iburst?             boolean                                DONE
   |  |     +--rw prefer?             boolean                                DONE
   |  +--rw dns-resolver
-  |  |  +--rw search*    inet:domain-name                                   IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  +--rw search*    inet:domain-name                                   DONE (implemented using systemd)
   |  |  +--rw server* [name]
-  |  |  |  +--rw name                 string                                IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  |  +--rw name                 string                                DONE (implemented using systemd)
   |  |  |  +--rw (transport)
   |  |  |     +--:(udp-and-tcp)
   |  |  |        +--rw udp-and-tcp
-  |  |  |           +--rw address    inet:ip-address                        IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |  |           +--rw address    inet:ip-address                        DONE (implemented using systemd)
   |  |  |           +--rw port?      inet:port-number {dns-udp-tcp-port}?   NA
   |  |  +--rw options
-  |  |     +--rw timeout?    uint8                                          IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
-  |  |     +--rw attempts?   uint8                                          IN PROGRESS (implemented with lwres but needs to be implemented using systemd)
+  |  |     +--rw timeout?    uint8                                          DONE (implemented using systemd)
+  |  |     +--rw attempts?   uint8                                          DONE (implemented using systemd)
   |  +--rw radius {radius}?
   |  |  +--rw server* [name]
   |  |  |  +--rw name                   string                              NA
