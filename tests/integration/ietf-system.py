@@ -8,7 +8,8 @@ import time
 import json
 import platform
 import datetime
-
+import pwd
+import spwd
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -31,6 +32,8 @@ class SystemTestCase(unittest.TestCase):
         self.session = self.conn.start_session("running")
         time.sleep(2)
 
+        self.initial_data = self.session.get_data_ly('/ietf-system:system')
+
     def tearDown(self):
         self.session.stop()
         self.conn.disconnect()
@@ -45,6 +48,18 @@ class SystemTestCase(unittest.TestCase):
             data = f.read()
             data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
             self.session.replace_config_ly(data, "ietf-system")
+            data.free()
+
+    def edit_config(self, path):
+        ctx = self.conn.get_ly_ctx()
+
+        with open(path, "r") as f:
+            data = f.read()
+            data = ctx.parse_data_mem(data, "xml", config=True, strict=True)
+            self.session.edit_batch_ly(data)
+            data.free()
+
+        self.session.apply_changes()
 
 
 class SystemStateTestCase(unittest.TestCase):
@@ -79,7 +94,7 @@ class ContactTestCase(SystemTestCase):
     def test_contact(self):
         expected_contact = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><contact>test_contact</contact></system>'
 
-        self.load_initial_data("data/system_contact.xml")
+        self.edit_config("data/system_contact.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/contact')
         contact = data.print_mem("xml")
@@ -91,6 +106,9 @@ class ContactTestCase(SystemTestCase):
             passwd.pw_gecos,
             "test_contact",
             "unexpected contact info in /etc/passwd")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
         data.free()
 
 
@@ -98,7 +116,7 @@ class HostnameTestCase(SystemTestCase):
     def test_hostname(self):
         expected_hostname = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><hostname>test_hostname</hostname></system>'
 
-        self.load_initial_data("data/system_hostname.xml")
+        self.edit_config("data/system_hostname.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/hostname')
         hostname = data.print_mem("xml")
@@ -109,6 +127,9 @@ class HostnameTestCase(SystemTestCase):
             real_hostname,
             "test_hostname",
             "hostname on system doesn't match set hostname")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
         data.free()
 
 
@@ -116,7 +137,7 @@ class LocationTestCase(SystemTestCase):
     def test_location(self):
         expected_location = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><location>test_location</location></system>'
 
-        self.load_initial_data("data/system_location.xml")
+        self.edit_config("data/system_location.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/location')
         location = data.print_mem("xml")
@@ -129,6 +150,9 @@ class LocationTestCase(SystemTestCase):
             real_location,
             "test_location",
             "location on system doesn't match set location")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
         data.free()
 
 
@@ -155,7 +179,7 @@ class NTPTestCase(SystemTestCase):
         expected_ntp_enabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled></ntp></system>'
         expected_ntp_disabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>false</enabled></ntp></system>'
 
-        self.load_initial_data("data/system_ntp_disabled.xml")
+        self.edit_config("data/system_ntp_disabled.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
@@ -166,7 +190,7 @@ class NTPTestCase(SystemTestCase):
             "inactive",
             "ntp service is running")
 
-        self.load_initial_data("data/system_ntp_enabled.xml")
+        self.edit_config("data/system_ntp_enabled.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
@@ -178,18 +202,20 @@ class NTPTestCase(SystemTestCase):
             "ntp service is not running")
 
         # disable NTP so that we are back in an initial state
-        self.load_initial_data("data/system_ntp_disabled.xml")
+        self.edit_config("data/system_ntp_disabled.xml")
         self.assertEqual(
             self.get_ntp_status(),
             "inactive",
             "ntp service is running")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
 
         data.free()
 
     def test_ntp_server(self):
         expected_ntp_server_initial = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server></ntp></system>'
 
-        self.load_initial_data("data/system_ntp_server_initial.xml")
+        self.edit_config("data/system_ntp_server_initial.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
@@ -208,7 +234,7 @@ class NTPTestCase(SystemTestCase):
 
         expected_ntp_server_add = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
 
-        self.load_initial_data("data/system_ntp_server_add.xml")
+        self.edit_config("data/system_ntp_server_add.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
@@ -228,7 +254,7 @@ class NTPTestCase(SystemTestCase):
 
         expected_ntp_server_remove = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
 
-        self.load_initial_data("data/system_ntp_server_remove.xml")
+        self.edit_config("data/system_ntp_server_remove.xml")
 
         data = self.session.get_data_ly('/ietf-system:system/ntp')
         ntp = data.print_mem("xml")
@@ -245,6 +271,51 @@ class NTPTestCase(SystemTestCase):
             "unexpected number of servers in /etc/ntp.conf")
         self.assertEqual(ips[0], "162.159.200.124", "unexpected server ip")
 
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
+        data.free()
+
+class AuthenticationTestCase(SystemTestCase):
+    def test_authentication_import(self):
+        expected_authentication = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><authentication><user><name>test_user</name><password>$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1</password><authorized-key><name>test_rsa.pub</name><algorithm>ssh-rsa</algorithm><key-data>AAAAB3NzaC1yc2EAAAADAQABAAABAQCiIf32L0B77f//ldk1QpUyfaJQUgI4mXSPtkmaokxUUlj8j9pxlwpFDSmsrZn2H0DJhZZ3ktAGsbFJabZJhV73l7HhQggC/6uzrNPSe+R3lOMGYIAhHaWbGSnT/uvpPMBVA/nWulDkBphiXv606WQHDxqGkngF1kzvvpd5FPpc/jy2vv+66HaP6XA9MgzHLYTOTb3ct3dVoz7HDAQ8tC5l3/3YYLyMhc3LxOBQLZ9PklWvQeSyO6neKi3Au0T13SpUGjtuqKpiCvE/X0ZuFtZSZzPo5UDASD65Er8jOqqYDcfHR1hsfJJjJA/nP+VKoGeBzUBxhxNetqswnEcPDEBv</key-data></authorized-key></user></authentication></system>'
+
+        self.edit_config("data/system_local_user_initial.xml")
+
+        data = self.session.get_data_ly("/ietf-system:system/authentication/user[name='test_user']")
+        auth = data.print_mem("xml")
+        self.assertEqual(auth, expected_authentication, "authentication data is wrong")
+
+        user = pwd.getpwnam("test_user")
+        self.assertEqual(user.pw_name, "test_user", "username in /etc/passwd is wrong")
+        self.assertEqual(user.pw_dir, "/home/test_user", "homedir in /etc/passwd is wrong")
+        self.assertEqual(user.pw_uid, 1001, "uid in /etc/passwd is wrong")
+        self.assertEqual(user.pw_gid, 1001, "gid in /etc/passwd is wrong")
+        self.assertEqual(user.pw_shell, '/bin/bash', "shell in /etc/passwd is wrong")
+
+        shadow = spwd.getspnam("test_user")
+        self.assertEqual(shadow.sp_namp, "test_user", "username in /etc/shadow is wrong")
+        self.assertEqual(shadow.sp_pwdp, "$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1", "password in /etc/shadow is wrong")
+
+        self.assertEqual(os.path.isdir('/home/test_user'), True, "/home/test_user doesn't exist")
+
+        self.assertEqual(os.path.isdir('/home/test_user/.ssh'), True, "/home/test_user/.ssh doesn't exist")
+        self.assertEqual(os.path.exists('/home/test_user/.ssh/test_rsa.pub'), True, "/home/test_user/.ssh/test_rsa.pub doesn't exist")
+
+        with open('/home/test_user/.ssh/test_rsa.pub') as f:
+            self.assertEqual(f.readline().strip(), "ssh-rsa", "key algorithm differs")
+            self.assertEqual(f.readline().strip(), "AAAAB3NzaC1yc2EAAAADAQABAAABAQCiIf32L0B77f//ldk1QpUyfaJQUgI4mXSPtkmaokxUUlj8j9pxlwpFDSmsrZn2H0DJhZZ3ktAGsbFJabZJhV73l7HhQggC/6uzrNPSe+R3lOMGYIAhHaWbGSnT/uvpPMBVA/nWulDkBphiXv606WQHDxqGkngF1kzvvpd5FPpc/jy2vv+66HaP6XA9MgzHLYTOTb3ct3dVoz7HDAQ8tC5l3/3YYLyMhc3LxOBQLZ9PklWvQeSyO6neKi3Au0T13SpUGjtuqKpiCvE/X0ZuFtZSZzPo5UDASD65Er8jOqqYDcfHR1hsfJJjJA/nP+VKoGeBzUBxhxNetqswnEcPDEBv", "key data differs")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
+        with self.assertRaises(KeyError):
+            pwd.getpwnam("test_user")
+
+        with self.assertRaises(KeyError):
+            spwd.getspnam("test_user")
+
+        self.assertEqual(os.path.exists('/home/test_user'), False, "/home/test_user exists after deletion")
+
+        data.free()
 
 class PlatformTestCase(SystemStateTestCase):
     def test_platform(self):
