@@ -914,6 +914,7 @@ void local_user_init(local_user_t *u)
 {
 	u->name = NULL;
 	u->password = NULL;
+	u->nologin = false;
 
 	authorized_key_list_init(&u->auth);	
 }
@@ -982,6 +983,11 @@ int local_user_set_password(local_user_list_t *ul, char *name, char *password)
 			size_t tmp_len = 0;
 			tmp_len = strlen(password);
 			ul->users[i].password = strndup(password, tmp_len + 1);
+
+			if (strcmp(password, "!") == 0 || strcmp(password, "*") == 0) {
+				ul->users[i].nologin = true;
+			}
+
 
 			local_user_found = true;
 			break;

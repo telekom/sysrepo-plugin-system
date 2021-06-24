@@ -401,16 +401,18 @@ static int load_data(sr_session_ctx_t *session)
 			goto error_out;
 		}
 
-		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_list->users[i].name);
-		if (error < 0) {
-			// snprintf error
-			SRP_LOG_ERRMSG("snprintf failed");
-			goto error_out;
-		}
-		error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].password, NULL, SR_EDIT_DEFAULT);
-		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
-			goto error_out;
+		if (!user_list->users[i].nologin) {
+			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_list->users[i].name);
+			if (error < 0) {
+				// snprintf error
+				SRP_LOG_ERRMSG("snprintf failed");
+				goto error_out;
+			}
+			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].password, NULL, SR_EDIT_DEFAULT);
+			if (error) {
+				SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+				goto error_out;
+			}
 		}
 
 		for (int j = 0; j < user_list->users[i].auth.count; j++) {

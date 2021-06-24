@@ -38,6 +38,7 @@ typedef struct {
 typedef struct {
 	char *name;
 	char *password;
+	bool nologin;
 	authorized_key_list_t auth;
 	//bool delete_user = false;
 } local_user_t;
