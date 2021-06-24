@@ -1441,7 +1441,6 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 	char *machine = NULL;
 	char current_datetime[DATETIME_BUF_SIZE] = {0};
 	char boot_datetime[DATETIME_BUF_SIZE] = {0};
-	char tmp_buffer[PATH_MAX_BUFFER];
 
 	error = get_os_info(&os_name, &os_release, &os_version, &machine);
 	if (error) {
@@ -1479,45 +1478,6 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 
 	lyd_new_path(*parent, NULL, CURR_DATETIME_YANG_PATH, current_datetime, 0, 0);
 	lyd_new_path(*parent, NULL, BOOT_DATETIME_YANG_PATH, boot_datetime, 0, 0);
-
-	for (int i = 0; i < user_list->count; i++) {
-		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/name", user_list->users[i].name);
-		if (error < 0) {
-			SRP_LOG_ERRMSG("snprintf failed");
-			goto out;
-		}
-		lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].name, 0, 0);
-
-		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_list->users[i].password);
-		if (error < 0) {
-			SRP_LOG_ERRMSG("snprintf failed");
-			goto out;
-		}
-		lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].password, 0, 0);
-
-		for (int j = 0; j < user_list->users[i].auth.count; j++) {
-			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/name", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
-			if (error < 0) {
-				SRP_LOG_ERRMSG("snprintf failed");
-				goto out;
-			}
-			lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].auth.authorized_keys[j].name, 0, 0);
-
-			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/algorithm", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].algorithm);
-			if (error < 0) {
-				SRP_LOG_ERRMSG("snprintf failed");
-				goto out;
-			}
-			lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].auth.authorized_keys[j].algorithm, 0, 0);
-
-			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/key_data", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].key_data);
-			if (error < 0) {
-				SRP_LOG_ERRMSG("snprintf failed");
-				goto out;
-			}
-			lyd_new_path(*parent, NULL, tmp_buffer, user_list->users[i].auth.authorized_keys[j].key_data, 0, 0);
-		}
-	}
 
 	//values = NULL;
 
