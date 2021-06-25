@@ -1,5 +1,5 @@
 #include "user_authentication.h"
-#include "../memory.h"
+#include "utils/memory.h"
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
