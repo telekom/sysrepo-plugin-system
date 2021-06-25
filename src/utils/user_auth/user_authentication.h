@@ -83,7 +83,6 @@ bool has_pub_extension(char *name);
 // int add_pub_extension(char *name);
 void remove_file_name_extension(char *name);
 int add_algorithm_key_data(local_user_list_t *ul, char *name, char *key_name, char *data_alg, int flag);
-void clear_string(char *str);
 void edit_path(char *new_path, char *old_path, char *name);
 int get_key_info(char *in_dir, local_user_list_t *ul, int i);
 

@@ -1078,17 +1078,6 @@ int local_user_add_key_data(local_user_list_t *ul, char *name, char *key_name, c
 	return error;
 }
 
-void clear_string(char *str)
-{
-	size_t str_len = 0;
-	
-	str_len = strlen(str);
-	for (size_t i = 0; i < str_len; i++) {
-		str[i] = 0;
-	}
-
-}
-
 int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 {
 	FILE *entry_file = NULL;
