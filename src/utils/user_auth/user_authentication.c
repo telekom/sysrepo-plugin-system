@@ -1103,8 +1103,8 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 	size_t string_len = 0;
 
 	if ((FD = opendir(in_dir)) == NULL) {
-    	fprintf(stderr, "Error : Failed to open input directory %s - %s\n", in_dir, strerror(errno));
-        return 1;
+		fprintf(stderr, "Error : Failed to open input directory %s - %s\n", in_dir, strerror(errno));
+		return 1;
 	} else {
 		while ((in_file = readdir(FD))) {
 			char key_name[100] = {0};
@@ -1123,7 +1123,7 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 				entry_file = fopen(file_path, "r");
 				if (entry_file == NULL) {
 					fprintf(stderr, "Error : Failed to open entry file - %s\n", strerror(errno));
-       				return 1;
+       					return 1;
 				}
 
 				//adding key: key_name is name of file
