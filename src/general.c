@@ -83,8 +83,6 @@ static local_user_list_t *user_list;
 
 #define CONTACT_USERNAME "root"
 #define CONTACT_TEMP_FILE "/tmp/tempfile"
-#define PASSWD_FILE "/etc/passwd"
-#define SHADOW_FILE "/etc/shadow"
 #define PASSWD_BAK_FILE PASSWD_FILE ".bak"
 #define MAX_GECOS_LEN 100
 
