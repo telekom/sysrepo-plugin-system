@@ -18,6 +18,7 @@ set(SOURCES
     src/utils/dns/resolv_conf.c
     src/utils/dns/search.c
     src/utils/dns/server.c
+    src/utils/user_auth/user_authentication.c
 )
 
 if (NOT PLUGIN)

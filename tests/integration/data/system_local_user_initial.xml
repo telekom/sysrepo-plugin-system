@@ -1,32 +1,4 @@
 <system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
-    <contact>Mr. Admin</contact>
-
-    <hostname>test.it</hostname>
-
-    <location>basement</location>
-
-    <clock>
-        <timezone-name>Europe/Stockholm</timezone-name>
-    </clock>
-
-    <ntp>
-        <enabled>true</enabled>
-
-        <server>
-        <name>hr.pool.ntp.org</name>
-        <udp>
-            <address>162.159.200.123</address>
-        </udp>
-        </server>
-    </ntp>
-    <dns-resolver>
-	    <server>
-		    <name>google DNS 1</name>
-		    <udp-and-tcp>
-			    <address>8.8.8.8</address>
-		    </udp-and-tcp>
-	    </server>
-    </dns-resolver>
     <authentication>
         <user>
             <name>test_user</name>

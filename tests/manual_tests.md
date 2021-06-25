@@ -364,3 +364,91 @@ server 162.159.200.123
     
 pool 162.159.200.124  iburst prefer
 ```
+
+#### Local User Authentication
+
+If the `authentication` and `local-users` features are enabled, we can retrieve and change the authentication node for local users.
+The username is retrieved from `/etc/passwd` file, the encrypted password is retrieved from `/etc/shadow` and the ssh public key file data is retrieved from the `.ssh` directory inside the users home directory.
+
+The plugin will populate the datastores at startup. We can check the current configuration with sysrepocfg as follows:
+```
+sysrepocfg -X -x '/ietf-system:system/authentication'
+
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+  <authentication>
+    <user>
+      <name>root</name>
+      <password>$6$neE50F20wOMVP$7glM2pJ.d9sIe9fvuSd89N9djsh.95j9fKjfdsN34j89dfO84jf/Sf/</password>
+    </user>
+    <user>
+      <name>user123</name>
+      <password>$6$0/AkfjsdI$F9jfd3Ask9dVv9sOm2Neih/dvjCyCvVGbgOQbOMrd/</password>
+      <authorized-key>
+        <name>id_ed25519.pub</name>
+        <algorithm>ssh-ed25519</algorithm>
+        <key-data>AAAAC3NzaC1lZDI1NTE5AAAAIOvyVRtYrJWW7gThF7czOtaTOE85cHrkW9kMcGQnafmA</key-data>
+      </authorized-key>
+      <authorized-key>
+        <name>id_rsa.pub</name>
+        <algorithm>ssh-rsa</algorithm>
+        <key-data>AAAAB3NzaC1yc2EAAAADAQABAAABA8SH6Wu0p6v3D/yeLEtlSOfqVYWIr2oT96AMGHbhiThVqFJxi+M7uS/vfJMwNz2z9s1MiYvVQ9RSEYP/hI7JBK488GeXY7HIvC6c6RO3q3DGY+HSToTqMdPUwTDjb5EkWCApvI4Rvx+joC3KwN6HdU09GCa9aekK/bY3yV5pFvWtr6EoB4Mj/dQYmwwhI9/K3KyN2gZSg77CsyZ/XstovL</key-data>
+      </authorized-key>
+    </user>
+  </authentication>
+</system>
+```
+
+In the example configuration above two users exist on the system: `root` and `user123`.
+The `root` user doesn't have any ssh public keys set up, and `user123` has two: `id_ed25519.pub` and `id_rsa.pub`.
+
+We can add a new user named `test_user`, set his password and public ssh key info:
+
+```
+sysrepocfg -Evim -fjson -m ietf-system
+
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <authentication>
+        <user>
+            <name>test_user</name>
+            <password>$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1</password> <!-- test666 -->
+            <authorized-key>
+                <name>test_rsa.pub</name>
+                <algorithm>ssh-rsa</algorithm>
+                <key-data>AAAAB3NzaC1yc2EAAAADAQABAAABAQCiIf32L0B77f//ldk1QpUyfaJQUgI4mXSPtkmaokxUUlj8j9pxlwpFDSmsrZn2H0DJhZZ3ktAGsbFJabZJhV73l7HhQggC/6uzrNPSe+R3lOMGYIAhHaWbGSnT/uvpPMBVA/nWulDkBphiXv606WQHDxqGkngF1kzvvpd5FPpc/jy2vv+66HaP6XA9MgzHLYTOTb3ct3dVoz7HDAQ8tC5l3/3YYLyMhc3LxOBQLZ9PklWvQeSyO6neKi3Au0T13SpUGjtuqKpiCvE/X0ZuFtZSZzPo5UDASD65Er8jOqqYDcfHR1hsfJJjJA/nP+VKoGeBzUBxhxNetqswnEcPDEBv</key-data>
+            </authorized-key>
+        </user>
+    </authentication>
+</system>
+```
+We can check if the user has been successfully added to the system by trying to login in as the new user or by inspecting the passwd and shadow files, the home directory and the contents of .ssh directory:
+
+
+```
+cat /etc/passwd
+
+[...]
+test_user:x:1001:1001::/home/test_user:/bin/bash
+```
+
+```
+cat /etc/shadow
+
+[...]
+test_user:$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1::0:99999:7:::0
+```
+
+```
+ls -la /home/
+
+[...]
+drwx------  3 test_user      1001 4096 Jun 14 17:51 test_use
+```
+
+```
+cat /home/test_user/.ssh/test_rsa.pub
+
+ssh-rsa
+AAAAB3NzaC1yc2EAAAADAQABAAABAQCiIf32L0B77f//ldk1QpUyfaJQUgI4mXSPtkmaokxUUlj8j9pxlwpFDSmsrZn2H0DJhZZ3ktAGsbFJabZJhV73l7HhQggC/6uzrNPSe+R3lOMGYIAhHaWbGSnT/uvpPMBVA/nWulDkBphiXv606WQHDxqGkngF1kzvvpd5FPpc/jy2vv+66HaP6XA9MgzHLYTOTb3ct3dVoz7HDAQ8tC5l3/3YYLyMhc3LxOBQLZ9PklWvQeSyO6neKi3Au0T13SpUGjtuqKpiCvE/X0ZuFtZSZzPo5UDASD65Er8jOqqYDcfHR1hsfJJjJA/nP+VKoGeBzUBxhxNetqswnEcPDEBv
+```
+
+Deletion of any node is also supported.
