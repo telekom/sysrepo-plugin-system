@@ -19,9 +19,6 @@
  * 		- add entry to /etc/group
  */
 
-uid_t uid = 0;
-gid_t gid = 0;
-
 bool has_pub_extension(char *name)
 {
 	size_t len = strlen (name);
@@ -1178,10 +1175,6 @@ int add_existing_local_users(local_user_list_t *ul)
 	// adding username
 	while ((pwd = getpwent()) != NULL) {
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)){ 
-			if (pwd->pw_uid > uid) {
-				uid = pwd->pw_uid;
-				gid = uid;
-			}
 			local_user_add_user(ul, pwd->pw_name);			
 		}
 	} 
