@@ -1091,12 +1091,12 @@ void clear_string(char *str)
 
 int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 {
-	FILE *entry_file;
-	DIR* FD;
-	struct dirent* in_file;
+	FILE *entry_file = NULL;
+	DIR* FD = NULL;
+	struct dirent* in_file = NULL;
 	int error = 0;
 	
-	char* file_path;
+	char* file_path = NULL;
 	char *line1 = NULL;
 	char *line2 = NULL;
 	size_t in_file_len = 0;
@@ -1104,7 +1104,8 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 
 	if ((FD = opendir(in_dir)) == NULL) {
 		fprintf(stderr, "Error : Failed to open input directory %s - %s\n", in_dir, strerror(errno));
-		return 1;
+		error = 1;
+		goto out;
 	} else {
 		while ((in_file = readdir(FD))) {
 			char key_name[100] = {0};
@@ -1113,53 +1114,65 @@ int get_key_info(char *in_dir, local_user_list_t *ul, int i)
 				continue;
 			}
 
-			if (has_pub_extension(in_file->d_name)) {
-				string_len = strlen(in_dir) + strlen("/") + strlen(in_file->d_name) + 1;
-				file_path = xmalloc(string_len);
-				if (snprintf(file_path, string_len, "%s/%s", in_dir, in_file->d_name) < 0) {
-					goto fail;
-				} 
-
-				entry_file = fopen(file_path, "r");
-				if (entry_file == NULL) {
-					fprintf(stderr, "Error : Failed to open entry file - %s\n", strerror(errno));
-       					return 1;
-				}
-
-				//adding key: key_name is name of file
-				snprintf(key_name, strlen(in_file->d_name)+1, "%s", in_file->d_name);
-
-				error = local_user_add_key(ul, ul->users[i].name, key_name);
-				if (error) {
-					fprintf(stderr, "Error : Failed to add key - %s\n", strerror(errno));
-					fclose(entry_file);
-					return 1;
-				}
-				//reading .pub file
-				line1 = xmalloc(MAX_ALG_SIZE * sizeof(char));
-				line2 = xmalloc(MAX_KEY_DATA_SIZE * sizeof(char));
-				rewind(entry_file);
-				fscanf(entry_file, "%s %s", line1, line2);
-	
-				local_user_add_algorithm(ul, ul->users[i].name, key_name, line1);
-
-				local_user_add_key_data(ul, ul->users[i].name, key_name, line2);
-
-				FREE_SAFE(file_path);
-				FREE_SAFE(line1);
-				FREE_SAFE(line2);
-				fclose(entry_file);
-				
+			if (!has_pub_extension(in_file->d_name)) {
+				error = 0;
+				goto out;
 			}
+
+			string_len = strlen(in_dir) + strlen("/") + strlen(in_file->d_name) + 1;
+			file_path = xmalloc(string_len);
+			if (snprintf(file_path, string_len, "%s/%s", in_dir, in_file->d_name) < 0) {
+				error = -1;
+				goto out;
+			} 
+
+			entry_file = fopen(file_path, "r");
+			if (entry_file == NULL) {
+				fprintf(stderr, "Error : Failed to open entry file - %s\n", strerror(errno));
+				error = 1;
+				goto out;
+			}
+
+			//adding key: key_name is name of file
+			snprintf(key_name, strlen(in_file->d_name)+1, "%s", in_file->d_name);
+
+			error = local_user_add_key(ul, ul->users[i].name, key_name);
+			if (error) {
+				fprintf(stderr, "Error : Failed to add key - %s\n", strerror(errno));
+				error = 1;
+				goto out;
+			}
+			//reading .pub file
+			line1 = xmalloc(MAX_ALG_SIZE * sizeof(char));
+			line2 = xmalloc(MAX_KEY_DATA_SIZE * sizeof(char));
+			rewind(entry_file);
+			fscanf(entry_file, "%s %s", line1, line2);
+
+			local_user_add_algorithm(ul, ul->users[i].name, key_name, line1);
+
+			local_user_add_key_data(ul, ul->users[i].name, key_name, line2);
 		}
 	}
 
-	closedir(FD);
+out:
+	if (entry_file != NULL) {
+		fclose(entry_file);
+	}
 
-	return 0;
-fail:
+	if (file_path != NULL) {
+		FREE_SAFE(file_path);
+	}
+
+	if (line1 != NULL) {
+		FREE_SAFE(line1);
+	}
+
+	if (line2 != NULL) {
+		FREE_SAFE(line2);
+	}
+
 	closedir(FD);
-	return -1;
+	return error;
 }
 
 int add_existing_local_users(local_user_list_t *ul)
