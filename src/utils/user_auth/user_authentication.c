@@ -250,7 +250,6 @@ int delete_users(local_user_list_t *ul)
 {
 	int error = 0;
 	bool remove_user = false;
-	bool remove_file = false;
 
 	for (int i = 0; i < ul->count; i++) {
 		remove_user = false;
@@ -270,7 +269,6 @@ int delete_users(local_user_list_t *ul)
 		}
 
 		for (int j = 0; j < ul->users[i].auth.count; j++) {
-			remove_file = false;
 			if (ul->users[i].auth.authorized_keys[j].algorithm == NULL) {
 				continue;
 			}
@@ -282,10 +280,6 @@ int delete_users(local_user_list_t *ul)
 					goto error_out;
 				}
 
-				remove_file = true;
-			}
-
-			if (remove_file == true) {
 				// remove the ssh file info from internal list
 				authorized_key_list_free(&ul->users[i].auth);
 
