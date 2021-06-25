@@ -1172,6 +1172,8 @@ int add_existing_local_users(local_user_list_t *ul)
 	char* in_dir;
 	size_t string_len = 0;
 
+	setpwent();
+
 	// adding username
 	while ((pwd = getpwent()) != NULL) {
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)){ 
@@ -1221,12 +1223,16 @@ exit_adding_pass:
 		FREE_SAFE(in_dir);
 	}
 
+	endpwent();
+
 	return 0;
 
 fail:
 	if (in_dir != NULL) {
 		FREE_SAFE(in_dir);
 	}
+
+	endpwent();
 
 	return -1;
 }
