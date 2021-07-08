@@ -410,7 +410,7 @@ sysrepocfg -Evim -fjson -m ietf-system
     <authentication>
         <user>
             <name>test_user</name>
-            <password>$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1</password> <!-- test666 -->
+            <password>$6$S05zV2Np5LQzaOpM$qqUxvFsEVg7iwaqnEHhF4ZJv8dwXdtgFpLTHyr78Rr8cz/ml2riPyBlPol.3V8qVXFohR0XSTJXMHO4XLjrXd1</password>
             <authorized-key>
                 <name>test_rsa.pub</name>
                 <algorithm>ssh-rsa</algorithm>

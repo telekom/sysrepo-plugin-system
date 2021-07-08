@@ -367,7 +367,7 @@ class SetCurrentDateTimeTestCase(SystemStateTestCase):
             rpc_output.free()
             now = datetime.datetime.now()
             date_string = now.strftime("%d/%m/%Y %H:%M")
-            self.assertEqual(date_string, expected_date_string, "lol")
+            self.assertEqual(date_string, expected_date_string, "system date doesn't match expected date")
 
 
 if __name__ == '__main__':
