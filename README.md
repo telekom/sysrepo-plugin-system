@@ -1,304 +1,112 @@
-# Sysrepo general plugin
+<h1 align="center">
+    Sysrepo Plugin System
+</h1>
 
-## Introduction
+<p align="center">
+    <a href="/../../commits/" title="Last Commit"><img src="https://img.shields.io/github/last-commit/telekom/sysrepo-plugin-system?style=flat"></a>
+    <a href="/../../issues" title="Open Issues"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat"></a>
+    <a href="./LICENSE" title="License"><img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?style=flat"></a>
+</p>
 
-This Sysrepo plugin is responsible for bridging a Linux system and Sysrepo/YANG datastore system configuration.
+<p align="center">
+  <a href="#development">Development</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#support-and-feedback">Support</a> •
+  <a href="#how-to-contribute">Contribute</a> •
+  <a href="#contributors">Contributors</a> •
+  <a href="#licensing">Licensing</a>
+</p>
 
-## Dependencies
-Other than libyang 1 and Sysrepo, no build time dependencies are required.
-However, to use the NTP part of the plugin, `ntpd` is required, as the plugin
-uses `/etc/ntp.conf`
+The goal of this project is to provide a method of configuring generic Linux systems using the Sysrepo NETCONF server implementation. 
+## About this component
 
-## Build
+This Sysrepo plugin is based on the `ietf-system` YANG module which provides "configuration and identification of some common system properties within a device containing a NETCONF server". More information about the specific YANG module can be found in [RFC 7317: A YANG Data Model for System Management](https://datatracker.ietf.org/doc/html/rfc7317).
 
-This section describes how to build the plugin on hosts that have Sysrepo installed. This 
-includes standard Linux machines and docker images with Sysrepo, Netopeer and other required dependencies.
-Additionally, a Dockerfile that builds all the dependencies and the plugin is available in `docker/`
 
-First, clone the repo:
+## Development
+
+Besides the usual C development environment, the following additional dependencies are required:
+
+* libyang
+* sysrepo
+
+The following software is additionally required on the target system:
+
+* systemd
+* ntpd
+
+### Build
+
+First clone the repository:
+
 ```
-$ git clone git@lab.sartura.hr:sysrepo/sysrepo-plugin-general.git
+$ git clone https://github.com/telekom/sysrepo-plugin-system
 ```
 
-Next, make a build directory and prepare the build scripts:
+Next, create a build directory and generate the build recipes using CMake:
 
 ```
-$ mkdir build && cd build
+$ mkdir build
+$ cd build
 $ cmake ..
 ```
 
-This will build the plugin as a standalone executable which can be run without `sysrepo-plugind`
-
-To build the project in plugin mode, run the following instead:
+The default configuration builds the plugin as a stand-alone foreground application. To build the plugin as a shared object file for use with `sysrepo-plugind`, run the following instead:
 
 ```
 $ cmake -DPLUGIN=ON ..
 ```
 
-After that, run `make` and `make install`
-
-Finally to run the plugin, the `iana-crypt-hash` and `ietf-system` YANG modules need to be installed.
+Lastly, invoke the build and install using `make`:
 
 ```
-$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang
-$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang
+$ make -j$(nproc) install
 ```
 
-## Development Setup with setup-dev-sysrepo scripts
-
-Setup the development environment using the provided [`setup-dev-sysrepo`](https://github.com/sartura/setup-dev-sysrepo) scripts. This will build all the necessary components.
-
-Subsequent rebuilds of the plugin may be done by navigating to the plugin source directory and executing:
+The plugin requires the `iana-crypt-hash` and `ietf-system` YANG modules to be loaded into the Sysrepo datastore. This can be achieved by invoking the following commands:
 
 ```
-$ export SYSREPO_DIR=${HOME}/code/sysrepofs
-$ cd ${SYSREPO_DIR}/repositories/plugins/sysrepo-plugin-general
-
-$ rm -rf ./build && mkdir ./build && cd ./build
-$ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-		-DCMAKE_PREFIX_PATH=${SYSREPO_DIR} \
-		-DCMAKE_INSTALL_PREFIX=${SYSREPO_DIR} \
-		-DCMAKE_BUILD_TYPE=Debug \
-		..
--- Configuring done
--- Generating done
--- Build files have been written to: ${SYSREPO_DIR}/repositories/plugins/sysrepo-plugin-general/build
-Scanning dependencies of target sysrepo-plugin-general
-[ 33%] Building C object CMakeFiles/sysrepo-plugin-general.dir/src/general.c.o
-[ 66%] Linking C executable sysrepo-plugin-general
-[100%] Built target sysrepo-plugin-general
-
-$ make && make install
-[...]
-[100%] Built target sysrepo-plugin-general
-[100%] Built target sysrepo-plugin-general
-Install the project...
--- Install configuration: "Debug"
--- Installing: ${SYSREPO_DIR}/bin/sysrepo-plugin-general
--- Set runtime path of "${SYSREPO_DIR}/bin/sysrepo-plugin-general" to ""
-
--$ cd ..
+$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang 
+$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang     
 ```
 
-Before using the plugin it is necessary to install relevant YANG modules. For this particular plugin, the following commands need to be invoked:
+## Code of Conduct
 
-```
-$ cd ${SYSREPO_DIR}/repositories/plugins/sysrepo-plugin-general
-$ export LD_LIBRARY_PATH="${SYSREPO_DIR}/lib64;${SYSREPO_DIR}/lib"
-$ export PATH="${SYSREPO_DIR}/bin:${PATH}"
+This project has adopted the [Contributor Covenant](https://www.contributor-covenant.org/) in version 2.0 as our code of conduct. Please see the details in our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). All contributors must abide by the code of conduct.
 
-$ sysrepoctl -i ./yang/ietf-system@2014-08-06.yang
-```
+## Working Language
 
-## YANG Overview
+We decided to apply _English_ as the primary project language.  
 
-The `ietf-system` YANG module with the `sys` prefix consists of the following `container` paths:
+Consequently, all content will be made available primarily in English. We also ask all interested people to use English as language to create issues, in their code (comments, documentation etc.) and when you send requests to us. The application itself and all end-user facing content will be made available in other languages as needed.
 
-* `/ietf-system:system` — configuration state data for the system
+## Documentation
 
-The following items are not configurational i.e. they are `operational` state data:
+The full documentation for the Sysrepo system plugin can be found in the [documentation directory](../docs).
 
-* `/ietf-system:system-state` — operational data with general information about the system
+## Support and Feedback
 
-The following items are `RPC`:
+The following channels are available for discussions, feedback, and support requests:
 
-* `/ietf-system:rpcs` — RPC (set-current-datetime, system-restart and system-shutdown)
+| Type                     | Channel                                                |
+| ------------------------ | ------------------------------------------------------ |
+| **Issues**   | <a href="/../../issues/new/choose" title="General Discussion"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat-square"></a> </a>   |
+| **Other Requests**    | <a href="mailto:opensource@telekom.de" title="Email Open Source Team"><img src="https://img.shields.io/badge/email-Open%20Source%20Team-green?logo=mail.ru&style=flat-square&logoColor=white"></a>   |
 
-## Running and Examples
+## How to Contribute
 
-This plugin is installed as the `sysrepo-plugin-general` binary to `${SYSREPO_DIR}/bin/` directory path. Before executing the plugin binary it is necessary to initialize the datastore with appropriate example data, but before that we have to enable some features:
+Contribution and feedback is encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](./CONTRIBUTING.md). By participating in this project, you agree to abide by its [Code of Conduct](./CODE_OF_CONDUCT.md) at all times.
 
-```
-$ sysrepoctl --change ietf-system --enable-feature timezone-name
-$ sysrepoctl --change ietf-system --enable-feature ntp
-$ sysrepoctl --change ietf-system --enable-feature authentication
-$ sysrepoctl --change ietf-system --enable-feature local-users
-```
+## Contributors
 
-After the timezone-name and ntp features are enabled we can initialize the datastore with appropriate example data:
+Our commitment to open source means that we are enabling -in fact encouraging- all interested parties to contribute and become part of its developer community.
 
-```
-$ sysrepocfg -f xml --copy-from=examples/system.xml -d startup -m 'ietf-system'
-$ sysrepocfg -f xml --copy-from=examples/system.xml -d running -m 'ietf-system'
-```
+## Licensing
 
-After loading the example simply invoke this binary, making sure that the environment variables are set correctly. 
-Specifically, the `GEN_PLUGIN_DATA_DIR` has to be set, to a directory where the plugin's files can be stored:
+Copyright (C) 2021 Deutsche Telekom AG.
 
-```
-mkdir -p /usr/local/lib/sysrepo-general-plugin
-export GEN_PLUGIN_DATA_DIR=/usr/local/lib/sysrepo-general-plugin
+Licensed under the **BSD 3-Clause License** (the "License"); you may not use this file except in compliance with the License.
 
-$ sysrepo-plugin-general
-[...]
-[INF]: Applying scheduled changes.
-[INF]: No scheduled changes.
-[INF]: Connection "..." created.
-[INF]: Session "..." (user "...", CID "...") created.
-[INF]: plugin: start session to startup datastore
-[INF]: Session "..." (user "...", CID "...") created.
-[INF]: plugin: subscribing to module change
-[INF]: plugin: subscribing to get oper items
-[INF]: plugin: subscribing to rpc
-[INF]: plugin: plugin init done
-[...]
-```
+You may obtain a copy of the License by reviewing the file [LICENSE](./LICENSE) in the repository.
 
-Output from the plugin is expected; the plugin has been initialized with `startup` and `running` datastore contents at `${SYSREPO_DIR}/etc/sysrepo`. We can confirm the contents present in Sysrepo by invoking the following command:
-
-```
-$ sysrepocfg -X -d startup -f json -m 'ietf-system'
-{
-  "ietf-system:system": {
-    "clock": {
-      "timezone-name": "Europe/Stockholm"
-    },
-    "location": "basement",
-    "contact": "Mr. Admin",
-    "hostname": "test.it",
-    "ntp": {
-      "enabled": true,
-      "server": [
-        {
-          "name": "hr.pool.ntp.org",
-          "udp": {
-            "address": "162.159.200.123"
-          }
-        }
-      ]
-    }
-  }
-}
-```
-
-Operational state data, as defined by the `ietf-system` module can be accessed with:
-
-```
-$ sysrepocfg -X -d operational -f json -x '/ietf-system:system-state'
-{
-  "ietf-system:system-state": {
-    "platform": {
-      "os-name": "Linux",
-      "os-release": "5.10.16-arch1-1",
-      "os-version": "#1 SMP PREEMPT Sat, 13 Feb 2021 20:50:18 +0000",
-      "machine": "x86_64"
-    },
-    "clock": {
-      "current-datetime": "2021-02-15T18:53:47Z",
-      "boot-datetime": "2021-02-15T14:31:33Z"
-    }
-  }
-}
-```
-
-Additionally, this plugin handles various RPC paths. For instance, invoking the following example action will set the provided datetime on the system:
-
-```
-$ sysrepocfg --rpc=examples/set_datetime.xml -m "ietf-system"
-```
-
-This action is followed by output on the plugin standard output:
-
-```
-[...]
-[INF]: Processing "/ietf-system:set-current-datetime" "rpc" event with ID 1 priority 0 (remaining 1 subscribers).
-[INF]: plugin: system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!
-[INF]: Successful processing of "rpc" event with ID 1 priority 0 (remaining 0 subscribers).
-[...]
-```
-
-## Testing
-
-### Manual tests
-The `tests/manual_tests.md` file contains a list of sysrepo commands that can be used to test
-the currently implemented features of the plugin.
-It can also serve as a list of currently implemented YANG nodes in the model.
-
-### Unit tests
-Unit tests for the plugin are available in `tests/`. To build the unit tests, use the `-DENABLE_BUILD_TESTS=ON` option when running cmake. To then run the tests, run `ctest` in the build directory.
-
-The tests can be built with sanitizers, by setting appropriate compile flags through cmake (`-DCMAKE_C_FLAGS='-fsanitize=address,undefined` for example).
-
-
-## Nodes that are currently implemented
-- DONE - nodes are implemented and a value is provided if such information can be retrieved
-- NA - node is not implemented
-- IN PROGRESS - implementation in progress
-
-```
-module: ietf-system
-  +--rw system
-  |  +--rw contact?          string                                         DONE
-  |  +--rw hostname?         inet:domain-name                               DONE
-  |  +--rw location?         string                                         DONE
-  |  +--rw clock
-  |  |  +--rw (timezone)?
-  |  |     +--:(timezone-name) {timezone-name}?
-  |  |     |  +--rw timezone-name?         timezone-name                    DONE
-  |  |     +--:(timezone-utc-offset)
-  |  |        +--rw timezone-utc-offset?   int16                            NA
-  |  +--rw ntp! {ntp}?
-  |  |  +--rw enabled?   boolean                                            DONE
-  |  |  +--rw server* [name]
-  |  |     +--rw name                string                                 DONE
-  |  |     +--rw (transport)
-  |  |     |  +--:(udp)
-  |  |     |     +--rw udp
-  |  |     |        +--rw address    inet:host                              DONE
-  |  |     |        +--rw port?      inet:port-number {ntp-udp-port}?       DONE
-  |  |     +--rw association-type?   enumeration                            DONE
-  |  |     +--rw iburst?             boolean                                DONE
-  |  |     +--rw prefer?             boolean                                DONE
-  |  +--rw dns-resolver
-  |  |  +--rw search*    inet:domain-name                                   DONE (implemented using systemd)
-  |  |  +--rw server* [name]
-  |  |  |  +--rw name                 string                                DONE (implemented using systemd)
-  |  |  |  +--rw (transport)
-  |  |  |     +--:(udp-and-tcp)
-  |  |  |        +--rw udp-and-tcp
-  |  |  |           +--rw address    inet:ip-address                        DONE (implemented using systemd)
-  |  |  |           +--rw port?      inet:port-number {dns-udp-tcp-port}?   NA
-  |  |  +--rw options
-  |  |     +--rw timeout?    uint8                                          DONE (implemented using systemd)
-  |  |     +--rw attempts?   uint8                                          DONE (implemented using systemd)
-  |  +--rw radius {radius}?
-  |  |  +--rw server* [name]
-  |  |  |  +--rw name                   string                              NA
-  |  |  |  +--rw (transport)
-  |  |  |  |  +--:(udp)
-  |  |  |  |     +--rw udp
-  |  |  |  |        +--rw address                inet:host                  NA
-  |  |  |  |        +--rw authentication-port?   inet:port-number           NA
-  |  |  |  |        +--rw shared-secret          string                     NA
-  |  |  |  +--rw authentication-type?   identityref                         NA
-  |  |  +--rw options
-  |  |     +--rw timeout?    uint8                                          NA
-  |  |     +--rw attempts?   uint8                                          NA
-  |  +--rw authentication {authentication}?
-  |     +--rw user-authentication-order*   identityref                      NA
-  |     +--rw user* [name] {local-users}?
-  |        +--rw name              string                                   DONE
-  |        +--rw password?         ianach:crypt-hash                        DONE
-  |        +--rw authorized-key* [name]
-  |           +--rw name         string                                     DONE
-  |           +--rw algorithm    string                                     DONE
-  |           +--rw key-data     binary                                     DONE
-  +--ro system-state
-     +--ro platform
-     |  +--ro os-name?      string                                          DONE
-     |  +--ro os-release?   string                                          DONE
-     |  +--ro os-version?   string                                          DONE
-     |  +--ro machine?      string                                          DONE
-     +--ro clock
-        +--ro current-datetime?   yang:date-and-time                        DONE
-        +--ro boot-datetime?      yang:date-and-time                        DONE
-
-  rpcs:
-    +---x set-current-datetime
-    |  +---w input
-    |     +---w current-datetime    yang:date-and-time                      DONE
-    +---x system-restart                                                    DONE
-    +---x system-shutdown                                                   DONE
-
-```
-
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the [LICENSE](./LICENSE) for the specific language governing permissions and limitations under the License.
