@@ -382,6 +382,30 @@ class SetCurrentDateTimeTestCase(SystemStateTestCase):
             date_string = now.strftime("%d/%m/%Y %H:%M")
             self.assertEqual(date_string, expected_date_string, "system date doesn't match expected date")
 
+class TimezoneTestCase(SystemTestCase):
+    def test_timezone(self):
+        tzdata = '/etc/localtime'
+        store_timezone = os.readlink(tzdata)
+        expected_timezone_name = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><clock><timezone-name>Europe/Stockholm</timezone-name></clock></system>'
+
+        self.edit_config("data/system_set_timezone_name.xml")
+
+        data = self.session.get_data_ly('/ietf-system:system/clock/timezone-name')
+        timezone_name = data.print_mem("xml")
+        self.assertEqual(timezone_name, expected_timezone_name, "timezone_name data is wrong")
+
+        real_timezone = os.readlink('/etc/localtime')
+        self.assertEqual(
+            real_timezone,
+            '/usr/share/zoneinfo/Europe/Stockholm',
+            "timezone on system doesn't match set timezone")
+
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
+        os.symlink(store_timezone, tzdata)
+
+        data.free()
+
 
 if __name__ == '__main__':
     unittest.main()
