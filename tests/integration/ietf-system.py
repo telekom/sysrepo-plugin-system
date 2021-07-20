@@ -400,8 +400,10 @@ class TimezoneTestCase(SystemTestCase):
             '/usr/share/zoneinfo/Europe/Stockholm',
             "timezone on system doesn't match set timezone")
 
-        os.unlink(tzdata)
+        self.session.replace_config_ly(self.initial_data, "ietf-system")
+
         os.symlink(store_timezone, tzdata)
+
         data.free()
 
 
