@@ -12,6 +12,7 @@
  */
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -118,13 +119,12 @@ static local_user_list_t *user_list;
 #define NTP_MAX_ENTRY_LEN 100
 #define PATH_MAX_BUFFER 200
 
-static int system_module_change_cb(sr_session_ctx_t *session, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data);
-static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
-static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data);
+static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data);
+static int system_state_data_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data);
+static int system_rpc_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data);
 
 static bool system_running_datastore_is_empty_check(void);
 static int load_data(sr_session_ctx_t *session);
-static char *system_xpath_get(const struct lyd_node *node);
 
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation);
 static int set_ntp(const char *xpath, char *value);
@@ -188,7 +188,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	local_user_list_init(&user_list);
 
-	SRP_LOG_INFMSG("start session to startup datastore");
+	SRP_LOG_INF("start session to startup datastore");
 
 	connection = sr_session_get_connection(session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
@@ -206,38 +206,38 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	}
 
 	if (system_running_datastore_is_empty_check() == true) {
-		SRP_LOG_INFMSG("running DS is empty, loading data");
+		SRP_LOG_INF("running DS is empty, loading data");
 
 		error = load_data(session);
 		if (error) {
-			SRP_LOG_ERRMSG("load_data error");
+			SRP_LOG_ERR("load_data error");
 			goto error_out;
 		}
 
-		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0, 0);
+		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
 			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
 
-	SRP_LOG_INFMSG("subscribing to module change");
+	SRP_LOG_INF("subscribing to module change");
 
-	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*//*", system_module_change_cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*//.", system_module_change_cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
 	if (error) {
 		SRP_LOG_ERR("sr_module_change_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	SRP_LOG_INFMSG("subscribing to get oper items");
+	SRP_LOG_INF("subscribing to get oper items");
 
-	error = sr_oper_get_items_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL, system_state_data_cb, NULL, SR_SUBSCR_CTX_REUSE, &subscription);
+	error = sr_oper_get_items_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL "/*", system_state_data_cb, NULL, SR_SUBSCR_CTX_REUSE, &subscription);
 	if (error) {
 		SRP_LOG_ERR("sr_oper_get_items_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	SRP_LOG_INFMSG("subscribing to rpc");
+	SRP_LOG_INF("subscribing to rpc");
 
 	error = sr_rpc_subscribe(session, SET_CURR_DATETIME_YANG_PATH, system_rpc_cb, *private_data, 0, SR_SUBSCR_CTX_REUSE, &subscription);
 	if (error) {
@@ -257,7 +257,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 		goto error_out;
 	}
 
-	SRP_LOG_INFMSG("plugin init done");
+	SRP_LOG_INF("plugin init done");
 
 	FREE_SAFE(location_file_path);
 	FREE_SAFE(ntp_names_file_path);
@@ -421,7 +421,7 @@ static int load_data(sr_session_ctx_t *session)
 		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/name", user_list->users[i].name);
 		if (error < 0) {
 			// snprintf error
-			SRP_LOG_ERRMSG("snprintf failed");
+			SRP_LOG_ERR("snprintf failed");
 			goto error_out;
 		}
 		error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].name, NULL, SR_EDIT_DEFAULT);
@@ -434,7 +434,7 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_list->users[i].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERRMSG("snprintf failed");
+				SRP_LOG_ERR("snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].password, NULL, SR_EDIT_DEFAULT);
@@ -448,7 +448,7 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/name", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERRMSG("snprintf failed");
+				SRP_LOG_ERR("snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].name, NULL, SR_EDIT_DEFAULT);
@@ -460,7 +460,7 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/algorithm", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERRMSG("snprintf failed");
+				SRP_LOG_ERR("snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].algorithm, NULL, SR_EDIT_DEFAULT);
@@ -472,7 +472,7 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/key-data", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERRMSG("snprintf failed");
+				SRP_LOG_ERR("snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].key_data, NULL, SR_EDIT_DEFAULT);
@@ -486,7 +486,7 @@ static int load_data(sr_session_ctx_t *session)
 	// check if the location file is not empty
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERRMSG("get_plugin_file_path: couldn't get location file path");
+		SRP_LOG_ERR("get_plugin_file_path: couldn't get location file path");
 		goto error_out;
 	}
 
@@ -515,7 +515,7 @@ static int load_data(sr_session_ctx_t *session)
 	// TODO: add ntp server info to datastore
 	//set_ntp_servers_sr_items(ntp_servers);
 
-	error = sr_apply_changes(session, 0, 0);
+	error = sr_apply_changes(session, 0);
 	if (error) {
 		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
 		goto error_out;
@@ -542,14 +542,14 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	// example xpath: 	"ietf-system:system/ntp/server[name='hr3.pool.ntp.org']/udp/address"
 	error = snprintf(ntp_path_buffer, sizeof(ntp_path_buffer) / sizeof(char), "%s[name=\"%s\"]", NTP_SERVER_YANG_PATH, server_entry->name);
 	if (error < 0) {
-		SRP_LOG_ERRMSG("snprintf error");
+		SRP_LOG_ERR("snprintf error");
 		goto error_out;
 	}
 
 	// name
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERRMSG("snprintf error");
+		SRP_LOG_ERR("snprintf error");
 		goto error_out;
 	}
 
@@ -562,7 +562,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	// address
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/udp/address", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERRMSG("snprintf error");
+		SRP_LOG_ERR("snprintf error");
 		goto error_out;
 	}
 
@@ -575,7 +575,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	// association type
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/association-type", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERRMSG("snprintf error");
+		SRP_LOG_ERR("snprintf error");
 		goto error_out;
 	}
 
@@ -590,7 +590,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->port != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/udp/port", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERRMSG("snprintf error");
+			SRP_LOG_ERR("snprintf error");
 			goto error_out;
 		}
 
@@ -605,7 +605,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->iburst != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/iburst", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERRMSG("snprintf error");
+			SRP_LOG_ERR("snprintf error");
 			goto error_out;
 		}
 
@@ -620,7 +620,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->prefer != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/prefer", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERRMSG("snprintf error");
+			SRP_LOG_ERR("snprintf error");
 			goto error_out;
 		}
 
@@ -631,7 +631,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 		}
 	}
 
-	error = sr_apply_changes(session, 0, 0);
+	error = sr_apply_changes(session, 0);
 	if (error != 0) {
 		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
 		goto error_out;
@@ -658,10 +658,10 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 	dns_server_list_free(&dns_servers);
 	local_user_list_free(user_list);
 
-	SRP_LOG_INFMSG("plugin cleanup finished");
+	SRP_LOG_INF("plugin cleanup finished");
 }
 
-static int system_module_change_cb(sr_session_ctx_t *session, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = 0;
 	sr_session_ctx_t *startup_session = (sr_session_ctx_t *) private_data;
@@ -670,11 +670,9 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 	const struct lyd_node *node = NULL;
 	const char *prev_value = NULL;
 	const char *prev_list = NULL;
-	bool prev_default = false;
+	int prev_default = false;
 	char *node_xpath = NULL;
-	const char *node_value = NULL;
-	struct lyd_node_leaf_list *node_leaf_list;
-	struct lys_node_leaf *schema_node_leaf;
+	char *node_value = NULL;
 	bool ntp_change = false;
 	bool dns_servers_change = false;
 	bool user_change = false;
@@ -688,7 +686,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 	}
 
 	if (event == SR_EV_DONE) {
-		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0, 0);
+		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
 			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -703,15 +701,10 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 		}
 
 		while (sr_get_change_tree_next(session, system_change_iter, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			node_xpath = system_xpath_get(node);
+			node_xpath = lyd_path(node, LYD_PATH_STD, NULL, 0);
 
 			if (node->schema->nodetype == LYS_LEAF || node->schema->nodetype == LYS_LEAFLIST) {
-				node_leaf_list = (struct lyd_node_leaf_list *) node;
-				node_value = node_leaf_list->value_str;
-				if (node_value == NULL) {
-					schema_node_leaf = (struct lys_node_leaf *) node_leaf_list->schema;
-					node_value = schema_node_leaf->dflt ? schema_node_leaf->dflt : "";
-				}
+				node_value = xstrdup(lyd_get_value(node));
 			}
 
 			SRP_LOG_DBG("node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
@@ -756,7 +749,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 				}
 			}
 			FREE_SAFE(node_xpath);
-			node_value = NULL;
+			FREE_SAFE(node_value);
 		}
 
 		if (ntp_change) {
@@ -769,7 +762,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, const char *module
 		}
 
 		if (dns_servers_change == true) {
-			SRP_LOG_DBGMSG("Dumping DNS servers configuration...");
+			SRP_LOG_DBG("Dumping DNS servers configuration...");
 			error = dns_server_list_dump_config(&dns_servers);
 			if (error != 0) {
 				SRP_LOG_ERR("dns_server_list_dump_config (%d)", error);
@@ -793,6 +786,7 @@ error_out:
 
 out:
 	FREE_SAFE(node_xpath);
+	FREE_SAFE(node_value);
 	sr_free_change_iter(system_change_iter);
 
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
@@ -801,7 +795,6 @@ out:
 static int set_config_value(const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
-	SRP_LOG_DBGMSG("Setting config value");
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
@@ -876,18 +869,18 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 	} else if (strncmp(xpath, DNS_RESOLVER_YANG_PATH, sizeof(DNS_RESOLVER_YANG_PATH) - 1) == 0) {
 		error = set_dns(xpath, (char *) value, operation);
 		if (error != 0) {
-			SRP_LOG_ERRMSG("set_dns error");
+			SRP_LOG_ERR("set_dns error");
 		}
 	} else if (strncmp(xpath, AUTHENTICATION_USER_YANG_PATH, strlen(AUTHENTICATION_USER_YANG_PATH)) == 0) {
 		if (operation == SR_OP_DELETED) {
 			error = set_user_authentication(xpath, "");
 			if (error != 0) {
-				SRP_LOG_ERRMSG("set_authentication_user error");
+				SRP_LOG_ERR("set_authentication_user error");
 			}
 		} else {
 			error = set_user_authentication(xpath, (char *)value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("set_authentication_user error");
+				SRP_LOG_ERR("set_authentication_user error");
 			}
 		}
 	}
@@ -921,13 +914,13 @@ static int set_user_authentication(const char *xpath, char *value)
 			}
 			error = local_user_add_user(user_list, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("local_user_add_user error");
+				SRP_LOG_ERR("local_user_add_user error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "password") == 0) {
 			error = local_user_set_password(user_list, user_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("local_user_set_password error");
+				SRP_LOG_ERR("local_user_set_password error");
 				return -1;
 			}
 		}
@@ -947,19 +940,19 @@ static int set_user_authentication(const char *xpath, char *value)
 		if (strcmp(user_node, "name") == 0) {
 			error = local_user_add_key(user_list, user_name, user_ssh_file_name);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("local_user_add_key error");
+				SRP_LOG_ERR("local_user_add_key error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "algorithm") == 0) {
 			error = local_user_add_algorithm(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("local_user_add_algorithm error");
+				SRP_LOG_ERR("local_user_add_algorithm error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "key-data") == 0) {
 			error = local_user_add_key_data(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("local_user_add_key_data error");
+				SRP_LOG_ERR("local_user_add_key_data error");
 				return -1;
 			}
 		}
@@ -989,7 +982,7 @@ static int set_ntp(const char *xpath, char *value)
 				/* Debian based systems have a service file named
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
-				SRP_LOG_ERRMSG("trying systemctl enable --now ntp instead");
+				SRP_LOG_ERR("trying systemctl enable --now ntp instead");
 				error = system("systemctl enable --now ntp");
 				if (error != 0) {
 					SRP_LOG_ERR("\"systemctl enable --now ntp\" failed with return value: %d", error);
@@ -1005,7 +998,7 @@ static int set_ntp(const char *xpath, char *value)
 				/* Debian based systems have a service file named
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
-				SRP_LOG_ERRMSG("trying systemctl stop ntp instead");
+				SRP_LOG_ERR("trying systemctl stop ntp instead");
 				error = system("systemctl stop ntp");
 				if (error != 0) {
 					SRP_LOG_ERR("\"systemctl stop ntp\" failed with return value: %d", error);
@@ -1038,13 +1031,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "") == 0){
 				error = ntp_server_list_set_delete(ntp_servers, ntp_server_name, true);
 				if (error != 0) {
-					SRP_LOG_ERRMSG("ntp_server_list_set_delete error");
+					SRP_LOG_ERR("ntp_server_list_set_delete error");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_add_server(ntp_servers, value);
 				if (error != 0) {
-					SRP_LOG_ERRMSG("error adding new ntp server");
+					SRP_LOG_ERR("error adding new ntp server");
 					return -1;
 				}
 			}
@@ -1052,27 +1045,27 @@ static int set_ntp(const char *xpath, char *value)
 		} else if (strcmp(ntp_node, "address") == 0) {
 			error = ntp_server_list_set_address(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting ntp server address");
+				SRP_LOG_ERR("error setting ntp server address");
 				return -1;
 			}
 			// set the address and name to a file
 			error = ntp_set_server_name(value, ntp_server_name);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("ntp_set_server_name error");
+				SRP_LOG_ERR("ntp_set_server_name error");
 				return -1;
 			}
 
 		} else if (strcmp(ntp_node, "port") == 0) {
 			error = ntp_server_list_set_port(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting ntp server port");
+				SRP_LOG_ERR("error setting ntp server port");
 				return -1;
 			}
 
 		} else if (strcmp(ntp_node, "association-type") == 0) {
 			error = ntp_server_list_set_assoc_type(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERRMSG("error setting ntp server association-type");
+				SRP_LOG_ERR("error setting ntp server association-type");
 				return -1;
 			}
 
@@ -1080,13 +1073,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "iburst");
 				if (error != 0) {
-					SRP_LOG_ERRMSG("error setting ntp server iburst");
+					SRP_LOG_ERR("error setting ntp server iburst");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
-					SRP_LOG_ERRMSG("error setting ntp server iburst");
+					SRP_LOG_ERR("error setting ntp server iburst");
 					return -1;
 				}
 			}
@@ -1095,13 +1088,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "prefer");
 				if (error != 0) {
-					SRP_LOG_ERRMSG("error setting ntp server prefer");
+					SRP_LOG_ERR("error setting ntp server prefer");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
-					SRP_LOG_ERRMSG("error setting ntp server prefer");
+					SRP_LOG_ERR("error setting ntp server prefer");
 					return -1;
 				}
 			}
@@ -1159,19 +1152,19 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	} else if (strcmp(nn, "timeout") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERRMSG("Unsupported option 'timeout'... Aborting...");
+		SRP_LOG_ERR("Unsupported option 'timeout'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBGMSG("Setting DNS timeout value...");
+		SRP_LOG_DBG("Setting DNS timeout value...");
 		err = set_dns_timeout(value);
 #endif
 	} else if (strcmp(nn, "attempts") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERRMSG("Unsupported option 'attempts'... Aborting...");
+		SRP_LOG_ERR("Unsupported option 'attempts'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBGMSG("Setting DNS attempts value...");
+		SRP_LOG_DBG("Setting DNS attempts value...");
 		err = set_dns_attempts(value);
 #endif
 	}
@@ -1433,34 +1426,7 @@ static int get_timezone_name(char *value)
 	return 0;
 }
 
-static char *system_xpath_get(const struct lyd_node *node)
-{
-	char *xpath_node = NULL;
-	char *xpath_leaflist_open_bracket = NULL;
-	size_t xpath_trimed_size = 0;
-	char *xpath_trimed = NULL;
-
-	if (node->schema->nodetype == LYS_LEAFLIST) {
-		xpath_node = lyd_path(node);
-		xpath_leaflist_open_bracket = strrchr(xpath_node, '[');
-		if (xpath_leaflist_open_bracket == NULL) {
-			return xpath_node;
-		}
-
-		xpath_trimed_size = (size_t) xpath_leaflist_open_bracket - (size_t) xpath_node + 1;
-		xpath_trimed = xcalloc(1, xpath_trimed_size);
-		strncpy(xpath_trimed, xpath_node, xpath_trimed_size - 1);
-		xpath_trimed[xpath_trimed_size - 1] = '\0';
-
-		FREE_SAFE(xpath_node);
-
-		return xpath_trimed;
-	} else {
-		return lyd_path(node);
-	}
-}
-
-static int system_state_data_cb(sr_session_ctx_t *session, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
+static int system_state_data_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
 {
 	int error = SR_ERR_OK;
 	// TODO: create struct that holds this
@@ -1499,7 +1465,7 @@ static int system_state_data_cb(sr_session_ctx_t *session, const char *module_na
 		if (ly_ctx == NULL) {
 			goto out;
 		}
-		*parent = lyd_new_path(NULL, ly_ctx, SYSTEM_STATE_YANG_MODEL, NULL, 0, 0);
+		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_MODEL, NULL, 0, 0);
 	}
 
 	lyd_new_path(*parent, NULL, OS_NAME_YANG_PATH, os_name, 0, 0);
@@ -1606,14 +1572,14 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[])
 	return 0;
 }
 
-static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data)
+static int system_rpc_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *op_path, const sr_val_t *input, const size_t input_cnt, sr_event_t event, uint32_t request_id, sr_val_t **output, size_t *output_cnt, void *private_data)
 {
 	int error = SR_ERR_OK;
 	char *datetime = NULL;
 
 	if (strcmp(op_path, SET_CURR_DATETIME_YANG_PATH) == 0) {
 		if (input_cnt != 1) {
-			SRP_LOG_ERRMSG("system_rpc_cb: input_cnt != 1");
+			SRP_LOG_ERR("system_rpc_cb: input_cnt != 1");
 			goto error_out;
 		}
 
@@ -1631,22 +1597,22 @@ static int system_rpc_cb(sr_session_ctx_t *session, const char *op_path, const s
 			goto error_out;
 		}
 
-		error = sr_apply_changes(session, 0, 0);
+		error = sr_apply_changes(session, 0);
 		if (error) {
 			SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 
-		SRP_LOG_INFMSG("system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!");
+		SRP_LOG_INF("system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!");
 
 	} else if (strcmp(op_path, RESTART_YANG_PATH) == 0) {
 		sync();
 		system("shutdown -r");
-		SRP_LOG_INFMSG("system_rpc_cb: restarting the system!");
+		SRP_LOG_INF("system_rpc_cb: restarting the system!");
 	} else if (strcmp(op_path, SHUTDOWN_YANG_PATH) == 0) {
 		sync();
 		system("shutdown -P");
-		SRP_LOG_INFMSG("system_rpc_cb: shutting down the system!");
+		SRP_LOG_INF("system_rpc_cb: shutting down the system!");
 	} else {
 		SRP_LOG_ERR("system_rpc_cb: invalid path %s", op_path);
 		goto error_out;
@@ -1700,13 +1666,13 @@ static int set_location(const char *location)
 
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERRMSG("set_location: couldn't get location file path");
+		SRP_LOG_ERR("set_location: couldn't get location file path");
 		goto error_out;
 	}
 
 	fd = open(location_file_path, O_CREAT|O_WRONLY|O_TRUNC);
 	if (fd == -1) {
-		SRP_LOG_ERRMSG("set_location: couldn't open location file path");
+		SRP_LOG_ERR("set_location: couldn't open location file path");
 		goto error_out;
 	}
 
@@ -1714,13 +1680,13 @@ static int set_location(const char *location)
 		
 	error = write(fd, location, len);
 	if (error == -1) {
-		SRP_LOG_ERRMSG("set_location: couldn't write to location file path");
+		SRP_LOG_ERR("set_location: couldn't write to location file path");
 		goto error_out;
 	}
 
 	error = close(fd);
 	if (error == -1) {
-		SRP_LOG_ERRMSG("set_location: couldn't close location file path");
+		SRP_LOG_ERR("set_location: couldn't close location file path");
 		goto error_out;
 	}
 
@@ -1749,7 +1715,7 @@ static int get_location(char *location)
 
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERRMSG("get_location: couldn't get location file path");
+		SRP_LOG_ERR("get_location: couldn't get location file path");
 		return -1;
 	}
 
@@ -1786,7 +1752,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERRMSG("ntp_set_server_name: couldn't get ntp_names file path");
+		SRP_LOG_ERR("ntp_set_server_name: couldn't get ntp_names file path");
 		goto error_out;
 	}
 
@@ -1798,7 +1764,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	tmp_ntp_names_file_path = get_plugin_file_path(NTP_TMP_NAMES_FILENAME, true);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERRMSG("ntp_set_server_name: couldn't get tmp_ntp_names file path");
+		SRP_LOG_ERR("ntp_set_server_name: couldn't get tmp_ntp_names file path");
 		goto error_out;
 	}
 
@@ -1884,7 +1850,7 @@ int ntp_get_server_name(char **name, char *address)
 
 	ntp_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_file_path == NULL) {
-		SRP_LOG_ERRMSG("ntp_get_server_name: couldn't get ntp_names file path");
+		SRP_LOG_ERR("ntp_get_server_name: couldn't get ntp_names file path");
 		goto error_out;
 	}
 
@@ -1922,7 +1888,7 @@ int ntp_get_server_name(char **name, char *address)
 		// save to file
 		error = ntp_set_server_name(address, *name);
 		if (error != 0) {
-			SRP_LOG_ERRMSG("ntp_set_server_name error");
+			SRP_LOG_ERR("ntp_set_server_name error");
 			goto error_out;
 		}
 	}

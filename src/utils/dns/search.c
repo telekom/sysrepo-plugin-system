@@ -300,7 +300,7 @@ static int set_domains(domain_list_t *list)
 		goto invalid;
 	}
 
-	SRP_LOG_INFMSG("Set domains successfully!");
+	SRP_LOG_INF("Set domains successfully!");
 	goto finish;
 
 invalid:
