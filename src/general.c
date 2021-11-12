@@ -333,7 +333,7 @@ static char *get_plugin_file_path(const char *filename, bool create)
 			return NULL;
 		}
 	} else {
-		SRP_LOG_ERR("opendir failed");
+		SRP_LOG_ERRMSG("opendir failed");
 		return NULL;
 	}
 
