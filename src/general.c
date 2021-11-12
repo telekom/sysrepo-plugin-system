@@ -23,6 +23,7 @@
 #include <sys/sendfile.h>
 #include <sys/utsname.h>
 #include <sys/reboot.h>
+#include <sys/dir.h>
 #include <fcntl.h>
 #define __USE_XOPEN // needed for strptime
 #include <time.h>
@@ -107,6 +108,7 @@ static local_user_list_t *user_list;
 #define DATETIME_BUF_SIZE 30
 #define UTS_LEN 64
 
+#define PLUGIN_DIR_DEFAULT "/usr/local/lib/sysrepo-general-plugin"
 #define LOCATION_FILENAME "/location_info"
 #define PLUGIN_DIR_ENV_VAR "GEN_PLUGIN_DATA_DIR"
 #define MAX_LOCATION_LENGTH 100
@@ -142,7 +144,7 @@ static int get_datetime_info(char current_datetime[], char boot_datetime[]);
 
 static int set_datetime(char *datetime);
 
-char *get_plugin_file_path(const char *filename, bool create);
+static char *get_plugin_file_path(const char *filename, bool create);
 
 static int set_location(const char *location);
 static int get_location(char *location);
@@ -303,8 +305,10 @@ out:
 	return is_empty;
 }
 
-char *get_plugin_file_path(const char *filename, bool create)
+static char *get_plugin_file_path(const char *filename, bool create)
 {
+	// TODO: update this appropriately
+	int error = 0;
 	char *plugin_dir = NULL;
 	char *file_path = NULL;
 	size_t filename_len = 0;
@@ -312,7 +316,24 @@ char *get_plugin_file_path(const char *filename, bool create)
 
 	plugin_dir = getenv(PLUGIN_DIR_ENV_VAR);
 	if (plugin_dir == NULL) {
-		SRP_LOG_ERR("Unable to get env var %s", PLUGIN_DIR_ENV_VAR);
+		//SRP_LOG_WRN("Unable to get env var %s", PLUGIN_DIR_ENV_VAR);
+		//SRP_LOG_INF("Setting the plugin data dir to: %s", PLUGIN_DIR_DEFAULT);
+		plugin_dir = PLUGIN_DIR_DEFAULT;
+	}
+
+	// check if plugin_dir exists
+	DIR* dir = opendir(plugin_dir);
+	if (dir) {
+		// dir exists
+		closedir(dir);
+	} else if (ENOENT == errno) {
+		error = mkdir(plugin_dir, 0777);
+		if (error == -1) {
+			SRP_LOG_ERR("Error creating dir: %s", plugin_dir);
+			return NULL;
+		}
+	} else {
+		SRP_LOG_ERR("opendir failed");
 		return NULL;
 	}
 
@@ -320,7 +341,6 @@ char *get_plugin_file_path(const char *filename, bool create)
 	file_path = xmalloc(filename_len);
 
 	if (snprintf(file_path, filename_len, "%s%s", plugin_dir, filename) < 0) {
-		FREE_SAFE(file_path);
 		return NULL;
 	}
 
@@ -330,13 +350,11 @@ char *get_plugin_file_path(const char *filename, bool create)
 			tmp = fopen(file_path, "w");
 			if (tmp == NULL) {
 				SRP_LOG_ERR("Error creating %s", file_path);
-				FREE_SAFE(file_path);
 				return NULL;
 			}
 			fclose(tmp);
 		} else {
 			SRP_LOG_ERR("Filename %s doesn't exist in dir %s", filename, plugin_dir);
-			FREE_SAFE(file_path);
 			return NULL;
 		}
 	}
