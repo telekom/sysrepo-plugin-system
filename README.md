@@ -51,6 +51,13 @@ $ cd build
 $ cmake ..
 ```
 
+If systemd is present on the system an additional cmake flag is required:
+```
+$ mkdir build
+$ cd build
+$ cmake -DSYSTEMD_IFINDEX=1 ..
+```
+
 The default configuration builds the plugin as a stand-alone foreground application. To build the plugin as a shared object file for use with `sysrepo-plugind`, run the following instead:
 
 ```
