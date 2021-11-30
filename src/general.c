@@ -199,12 +199,6 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	*private_data = startup_session;
 
-	error = ntp_server_list_init(session, &ntp_servers);
-	if (error != 0) {
-		SRP_LOG_ERR("ntp_server_list_init error: %s", strerror(errno));
-		goto error_out;
-	}
-
 	if (system_running_datastore_is_empty_check() == true) {
 		SRP_LOG_INF("running DS is empty, loading data");
 
@@ -219,6 +213,12 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
+	}
+
+	error = ntp_server_list_init(session, &ntp_servers);
+	if (error != 0) {
+		SRP_LOG_ERR("ntp_server_list_init error: %s", strerror(errno));
+		goto error_out;
 	}
 
 	SRP_LOG_INF("subscribing to module change");
