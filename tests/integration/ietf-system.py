@@ -226,7 +226,6 @@ class NTPTestCase(SystemTestCase):
         data.free()
 
     def test_ntp_server(self):
-        import pdb;pdb.set_trace()
         ntp_server_initial = self.session.get_data_ly('/ietf-system:system/ntp/server').print_mem("xml")
         # remove "</ntp></system>" from ntp_server_initial string
         ntp_server_initial = ntp_server_initial.replace("</ntp></system>", "")
