@@ -186,7 +186,7 @@ class NTPTestCase(SystemTestCase):
 
     def get_ntp_server_ips(self):
         with open('/etc/ntp.conf', 'r') as f:
-            return [l.split()[1] for l in f if 'server' in l and l[0] != '#']
+            return [l.split()[1].split(":", 1)[0] for l in f if 'server' in l and l[0] != '#']
 
     def test_ntp_enabled(self):
         expected_ntp_enabled = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled></ntp></system>'
@@ -194,7 +194,7 @@ class NTPTestCase(SystemTestCase):
 
         self.edit_config("data/system_ntp_disabled.xml")
 
-        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        data = self.session.get_data_ly('/ietf-system:system/ntp/enabled')
         ntp = data.print_mem("xml")
         self.assertEqual(ntp, expected_ntp_disabled, "ntp data is wrong")
 
@@ -205,7 +205,7 @@ class NTPTestCase(SystemTestCase):
 
         self.edit_config("data/system_ntp_enabled.xml")
 
-        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        data = self.session.get_data_ly('/ietf-system:system/ntp/enabled')
         ntp = data.print_mem("xml")
         self.assertEqual(ntp, expected_ntp_enabled, "ntp data is wrong")
 
@@ -226,11 +226,17 @@ class NTPTestCase(SystemTestCase):
         data.free()
 
     def test_ntp_server(self):
-        expected_ntp_server_initial = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server></ntp></system>'
+        import pdb;pdb.set_trace()
+        ntp_server_initial = self.session.get_data_ly('/ietf-system:system/ntp/server').print_mem("xml")
+        # remove "</ntp></system>" from ntp_server_initial string
+        ntp_server_initial = ntp_server_initial.replace("</ntp></system>", "")
+
+        test_ntp_server_initial = '<server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server></ntp></system>'
+        expected_ntp_server_initial = ntp_server_initial + test_ntp_server_initial
 
         self.edit_config("data/system_ntp_server_initial.xml")
 
-        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        data = self.session.get_data_ly('/ietf-system:system/ntp/server')
         ntp = data.print_mem("xml")
         self.assertEqual(ntp, expected_ntp_server_initial, "ntp data is wrong")
 
@@ -245,11 +251,11 @@ class NTPTestCase(SystemTestCase):
             "unexpected number of servers in /etc/ntp.conf")
         self.assertEqual(ips[0], "162.159.200.123", "unexpected server ip")
 
-        expected_ntp_server_add = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
+        expected_ntp_server_add = ntp_server_initial + '<server><name>hr.pool.ntp.org</name><udp><address>162.159.200.123</address></udp></server><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
 
         self.edit_config("data/system_ntp_server_add.xml")
 
-        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        data = self.session.get_data_ly('/ietf-system:system/ntp/server')
         ntp = data.print_mem("xml")
         self.assertEqual(ntp, expected_ntp_server_add, "ntp data is wrong")
 
@@ -265,12 +271,12 @@ class NTPTestCase(SystemTestCase):
         self.assertEqual(ips[0], "162.159.200.123", "unexpected server ip")
         self.assertEqual(ips[1], "162.159.200.124", "unexpected server ip")
 
-        expected_ntp_server_remove = '<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system"><ntp><enabled>true</enabled><server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
+        expected_ntp_server_remove = ntp_server_initial + '<server><name>hr2.pool.ntp.org</name><udp><address>162.159.200.124</address></udp></server></ntp></system>'
 
         self.session.delete_item("/ietf-system:system/ntp/server[name='hr.pool.ntp.org']")
         self.session.apply_changes()
 
-        data = self.session.get_data_ly('/ietf-system:system/ntp')
+        data = self.session.get_data_ly('/ietf-system:system/ntp/server')
         ntp = data.print_mem("xml")
         self.assertEqual(ntp, expected_ntp_server_remove, "ntp data is wrong")
 
