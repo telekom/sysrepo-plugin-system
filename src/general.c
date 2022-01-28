@@ -167,7 +167,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, true);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERR("Please set the %s env variable. "
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Please set the %s env variable. "
 					"The plugin uses the path in the variable "
 					"to store location in a file.",
 					PLUGIN_DIR_ENV_VAR);
@@ -177,7 +177,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, true);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERR("Please set the %s env variable. "
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Please set the %s env variable. "
 			       "The plugin uses the path in the variable "
 			       "to store ntp server names in a file.", PLUGIN_DIR_ENV_VAR);
 		error = -1;
@@ -188,76 +188,76 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	local_user_list_init(&user_list);
 
-	SRP_LOG_INF("start session to startup datastore");
+	SRPLG_LOG_INF(PLUGIN_NAME, "start session to startup datastore");
 
 	connection = sr_session_get_connection(session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
 	if (error) {
-		SRP_LOG_ERR("sr_session_start error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_session_start error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
 	*private_data = startup_session;
 
 	if (system_running_datastore_is_empty_check() == true) {
-		SRP_LOG_INF("running DS is empty, loading data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "running DS is empty, loading data");
 
 		error = load_data(session);
 		if (error) {
-			SRP_LOG_ERR("load_data error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "load_data error");
 			goto error_out;
 		}
 
 		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
-			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
 
 	error = ntp_server_list_init(session, &ntp_servers);
 	if (error != 0) {
-		SRP_LOG_ERR("ntp_server_list_init error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_server_list_init error: %s", strerror(errno));
 		goto error_out;
 	}
 
-	SRP_LOG_INF("subscribing to module change");
+	SRPLG_LOG_INF(PLUGIN_NAME, "subscribing to module change");
 
-	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*//.", system_module_change_cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*//.", system_module_change_cb, *private_data, 0, 0, &subscription);
 	if (error) {
-		SRP_LOG_ERR("sr_module_change_subscribe error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	SRP_LOG_INF("subscribing to get oper items");
+	SRPLG_LOG_INF(PLUGIN_NAME, "subscribing to get oper items");
 
-	error = sr_oper_get_items_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL "/*", system_state_data_cb, NULL, SR_SUBSCR_CTX_REUSE, &subscription);
+	error = sr_oper_get_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL "/*", system_state_data_cb, NULL, 1, &subscription);
 	if (error) {
-		SRP_LOG_ERR("sr_oper_get_items_subscribe error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_oper_get_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	SRP_LOG_INF("subscribing to rpc");
+	SRPLG_LOG_INF(PLUGIN_NAME, "subscribing to rpc");
 
-	error = sr_rpc_subscribe(session, SET_CURR_DATETIME_YANG_PATH, system_rpc_cb, *private_data, 0, SR_SUBSCR_CTX_REUSE, &subscription);
+	error = sr_rpc_subscribe(session, SET_CURR_DATETIME_YANG_PATH, system_rpc_cb, *private_data, 0, 1, &subscription);
 	if (error) {
-		SRP_LOG_ERR("sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	error = sr_rpc_subscribe(session, RESTART_YANG_PATH, system_rpc_cb, *private_data, 0, SR_SUBSCR_CTX_REUSE, &subscription);
+	error = sr_rpc_subscribe(session, RESTART_YANG_PATH, system_rpc_cb, *private_data, 0, 1, &subscription);
 	if (error) {
-		SRP_LOG_ERR("sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	error = sr_rpc_subscribe(session, SHUTDOWN_YANG_PATH, system_rpc_cb, *private_data, 0, SR_SUBSCR_CTX_REUSE, &subscription);
+	error = sr_rpc_subscribe(session, SHUTDOWN_YANG_PATH, system_rpc_cb, *private_data, 0, 1, &subscription);
 	if (error) {
-		SRP_LOG_ERR("sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
-	SRP_LOG_INF("plugin init done");
+	SRPLG_LOG_INF(PLUGIN_NAME, "plugin init done");
 
 	FREE_SAFE(location_file_path);
 	FREE_SAFE(ntp_names_file_path);
@@ -288,7 +288,7 @@ static bool system_running_datastore_is_empty_check(void)
 
 	sysrepocfg_DS_empty_check = popen(SYSREPOCFG_EMPTY_CHECK_COMMAND, "r");
 	if (sysrepocfg_DS_empty_check == NULL) {
-		SRP_LOG_WRN("could not execute %s", SYSREPOCFG_EMPTY_CHECK_COMMAND);
+		SRPLG_LOG_WRN(PLUGIN_NAME, "could not execute %s", SYSREPOCFG_EMPTY_CHECK_COMMAND);
 		is_empty = true;
 		goto out;
 	}
@@ -316,8 +316,8 @@ static char *get_plugin_file_path(const char *filename, bool create)
 
 	plugin_dir = getenv(PLUGIN_DIR_ENV_VAR);
 	if (plugin_dir == NULL) {
-		//SRP_LOG_WRN("Unable to get env var %s", PLUGIN_DIR_ENV_VAR);
-		//SRP_LOG_INF("Setting the plugin data dir to: %s", PLUGIN_DIR_DEFAULT);
+		//SRPLG_LOG_WRN(PLUGIN_NAME, "Unable to get env var %s", PLUGIN_DIR_ENV_VAR);
+		//SRPLG_LOG_INF(PLUGIN_NAME, "Setting the plugin data dir to: %s", PLUGIN_DIR_DEFAULT);
 		plugin_dir = PLUGIN_DIR_DEFAULT;
 	}
 
@@ -329,11 +329,11 @@ static char *get_plugin_file_path(const char *filename, bool create)
 	} else if (ENOENT == errno) {
 		error = mkdir(plugin_dir, 0777);
 		if (error == -1) {
-			SRP_LOG_ERR("Error creating dir: %s", plugin_dir);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Error creating dir: %s", plugin_dir);
 			return NULL;
 		}
 	} else {
-		SRP_LOG_ERR("opendir failed");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "opendir failed");
 		return NULL;
 	}
 
@@ -349,12 +349,12 @@ static char *get_plugin_file_path(const char *filename, bool create)
 		if (create) {
 			tmp = fopen(file_path, "w");
 			if (tmp == NULL) {
-				SRP_LOG_ERR("Error creating %s", file_path);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Error creating %s", file_path);
 				return NULL;
 			}
 			fclose(tmp);
 		} else {
-			SRP_LOG_ERR("Filename %s doesn't exist in dir %s", filename, plugin_dir);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Filename %s doesn't exist in dir %s", filename, plugin_dir);
 			return NULL;
 		}
 	}
@@ -375,26 +375,26 @@ static int load_data(sr_session_ctx_t *session)
 	// get the contact info from /etc/passwd
 	error = get_contact_info(contact_info);
 	if (error) {
-		SRP_LOG_ERR("get_contact_info error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_contact_info error: %s", strerror(errno));
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, CONTACT_YANG_PATH, contact_info, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
 	// get the hostname of the system
 	error = gethostname(hostname, HOST_NAME_MAX);
 	if (error != 0) {
-		SRP_LOG_ERR("gethostname error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "gethostname error: %s", strerror(errno));
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, HOSTNAME_YANG_PATH, hostname, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
@@ -405,13 +405,13 @@ static int load_data(sr_session_ctx_t *session)
 	// get the current datetime (timezone-name) of the system
 	error = get_timezone_name(timezone_name);
 	if (error != 0) {
-		SRP_LOG_ERR("get_timezone_name error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_timezone_name error: %s", strerror(errno));
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, TIMEZONE_NAME_YANG_PATH, timezone_name, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 	*/
@@ -421,12 +421,12 @@ static int load_data(sr_session_ctx_t *session)
 		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/name", user_list->users[i].name);
 		if (error < 0) {
 			// snprintf error
-			SRP_LOG_ERR("snprintf failed");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 			goto error_out;
 		}
 		error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].name, NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 
@@ -434,12 +434,12 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_list->users[i].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERR("snprintf failed");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].password, NULL, SR_EDIT_DEFAULT);
 			if (error) {
-				SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 		}
@@ -448,36 +448,36 @@ static int load_data(sr_session_ctx_t *session)
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/name", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERR("snprintf failed");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].name, NULL, SR_EDIT_DEFAULT);
 			if (error) {
-				SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/algorithm", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERR("snprintf failed");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].algorithm, NULL, SR_EDIT_DEFAULT);
 			if (error) {
-				SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/key-data", user_list->users[i].name, user_list->users[i].auth.authorized_keys[j].name);
 			if (error < 0) {
 				// snprintf error
-				SRP_LOG_ERR("snprintf failed");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 				goto error_out;
 			}
 			error = sr_set_item_str(session, tmp_buffer,  user_list->users[i].auth.authorized_keys[j].key_data, NULL, SR_EDIT_DEFAULT);
 			if (error) {
-				SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 		}
@@ -486,13 +486,13 @@ static int load_data(sr_session_ctx_t *session)
 	// check if the location file is not empty
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERR("get_plugin_file_path: couldn't get location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_plugin_file_path: couldn't get location file path");
 		goto error_out;
 	}
 
 	error = stat(location_file_path, &stat_buf);
 	if (error == -1) {
-		SRP_LOG_ERR("stat error (%d): %s", error, strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "stat error (%d): %s", error, strerror(errno));
 		goto error_out;
 	}
 
@@ -501,13 +501,13 @@ static int load_data(sr_session_ctx_t *session)
 		// get the location of the system
 		error = get_location(location);
 		if (error != 0) {
-			SRP_LOG_ERR("get_location error: %s", strerror(errno));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "get_location error: %s", strerror(errno));
 			goto error_out;
 		}
 
 		error = sr_set_item_str(session, LOCATION_YANG_PATH, location, NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
@@ -517,7 +517,7 @@ static int load_data(sr_session_ctx_t *session)
 
 	error = sr_apply_changes(session, 0);
 	if (error) {
-		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
@@ -542,46 +542,46 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	// example xpath: 	"ietf-system:system/ntp/server[name='hr3.pool.ntp.org']/udp/address"
 	error = snprintf(ntp_path_buffer, sizeof(ntp_path_buffer) / sizeof(char), "%s[name=\"%s\"]", NTP_SERVER_YANG_PATH, server_entry->name);
 	if (error < 0) {
-		SRP_LOG_ERR("snprintf error");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 		goto error_out;
 	}
 
 	// name
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERR("snprintf error");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, xpath_buffer, server_entry->name, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
 	// address
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/udp/address", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERR("snprintf error");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, xpath_buffer, server_entry->address, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
 	// association type
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/association-type", ntp_path_buffer);
 	if (error < 0) {
-		SRP_LOG_ERR("snprintf error");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 		goto error_out;
 	}
 
 	error = sr_set_item_str(session, xpath_buffer, server_entry->assoc_type, NULL, SR_EDIT_DEFAULT);
 	if (error) {
-		SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
@@ -590,13 +590,13 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->port != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/udp/port", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERR("snprintf error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 			goto error_out;
 		}
 
 		error = sr_set_item_str(session, xpath_buffer, server_entry->port, NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
@@ -605,13 +605,13 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->iburst != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/iburst", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERR("snprintf error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 			goto error_out;
 		}
 
 		error = sr_set_item_str(session, xpath_buffer, (strlen(server_entry->iburst) > 0) ? "true" : "false", NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
@@ -620,20 +620,20 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	if (server_entry->prefer != NULL) {
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/prefer", ntp_path_buffer);
 		if (error < 0) {
-			SRP_LOG_ERR("snprintf error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
 			goto error_out;
 		}
 
 		error = sr_set_item_str(session, xpath_buffer, (strlen(server_entry->prefer) > 0) ? "true" : "false", NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
 
 	error = sr_apply_changes(session, 0);
 	if (error != 0) {
-		SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
@@ -658,7 +658,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 	dns_server_list_free(&dns_servers);
 	local_user_list_free(user_list);
 
-	SRP_LOG_INF("plugin cleanup finished");
+	SRPLG_LOG_INF(PLUGIN_NAME, "plugin cleanup finished");
 }
 
 static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -677,10 +677,10 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 	bool dns_servers_change = false;
 	bool user_change = false;
 
-	SRP_LOG_INF("module_name: %s, xpath: %s, event: %d, request_id: %" PRIu32, module_name, xpath, event, request_id);
+	SRPLG_LOG_INF(PLUGIN_NAME, "module_name: %s, xpath: %s, event: %d, request_id: %" PRIu32, module_name, xpath, event, request_id);
 
 	if (event == SR_EV_ABORT) {
-		SRP_LOG_ERR("aborting changes for: %s", xpath);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
 	}
@@ -688,7 +688,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 	if (event == SR_EV_DONE) {
 		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
-			SRP_LOG_ERR("sr_copy_config error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	}
@@ -696,7 +696,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 	if (event == SR_EV_CHANGE) {
 		error = sr_get_changes_iter(session, xpath, &system_change_iter);
 		if (error) {
-			SRP_LOG_ERR("sr_get_changes_iter error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 
@@ -707,13 +707,13 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 				node_value = xstrdup(lyd_get_value(node));
 			}
 
-			SRP_LOG_DBG("node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "node_xpath: %s; prev_val: %s; node_val: %s; operation: %d", node_xpath, prev_value, node_value, operation);
 
 			if (node->schema->nodetype == LYS_LEAF || node->schema->nodetype == LYS_LEAFLIST) {
 				if (operation == SR_OP_CREATED || operation == SR_OP_MODIFIED) {
 					error = set_config_value(node_xpath, node_value, operation);
 					if (error) {
-						SRP_LOG_ERR("set_config_value error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "set_config_value error (%d)", error);
 						goto error_out;
 					}
 
@@ -731,7 +731,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 				} else if (operation == SR_OP_DELETED) {
 					error = set_config_value(node_xpath, node_value, operation);
 					if (error) {
-						SRP_LOG_ERR("set_config_value error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "set_config_value error (%d)", error);
 						goto error_out;
 					}
 
@@ -756,16 +756,16 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 			// save data to ntp.conf
 			error = save_ntp_config(ntp_servers);
 			if (error) {
-				SRP_LOG_ERR("save_ntp_config error (%d)", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "save_ntp_config error (%d)", error);
 				goto error_out;
 			}
 		}
 
 		if (dns_servers_change == true) {
-			SRP_LOG_DBG("Dumping DNS servers configuration...");
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Dumping DNS servers configuration...");
 			error = dns_server_list_dump_config(&dns_servers);
 			if (error != 0) {
-				SRP_LOG_ERR("dns_server_list_dump_config (%d)", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "dns_server_list_dump_config (%d)", error);
 				goto error_out;
 			}
 		}
@@ -774,7 +774,7 @@ static int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscript
 			// save users to system
 			error = set_new_users(user_list);
 			if (error) {
-				SRP_LOG_ERR("set_new_users error (%d)", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_new_users error (%d)", error);
 				goto error_out;
 			}
 		}
@@ -800,36 +800,36 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 		if (operation == SR_OP_DELETED) {
 			error = sethostname("none", strnlen("none", HOST_NAME_MAX));
 			if (error != 0) {
-				SRP_LOG_ERR("sethostname error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname error: %s", strerror(errno));
 			}
 		} else {
 			error = sethostname(value, strnlen(value, HOST_NAME_MAX));
 			if (error != 0) {
-				SRP_LOG_ERR("sethostname error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname error: %s", strerror(errno));
 			}
 		}
 	} else if (strcmp(xpath, CONTACT_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
 			error = set_contact_info("");
 			if (error != 0) {
-				SRP_LOG_ERR("set_contact_info error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_contact_info error: %s", strerror(errno));
 			}
 		} else {
 			error = set_contact_info(value);
 			if (error != 0) {
-				SRP_LOG_ERR("set_contact_info error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_contact_info error: %s", strerror(errno));
 			}
 		}
 	} else if (strcmp(xpath, LOCATION_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
 			error = set_location("none");
 			if (error != 0) {
-				SRP_LOG_ERR("setlocation error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "setlocation error: %s", strerror(errno));
 			}
 		} else {
 			error = set_location(value);
 			if (error != 0) {
-				SRP_LOG_ERR("setlocation error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "setlocation error: %s", strerror(errno));
 			}
 		}
 	} else if (strcmp(xpath, TIMEZONE_NAME_YANG_PATH) == 0) {
@@ -837,17 +837,17 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 			// check if the /etc/localtime symlink exists
 			error = access(LOCALTIME_FILE, F_OK);
 			if (error != 0) {
-				SRP_LOG_ERR("/etc/localtime doesn't exist; unlink/delete timezone error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "/etc/localtime doesn't exist; unlink/delete timezone error: %s", strerror(errno));
 			}
 
 			error = unlink(LOCALTIME_FILE);
 			if (error != 0) {
-				SRP_LOG_ERR("unlinking/deleting timezone error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "unlinking/deleting timezone error: %s", strerror(errno));
 			}
 		} else {
 			error = set_timezone(value);
 			if (error != 0) {
-				SRP_LOG_ERR("set_timezone error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_timezone error: %s", strerror(errno));
 			}
 		}
 	} else if (strcmp(xpath, TIMEZONE_OFFSET_YANG_PATH) == 0) {
@@ -858,29 +858,29 @@ static int set_config_value(const char *xpath, const char *value, sr_change_oper
 		if (operation == SR_OP_DELETED) {
 			error = set_ntp(xpath, "");
 			if (error != 0) {
-				SRP_LOG_ERR("set_ntp error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_ntp error: %s", strerror(errno));
 			}
 		} else {
 			error = set_ntp(xpath, (char *)value);
 			if (error != 0) {
-				SRP_LOG_ERR("set_ntp error: %s", strerror(errno));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_ntp error: %s", strerror(errno));
 			}
 		}
 	} else if (strncmp(xpath, DNS_RESOLVER_YANG_PATH, sizeof(DNS_RESOLVER_YANG_PATH) - 1) == 0) {
 		error = set_dns(xpath, (char *) value, operation);
 		if (error != 0) {
-			SRP_LOG_ERR("set_dns error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "set_dns error");
 		}
 	} else if (strncmp(xpath, AUTHENTICATION_USER_YANG_PATH, strlen(AUTHENTICATION_USER_YANG_PATH)) == 0) {
 		if (operation == SR_OP_DELETED) {
 			error = set_user_authentication(xpath, "");
 			if (error != 0) {
-				SRP_LOG_ERR("set_authentication_user error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_authentication_user error");
 			}
 		} else {
 			error = set_user_authentication(xpath, (char *)value);
 			if (error != 0) {
-				SRP_LOG_ERR("set_authentication_user error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "set_authentication_user error");
 			}
 		}
 	}
@@ -914,13 +914,13 @@ static int set_user_authentication(const char *xpath, char *value)
 			}
 			error = local_user_add_user(user_list, value);
 			if (error != 0) {
-				SRP_LOG_ERR("local_user_add_user error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "local_user_add_user error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "password") == 0) {
 			error = local_user_set_password(user_list, user_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("local_user_set_password error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "local_user_set_password error");
 				return -1;
 			}
 		}
@@ -940,19 +940,19 @@ static int set_user_authentication(const char *xpath, char *value)
 		if (strcmp(user_node, "name") == 0) {
 			error = local_user_add_key(user_list, user_name, user_ssh_file_name);
 			if (error != 0) {
-				SRP_LOG_ERR("local_user_add_key error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "local_user_add_key error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "algorithm") == 0) {
 			error = local_user_add_algorithm(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("local_user_add_algorithm error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "local_user_add_algorithm error");
 				return -1;
 			}
 		} else if (strcmp(user_node, "key-data") == 0) {
 			error = local_user_add_key_data(user_list, user_name, user_ssh_file_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("local_user_add_key_data error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "local_user_add_key_data error");
 				return -1;
 			}
 		}
@@ -978,14 +978,14 @@ static int set_ntp(const char *xpath, char *value)
 			// TODO: replace "system()" call with sd-bus later if needed
 			error = system("systemctl enable --now ntpd");
 			if (error != 0) {
-				SRP_LOG_ERR("\"systemctl enable --now ntpd\" failed with return value: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl enable --now ntpd\" failed with return value: %d", error);
 				/* Debian based systems have a service file named
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
-				SRP_LOG_ERR("trying systemctl enable --now ntp instead");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "trying systemctl enable --now ntp instead");
 				error = system("systemctl enable --now ntp");
 				if (error != 0) {
-					SRP_LOG_ERR("\"systemctl enable --now ntp\" failed with return value: %d", error);
+					SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl enable --now ntp\" failed with return value: %d", error);
 					return -1;
 				}
 			}
@@ -994,26 +994,26 @@ static int set_ntp(const char *xpath, char *value)
 			// TODO: add - 'systemctl stop ntpd' as well ?
 			error = system("systemctl stop ntpd");
 			if (error != 0) {
-				SRP_LOG_ERR("\"systemctl stop ntpd\" failed with return value: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl stop ntpd\" failed with return value: %d", error);
 				/* Debian based systems have a service file named
 				 * ntp.service instead of ntpd.service for some reason...
 				 */
-				SRP_LOG_ERR("trying systemctl stop ntp instead");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "trying systemctl stop ntp instead");
 				error = system("systemctl stop ntp");
 				if (error != 0) {
-					SRP_LOG_ERR("\"systemctl stop ntp\" failed with return value: %d", error);
+					SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl stop ntp\" failed with return value: %d", error);
 					return -1;
 				} else {
 					error = system("systemctl disable ntp");
 					if (error != 0) {
-						SRP_LOG_ERR("\"systemctl disable ntpd\" failed with return value: %d", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl disable ntpd\" failed with return value: %d", error);
 						return -1;
 					}
 				}
 			} else {
 				error = system("systemctl disable ntpd");
 				if (error != 0) {
-					SRP_LOG_ERR("\"systemctl disable ntpd\" failed with return value: %d", error);
+					SRPLG_LOG_ERR(PLUGIN_NAME, "\"systemctl disable ntpd\" failed with return value: %d", error);
 					return -1;
 				}
 			}
@@ -1031,13 +1031,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "") == 0){
 				error = ntp_server_list_set_delete(ntp_servers, ntp_server_name, true);
 				if (error != 0) {
-					SRP_LOG_ERR("ntp_server_list_set_delete error");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_server_list_set_delete error");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_add_server(ntp_servers, value);
 				if (error != 0) {
-					SRP_LOG_ERR("error adding new ntp server");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "error adding new ntp server");
 					return -1;
 				}
 			}
@@ -1045,27 +1045,27 @@ static int set_ntp(const char *xpath, char *value)
 		} else if (strcmp(ntp_node, "address") == 0) {
 			error = ntp_server_list_set_address(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("error setting ntp server address");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server address");
 				return -1;
 			}
 			// set the address and name to a file
 			error = ntp_set_server_name(value, ntp_server_name);
 			if (error != 0) {
-				SRP_LOG_ERR("ntp_set_server_name error");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_set_server_name error");
 				return -1;
 			}
 
 		} else if (strcmp(ntp_node, "port") == 0) {
 			error = ntp_server_list_set_port(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("error setting ntp server port");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server port");
 				return -1;
 			}
 
 		} else if (strcmp(ntp_node, "association-type") == 0) {
 			error = ntp_server_list_set_assoc_type(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
-				SRP_LOG_ERR("error setting ntp server association-type");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server association-type");
 				return -1;
 			}
 
@@ -1073,13 +1073,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "iburst");
 				if (error != 0) {
-					SRP_LOG_ERR("error setting ntp server iburst");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server iburst");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
-					SRP_LOG_ERR("error setting ntp server iburst");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server iburst");
 					return -1;
 				}
 			}
@@ -1088,13 +1088,13 @@ static int set_ntp(const char *xpath, char *value)
 			if (strcmp(value, "true") == 0) {
 				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "prefer");
 				if (error != 0) {
-					SRP_LOG_ERR("error setting ntp server prefer");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server prefer");
 					return -1;
 				}
 			} else {
 				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
-					SRP_LOG_ERR("error setting ntp server prefer");
+					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server prefer");
 					return -1;
 				}
 			}
@@ -1109,7 +1109,7 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	int err = 0;
 	char *nn = sr_xpath_node_name(xpath);
 
-	SRP_LOG_DBG("Xpath for dns-resolver: %s -> %s = %s", xpath, nn, value);
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Xpath for dns-resolver: %s -> %s = %s", xpath, nn, value);
 
 	// first check for server -> if not server change then watch for other leafs/leaf lists
 	if (strncmp(xpath, DNS_RESOLVER_SERVER_YANG_PATH, sizeof(DNS_RESOLVER_SERVER_YANG_PATH) - 1) == 0) {
@@ -1120,15 +1120,15 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 
 		if (strcmp(nn, "name") == 0) {
 			if (operation == SR_OP_CREATED) {
-				SRP_LOG_DBG("Creating server '%s'", value);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "Creating server '%s'", value);
 				err = dns_server_list_add_server(&dns_servers, value);
 			} else if (operation == SR_OP_DELETED) {
-				SRP_LOG_DBG("deleting server '%s'", value);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "deleting server '%s'", value);
 				err = dns_server_list_set_server_delete(&dns_servers, value);
 			}
 		} else if (strcmp(nn, "address") == 0) {
 			// set server name
-			SRP_LOG_DBG("Setting server %s address to '%s'", name, value);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Setting server %s address to '%s'", name, value);
 			err = dns_server_list_set_address(&dns_servers, name, value);
 		} else if (strcmp(nn, "port") == 0) {
 			// set server port
@@ -1137,13 +1137,13 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	} else if (strcmp(nn, "search") == 0) {
 		switch (operation) {
 			case SR_OP_CREATED:
-				SRP_LOG_DBG("Adding dns-resolver 'search' = '%s'", value);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "Adding dns-resolver 'search' = '%s'", value);
 				err = dns_search_add(value);
 				break;
 			case SR_OP_MODIFIED:
 				break;
 			case SR_OP_DELETED:
-				SRP_LOG_DBG("Removing dns-resolver 'search' = '%s'", value);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "Removing dns-resolver 'search' = '%s'", value);
 				err = dns_search_remove(value);
 				break;
 			case SR_OP_MOVED:
@@ -1152,19 +1152,19 @@ static int set_dns(const char *xpath, char *value, sr_change_oper_t operation)
 	} else if (strcmp(nn, "timeout") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERR("Unsupported option 'timeout'... Aborting...");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option 'timeout'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBG("Setting DNS timeout value...");
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Setting DNS timeout value...");
 		err = set_dns_timeout(value);
 #endif
 	} else if (strcmp(nn, "attempts") == 0) {
 #ifdef SYSTEMD
 		// unknown for systemd
-		SRP_LOG_ERR("Unsupported option 'attempts'... Aborting...");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option 'attempts'... Aborting...");
 		err = -1;
 #else
-		SRP_LOG_DBG("Setting DNS attempts value...");
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Setting DNS attempts value...");
 		err = set_dns_attempts(value);
 #endif
 	}
@@ -1187,7 +1187,7 @@ static int set_dns_timeout(char *value)
 	}
 
 	timeout = atoi(value);
-	SRP_LOG_DBG("New timeout value: %d", timeout);
+	SRPLG_LOG_DBG(PLUGIN_NAME, "New timeout value: %d", timeout);
 
 	rc_err = rconf_set_timeout(&cfg, timeout);
 	if (rc_err) {
@@ -1202,7 +1202,7 @@ static int set_dns_timeout(char *value)
 	goto out;
 
 err_out:
-	SRP_LOG_ERR("Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
+	SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
 out:
 	rconf_free(&cfg);
 	return err;
@@ -1223,7 +1223,7 @@ static int set_dns_attempts(char *value)
 	}
 
 	attempts = atoi(value);
-	SRP_LOG_DBG("New attempts value: %d", attempts);
+	SRPLG_LOG_DBG(PLUGIN_NAME, "New attempts value: %d", attempts);
 
 	rc_err = rconf_set_attempts(&cfg, attempts);
 	if (rc_err) {
@@ -1238,7 +1238,7 @@ static int set_dns_attempts(char *value)
 	goto out;
 
 err_out:
-	SRP_LOG_ERR("Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
+	SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured with resolv.conf: (%d) -> %s\n", rc_err, rconf_error2str(rc_err));
 out:
 	rconf_free(&cfg);
 	return err;
@@ -1441,27 +1441,27 @@ static int system_state_data_cb(sr_session_ctx_t *session, uint32_t subscription
 
 	error = get_os_info(&os_name, &os_release, &os_version, &machine);
 	if (error) {
-		SRP_LOG_ERR("get_os_info error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_os_info error: %s", strerror(errno));
 		goto out;
 	}
 
 	error = get_datetime_info(current_datetime, boot_datetime);
 	if (error) {
-		SRP_LOG_ERR("get_datetime_info error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_datetime_info error: %s", strerror(errno));
 		goto out;
 	}
 
 	/*error = store_values_to_datastore(session, request_xpath, values, parent);
 	// TODO fix error handling here
 	if (error) {
-		SRP_LOG_ERR("store_values_to_datastore error (%d)", error);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "store_values_to_datastore error (%d)", error);
 		goto out;
 	} */
 
 	// TODO: replace this with the above call to store_values_to_datastore
 	const struct ly_ctx *ly_ctx = NULL;
 	if (*parent == NULL) {
-		ly_ctx = sr_get_context(sr_session_get_connection(session));
+		ly_ctx = sr_acquire_context(sr_session_get_connection(session));
 		if (ly_ctx == NULL) {
 			goto out;
 		}
@@ -1499,7 +1499,7 @@ static int store_values_to_datastore(sr_session_ctx_t *session, const char *requ
 {
 	const struct ly_ctx *ly_ctx = NULL;
 	if (*parent == NULL) {
-		ly_ctx = sr_get_context(sr_session_get_connection(session));
+		ly_ctx = sr_acquire_context(sr_session_get_connection(session));
 		if (ly_ctx == NULL) {
 			return -1;
 		}
@@ -1579,7 +1579,7 @@ static int system_rpc_cb(sr_session_ctx_t *session, uint32_t subscription_id, co
 
 	if (strcmp(op_path, SET_CURR_DATETIME_YANG_PATH) == 0) {
 		if (input_cnt != 1) {
-			SRP_LOG_ERR("system_rpc_cb: input_cnt != 1");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_rpc_cb: input_cnt != 1");
 			goto error_out;
 		}
 
@@ -1587,34 +1587,34 @@ static int system_rpc_cb(sr_session_ctx_t *session, uint32_t subscription_id, co
 
 		error = set_datetime(datetime);
 		if (error) {
-			SRP_LOG_ERR("set_datetime error: %s", strerror(errno));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "set_datetime error: %s", strerror(errno));
 			goto error_out;
 		}
 
 		error = sr_set_item_str(session, CURR_DATETIME_YANG_PATH, datetime, NULL, SR_EDIT_DEFAULT);
 		if (error) {
-			SRP_LOG_ERR("sr_set_item_str error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 
 		error = sr_apply_changes(session, 0);
 		if (error) {
-			SRP_LOG_ERR("sr_apply_changes error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 
-		SRP_LOG_INF("system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!");
+		SRPLG_LOG_INF(PLUGIN_NAME, "system_rpc_cb: CURR_DATETIME_YANG_PATH and system time successfully set!");
 
 	} else if (strcmp(op_path, RESTART_YANG_PATH) == 0) {
 		sync();
 		system("shutdown -r");
-		SRP_LOG_INF("system_rpc_cb: restarting the system!");
+		SRPLG_LOG_INF(PLUGIN_NAME, "system_rpc_cb: restarting the system!");
 	} else if (strcmp(op_path, SHUTDOWN_YANG_PATH) == 0) {
 		sync();
 		system("shutdown -P");
-		SRP_LOG_INF("system_rpc_cb: shutting down the system!");
+		SRPLG_LOG_INF(PLUGIN_NAME, "system_rpc_cb: shutting down the system!");
 	} else {
-		SRP_LOG_ERR("system_rpc_cb: invalid path %s", op_path);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_rpc_cb: invalid path %s", op_path);
 		goto error_out;
 	}
 
@@ -1666,13 +1666,13 @@ static int set_location(const char *location)
 
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERR("set_location: couldn't get location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "set_location: couldn't get location file path");
 		goto error_out;
 	}
 
 	fd = open(location_file_path, O_CREAT|O_WRONLY|O_TRUNC);
 	if (fd == -1) {
-		SRP_LOG_ERR("set_location: couldn't open location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "set_location: couldn't open location file path");
 		goto error_out;
 	}
 
@@ -1680,13 +1680,13 @@ static int set_location(const char *location)
 		
 	error = write(fd, location, len);
 	if (error == -1) {
-		SRP_LOG_ERR("set_location: couldn't write to location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "set_location: couldn't write to location file path");
 		goto error_out;
 	}
 
 	error = close(fd);
 	if (error == -1) {
-		SRP_LOG_ERR("set_location: couldn't close location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "set_location: couldn't close location file path");
 		goto error_out;
 	}
 
@@ -1715,7 +1715,7 @@ static int get_location(char *location)
 
 	location_file_path = get_plugin_file_path(LOCATION_FILENAME, false);
 	if (location_file_path == NULL) {
-		SRP_LOG_ERR("get_location: couldn't get location file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "get_location: couldn't get location file path");
 		return -1;
 	}
 
@@ -1752,7 +1752,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	ntp_names_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERR("ntp_set_server_name: couldn't get ntp_names file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_set_server_name: couldn't get ntp_names file path");
 		goto error_out;
 	}
 
@@ -1764,7 +1764,7 @@ int ntp_set_server_name(char *address, char *name)
 
 	tmp_ntp_names_file_path = get_plugin_file_path(NTP_TMP_NAMES_FILENAME, true);
 	if (ntp_names_file_path == NULL) {
-		SRP_LOG_ERR("ntp_set_server_name: couldn't get tmp_ntp_names file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_set_server_name: couldn't get tmp_ntp_names file path");
 		goto error_out;
 	}
 
@@ -1850,7 +1850,7 @@ int ntp_get_server_name(char **name, char *address)
 
 	ntp_file_path = get_plugin_file_path(NTP_NAMES_FILENAME, false);
 	if (ntp_file_path == NULL) {
-		SRP_LOG_ERR("ntp_get_server_name: couldn't get ntp_names file path");
+		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_get_server_name: couldn't get ntp_names file path");
 		goto error_out;
 	}
 
@@ -1880,15 +1880,15 @@ int ntp_get_server_name(char **name, char *address)
 	}
 
 	if (!entry_found) {
-		SRP_LOG_INF("No name in %s for ntp server with address %s was found", ntp_file_path, address);
-		SRP_LOG_INF("Setting address %s as name...", address);
+		SRPLG_LOG_INF(PLUGIN_NAME, "No name in %s for ntp server with address %s was found", ntp_file_path, address);
+		SRPLG_LOG_INF(PLUGIN_NAME, "Setting address %s as name...", address);
 
 		*name = xstrdup(address);
 
 		// save to file
 		error = ntp_set_server_name(address, *name);
 		if (error != 0) {
-			SRP_LOG_ERR("ntp_set_server_name error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_set_server_name error");
 			goto error_out;
 		}
 	}
