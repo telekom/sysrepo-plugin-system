@@ -82,8 +82,7 @@ out:
 		goto err_out;
 	}
 
-	// TODO: create wrapper for these error messages, so sysrepo.h doesn't need to be included here
-	//SRP_LOG_DBGMSG("No error for now...\n");
+	SRP_LOG_DBGMSG("No error for now...\n");
 
 	// file read normally -> add new search domain if possible
 	rc_err = rconf_add_search(&cfg, search_val);
@@ -100,7 +99,7 @@ out:
 	goto out;
 
 err_out:
-	//SRP_LOG_ERR("Error adding search option '%s' to resolv.conf: (%d) => %s", search_val, rc_err, rconf_error2str(rc_err));
+	SRP_LOG_ERR("Error adding search option '%s' to resolv.conf: (%d) => %s", search_val, rc_err, rconf_error2str(rc_err));
 	err = (int) rc_err;
 
 out:
@@ -163,7 +162,7 @@ out:
 	goto out;
 
 err_out:
-	//SRP_LOG_ERR("Error adding search option '%s' to resolv.conf: (%d) => %s", search_val, rc_err, rconf_error2str(rc_err));
+	SRP_LOG_ERR("Error adding search option '%s' to resolv.conf: (%d) => %s", search_val, rc_err, rconf_error2str(rc_err));
 	err = (int) rc_err;
 
 out:
@@ -184,7 +183,7 @@ int get_domains(domain_list_t *list)
 
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
-		//SRP_LOG_ERR("Failed to open system bus: %s\n", strerror(-r));
+		SRP_LOG_ERR("Failed to open system bus: %s\n", strerror(-r));
 		goto finish;
 	}
 
@@ -234,7 +233,7 @@ int get_domains(domain_list_t *list)
 	goto finish;
 
 invalid:
-	//SRP_LOG_ERR("sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
+	SRP_LOG_ERR("sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
 	err = -1;
 
 finish:
@@ -254,7 +253,7 @@ static int set_domains(domain_list_t *list)
 
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
-		//SRP_LOG_ERR("Failed to open system bus: %s\n", strerror(-r));
+		SRP_LOG_ERR("Failed to open system bus: %s\n", strerror(-r));
 		goto invalid;
 	}
 
@@ -301,11 +300,11 @@ static int set_domains(domain_list_t *list)
 		goto invalid;
 	}
 
-	//SRP_LOG_INF("Set domains successfully!");
+	SRP_LOG_INF("Set domains successfully!");
 	goto finish;
 
 invalid:
-	//SRP_LOG_ERR("sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
+	SRP_LOG_ERR("sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
 
 finish:
 	sd_bus_message_unref(msg);
