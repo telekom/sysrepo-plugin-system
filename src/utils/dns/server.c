@@ -198,7 +198,7 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
-		SRP_LOG_ERR("Failed to open system bus: %s\n", strerror(-r));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
 		goto invalid;
 	}
 
@@ -300,11 +300,11 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 		goto invalid;
 	}
 
-	SRP_LOG_INF("Set DNS servers successfully!");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Set DNS servers successfully!");
 	goto finish;
 
 invalid:
-	SRP_LOG_ERR("sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
+	SRPLG_LOG_ERR(PLUGIN_NAME, "sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
 	err = -1;
 
 finish:

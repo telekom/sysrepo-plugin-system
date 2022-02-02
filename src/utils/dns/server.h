@@ -17,6 +17,8 @@
 #include <bits/types/res_state.h>
 #include <stdbool.h>
 
+#define PLUGIN_NAME "system-plugin"
+
 typedef struct ip_addr_s ip_addr_t;
 typedef struct dns_server_s dns_server_t;
 typedef struct dns_server_list_s dns_server_list_t;
