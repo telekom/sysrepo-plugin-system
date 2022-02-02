@@ -11,7 +11,7 @@ before_script:
   - git clone --depth=1 https://github.com/CESNET/libyang -b devel && cd libyang
   - mkdir build  && cd build
   - cmake .. && make
-  - sudo make install
+  - make install
   #- mk-build-deps --install --tool 'apt-get --yes --no-install-recommends' --remove
   #- dpkg-buildpackage -j$(nproc) --build=binary --root-command=fakeroot --unsigned-source --unsigned-changes
   #- (dpkg -i ../libyang2*.deb || apt-get -y install -f) && cd ..
@@ -20,7 +20,7 @@ before_script:
   - git clone --depth=1 https://github.com/sysrepo/sysrepo -b devel && cd sysrepo
   - mkdir build && cd build
   - cmake .. && make
-  - sudo make install
+  - make install
   #- mk-build-deps --install --tool 'apt-get --yes --no-install-recommends' --remove
   #- dpkg-buildpackage -j$(nproc) --build=binary --root-command=fakeroot --unsigned-source --unsigned-changes
   #- (dpkg -i ../sysrepo*.deb ../libsysrepo*.deb || apt-get -y install -f) && cd ..
