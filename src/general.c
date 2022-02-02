@@ -223,7 +223,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "subscribing to module change");
 
-	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*//.", system_module_change_cb, *private_data, 0, 0, &subscription);
+	error = sr_module_change_subscribe(session, BASE_YANG_MODEL, "/" BASE_YANG_MODEL ":*", system_module_change_cb, *private_data, 0, 0, &subscription);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;
@@ -418,7 +418,7 @@ static int load_data(sr_session_ctx_t *session)
 
 	// TODO: move this to a separate function
 	for (int i = 0; i < user_list->count; i++) {
-		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/name", user_list->users[i].name);
+		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']", user_list->users[i].name);
 		if (error < 0) {
 			// snprintf error
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
@@ -547,13 +547,7 @@ int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entr
 	}
 
 	// name
-	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", ntp_path_buffer);
-	if (error < 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf error");
-		goto error_out;
-	}
-
-	error = sr_set_item_str(session, xpath_buffer, server_entry->name, NULL, SR_EDIT_DEFAULT);
+	error = sr_set_item_str(session, ntp_path_buffer, server_entry->name, NULL, SR_EDIT_DEFAULT);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 		goto error_out;
