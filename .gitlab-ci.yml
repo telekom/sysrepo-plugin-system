@@ -9,6 +9,7 @@ before_script:
 
   # TODO: when libyang2 is available in Debian unstable
   - git clone --depth=1 https://github.com/CESNET/libyang -b devel && cd libyang
+  - mkdir build  && cd build
   - cmake .. && make
   - sudo make install
   #- mk-build-deps --install --tool 'apt-get --yes --no-install-recommends' --remove
@@ -17,6 +18,7 @@ before_script:
 
   # TODO: when libyang2 is available in Debian unstable
   - git clone --depth=1 https://github.com/sysrepo/sysrepo -b devel && cd sysrepo
+  - mkdir build && cd build
   - cmake .. && make
   - sudo make install
   #- mk-build-deps --install --tool 'apt-get --yes --no-install-recommends' --remove
