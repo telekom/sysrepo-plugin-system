@@ -25,7 +25,7 @@
 void ntp_server_init(ntp_server_t *s)
 {
 	s->name = NULL;
-	s->address= NULL;
+	s->address = NULL;
 	s->port = NULL;
 	s->assoc_type = NULL;
 	s->iburst = NULL;
@@ -37,7 +37,7 @@ void ntp_server_set_name(ntp_server_t *s, char *name)
 {
 	unsigned long tmp_len = 0;
 	tmp_len = strlen(name);
-	s->name = xstrndup(name, tmp_len+1);
+	s->name = xstrndup(name, tmp_len + 1);
 }
 
 void ntp_server_free(ntp_server_t *s)
@@ -109,8 +109,8 @@ int ntp_server_list_add_existing_servers(sr_session_ctx_t *session, ntp_server_l
 		// if a line starts with server/pool/peer parse it
 		if (strcmp(&line[0], "#") != 0 &&
 			(strncmp(line, "server", strlen("server")) == 0 ||
-			strncmp(line, "peer", strlen("peer")) == 0 ||
-			strncmp(line, "pool", strlen("pool")) == 0)) {
+			 strncmp(line, "peer", strlen("peer")) == 0 ||
+			 strncmp(line, "pool", strlen("pool")) == 0)) {
 
 			// remove the newline char from line
 			line[strlen(line) - 1] = '\0';
@@ -176,7 +176,7 @@ int ntp_parse_config(ntp_server_t *server_entry, char *line)
 
 	while (token != NULL) {
 		// maybe use a switch(count): case 1: case 2: etc.
-		switch (count){
+		switch (count) {
 			case 0: // association type
 				tmp_len = strlen(line);
 
@@ -340,7 +340,7 @@ int ntp_server_list_set_address(ntp_server_list_t *sl, char *name, char *address
 
 				unsigned long tmp_len = 0;
 				tmp_len = strlen(address);
-				sl->servers[i].address = xstrndup(address, tmp_len+1);
+				sl->servers[i].address = xstrndup(address, tmp_len + 1);
 
 				server_found = true;
 				break;
@@ -367,7 +367,7 @@ int ntp_server_list_set_port(ntp_server_list_t *sl, char *name, char *port)
 				}
 				unsigned long tmp_len = 0;
 				tmp_len = strlen(port);
-				sl->servers[i].port = xstrndup(port, tmp_len+1);
+				sl->servers[i].port = xstrndup(port, tmp_len + 1);
 
 				server_found = true;
 				break;
@@ -394,7 +394,7 @@ int ntp_server_list_set_assoc_type(ntp_server_list_t *sl, char *name, char *asso
 				}
 				unsigned long tmp_len = 0;
 				tmp_len = strlen(assoc_type);
-				sl->servers[i].assoc_type = xstrndup(assoc_type, tmp_len+1);
+				sl->servers[i].assoc_type = xstrndup(assoc_type, tmp_len + 1);
 
 				server_found = true;
 				break;
@@ -421,7 +421,7 @@ int ntp_server_list_set_iburst(ntp_server_list_t *sl, char *name, char *iburst)
 				}
 				unsigned long tmp_len = 0;
 				tmp_len = strlen(iburst);
-				sl->servers[i].iburst = xstrndup(iburst, tmp_len+1);
+				sl->servers[i].iburst = xstrndup(iburst, tmp_len + 1);
 
 				server_found = true;
 				break;
@@ -448,7 +448,7 @@ int ntp_server_list_set_prefer(ntp_server_list_t *sl, char *name, char *prefer)
 				}
 				unsigned long tmp_len = 0;
 				tmp_len = strlen(prefer);
-				sl->servers[i].prefer = xstrndup(prefer, tmp_len+1);
+				sl->servers[i].prefer = xstrndup(prefer, tmp_len + 1);
 
 				server_found = true;
 				break;
@@ -502,7 +502,7 @@ int save_ntp_config(ntp_server_list_t *sl)
 		goto fail;
 	}
 
-	fp_tmp = fopen (NTP_TEMP_FILE, "a");
+	fp_tmp = fopen(NTP_TEMP_FILE, "a");
 	if (fp_tmp == NULL) {
 		goto fail;
 	}
@@ -512,8 +512,8 @@ int save_ntp_config(ntp_server_list_t *sl)
 		// if a line starts with server/pool/peer:
 		if (strcmp(&line[0], "#") != 0 &&
 			(strncmp(line, "server", strlen("server")) == 0 ||
-			strncmp(line, "peer", strlen("peer")) == 0 ||
-			strncmp(line, "pool", strlen("pool")) == 0)) {
+			 strncmp(line, "peer", strlen("peer")) == 0 ||
+			 strncmp(line, "pool", strlen("pool")) == 0)) {
 			continue;
 		} else {
 			fputs(line, fp_tmp);
@@ -535,12 +535,12 @@ int save_ntp_config(ntp_server_list_t *sl)
 
 			// construct the entry string
 			snprintf(cfg_entry, NTP_MAX_ENTRY_LEN, "%s %s%c%s %s %s\n",
-					sl->servers[i].assoc_type,
-					sl->servers[i].address,
-					(sl->servers[i].port == NULL) ? ' ' : ':',
-					(sl->servers[i].port == NULL) ? "" : sl->servers[i].port,
-					(sl->servers[i].iburst == NULL) ? "" : sl->servers[i].iburst,
-					(sl->servers[i].prefer == NULL) ? "" : sl->servers[i].prefer);
+					 sl->servers[i].assoc_type,
+					 sl->servers[i].address,
+					 (sl->servers[i].port == NULL) ? ' ' : ':',
+					 (sl->servers[i].port == NULL) ? "" : sl->servers[i].port,
+					 (sl->servers[i].iburst == NULL) ? "" : sl->servers[i].iburst,
+					 (sl->servers[i].prefer == NULL) ? "" : sl->servers[i].prefer);
 
 			// save it to the ntp config temp file
 			fputs(cfg_entry, fp_tmp);
@@ -571,7 +571,7 @@ int save_ntp_config(ntp_server_list_t *sl)
 		goto fail;
 	}
 
-	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1) {
+	if (sendfile(write_fd, read_fd, &offset, (size_t) stat_buf.st_size) == -1) {
 		goto fail;
 	}
 

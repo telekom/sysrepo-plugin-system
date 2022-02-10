@@ -22,12 +22,9 @@
 #endif
 #include "utils/memory.h"
 #include "utils/dns/server.h"
+#include "utils/uthash/utlist.h"
 
-// helper functions
-static dns_server_t *get_server_from_list(dns_server_list_t *list, char *name);
-/*static int get_addr_family(char *addr);
-static int str_to_ipv4(ip_addr_t *ip, char *addr);
-static int str_to_ipv6(ip_addr_t *ip, char *addr);*/
+static int element_comparator(dns_server_element_t *el1, dns_server_element_t *el2);
 
 void dns_server_init(dns_server_t *s)
 {
@@ -133,60 +130,96 @@ int dns_server_list_add_server(dns_server_list_t *sl, char *name)
 	return err;
 }
 
-int dns_server_list_set_server_delete(dns_server_list_t *sl, char *name)
+int dns_server_list_add(dns_server_element_t *head, char *name)
 {
 	int err = 0;
-	dns_server_t *srv = NULL;
+	dns_server_element_t *iter = NULL, *new_node = NULL, *search = NULL;
 
-	srv = get_server_from_list(sl, name);
-	if (srv == NULL) {
-		// unable to set value to unexisting server -> quit
-		err = -1;
-		goto out;
+	// search for the name first
+	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
+	search->server.name = name;
+	LL_SEARCH(head, iter, search, element_comparator);
+
+	if (iter == NULL) {
+		// add new server if none found
+		new_node = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
+		dns_server_init(&new_node->server);
+		dns_server_set_name(&new_node->server, name);
+		LL_APPEND(head, new_node);
 	}
 
-	dns_server_set_delete(srv, true);
-out:
+	// release search node
+	free(search);
+
 	return err;
 }
 
-int dns_server_list_set_address(dns_server_list_t *sl, char *name, char *address)
+int dns_server_list_delete(dns_server_element_t *head, char *name)
 {
 	int err = 0;
-	dns_server_t *srv = NULL;
+	dns_server_element_t *iter = NULL, *search = NULL;
 
-	srv = get_server_from_list(sl, name);
-	if (srv == NULL) {
-		// unable to set value to unexisting server -> quit
+	// search for the name first
+	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
+	search->server.name = name;
+	LL_SEARCH(head, iter, search, element_comparator);
+
+	if (iter) {
+		// remove node from the list
+		dns_server_set_delete(&iter->server, true);
+	} else {
 		err = -1;
-		goto out;
 	}
 
-	err = dns_server_set_address(srv, address);
-out:
+	free(search);
 	return err;
 }
 
-int dns_server_list_set_port(dns_server_list_t *sl, char *name, int port)
+int dns_server_list_set_address(dns_server_element_t *head, char *name, char *address)
 {
 	int err = 0;
-	dns_server_t *srv = NULL;
+	dns_server_element_t *iter = NULL, *search = NULL;
 
-	srv = get_server_from_list(sl, name);
-	if (srv == NULL) {
-		// unable to set value to unexisting server -> quit
+	// search for the name first
+	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
+	search->server.name = name;
+	LL_SEARCH(head, iter, search, element_comparator);
+
+	if (iter) {
+		dns_server_set_address(&iter->server, address);
+	} else {
 		err = -1;
-		goto out;
 	}
 
-	dns_server_set_port(srv, port);
-out:
+	free(search);
 	return err;
 }
 
-int dns_server_list_dump_config(dns_server_list_t *sl)
+int dns_server_list_set_port(dns_server_element_t *head, char *name, int port)
 {
 	int err = 0;
+	dns_server_element_t *iter = NULL, *search = NULL;
+
+	// search for the name first
+	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
+	search->server.name = name;
+	LL_SEARCH(head, iter, search, element_comparator);
+
+	if (iter) {
+		dns_server_set_port(&iter->server, port);
+	} else {
+		err = -1;
+	}
+
+	free(search);
+	return err;
+}
+
+int dns_server_list_dump(dns_server_element_t *head)
+{
+	int err = 0;
+	dns_server_element_t *iter = NULL;
+
 	// depending on systemd or no systemd -> store information about the DNS server list
 #ifdef SYSTEMD
 	// store information in the DNS property from Manager on sd-bus
@@ -224,8 +257,9 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 		goto invalid;
 	}
 
-	for (int i = 0; i < sl->size; i++) {
-		dns_server_t *srv = sl->list + i;
+	LL_FOREACH(head, iter)
+	{
+		dns_server_t *srv = &iter->server;
 
 		if (srv->name == NULL) {
 			continue;
@@ -275,6 +309,7 @@ int dns_server_list_dump_config(dns_server_list_t *sl)
 			default:
 				break;
 		}
+
 		// exit array
 		r = sd_bus_message_close_container(msg);
 		if (r < 0) {
@@ -314,6 +349,7 @@ finish:
 #else
 	rconf_t cfg;
 	rconf_error_t rc_err = 0;
+	dns_server_element_t *search = NULL;
 
 	rconf_init(&cfg);
 
@@ -323,43 +359,40 @@ finish:
 		goto invalid;
 	}
 
-	for (int i = 0; i < sl->size; i++) {
-		if (sl->list[i].name == NULL) {
+	int count = 0;
+	LL_FOREACH(head, iter)
+	{
+		dns_server_t *srv = &iter->server;
+
+		if (srv->name == NULL) {
 			continue;
 		}
 
-		if (sl->list[i].delete) {
-			rc_err = rconf_remove_nameserver(&cfg, sl->list[i].addr.value);
+		if (srv->delete) {
+			rc_err = rconf_remove_nameserver(&cfg, srv->addr.value);
 			if (rc_err != rconf_error_none) {
 				goto invalid;
 			}
 
-			dns_server_free(&sl->list[i]);
-
+			dns_server_free(srv);
 			continue;
 		}
 
-		rc_err = rconf_set_nameserver(&cfg, i, sl->list[i].addr.value, 1);
+		rc_err = rconf_set_nameserver(&cfg, count, srv->addr.value, 1);
 		if (rc_err != rconf_error_none) {
 			goto invalid;
 		}
+		++count;
 	}
 
 	for (int i = 0; i < cfg.nameserver_n; i++) {
-		bool found = false;
-		for (int j = 0; j < sl->size; j++) {
-			if (sl->list[j].addr.value == NULL) {
-				continue;
-			}
+		// create search element
+		search = malloc(sizeof(*search));
+		search->server.name = cfg.nameserver[i];
 
-			if (strcmp(sl->list[j].addr.value, cfg.nameserver[i]) == 0) {
-				found = true;
-				break;
-			}
-
-		}
-
-		if (!found) {
+		LL_SEARCH(head, iter, search, element_comparator);
+		if (iter == NULL) {
+			// nameserver not found -> remove it from the config
 			rc_err = rconf_remove_nameserver(&cfg, cfg.nameserver[i]);
 			if (rc_err != rconf_error_none) {
 				goto invalid;
@@ -367,6 +400,8 @@ finish:
 
 			i--;
 		}
+
+		free(search);
 	}
 
 	rc_err = rconf_export(&cfg, RESOLV_CONF_PATH);
@@ -377,6 +412,9 @@ finish:
 	goto finish;
 
 invalid:
+	if (search) {
+		free(search);
+	}
 	err = -1;
 finish:
 	rconf_free(&cfg);
@@ -384,107 +422,7 @@ finish:
 	return err;
 }
 
-void dns_server_list_free(dns_server_list_t *sl)
+static int element_comparator(dns_server_element_t *el1, dns_server_element_t *el2)
 {
-	if (sl->list != NULL) {
-		for (int i = 0; i < sl->size; i++) {
-			dns_server_free(&sl->list[i]);
-		}
-		FREE_SAFE(sl->list);
-		dns_server_list_init(sl);
-	}
+	return strcmp(el1->server.name, el2->server.name);
 }
-
-static dns_server_t *get_server_from_list(dns_server_list_t *list, char *name)
-{
-	dns_server_t *srv = NULL;
-
-	for (int i = 0; i < list->size; i++) {
-		if (list->list[i].name == NULL) {
-			continue;
-		}
-
-		if (strcmp(list->list[i].name, name) == 0) {
-			srv = list->list + i;
-			break;
-		}
-	}
-
-	return srv;
-}
-
-/*
-static int get_addr_family(char *addr)
-{
-	int af = -1;
-	char buf[16] = {0};
-
-	if (inet_pton(AF_INET, addr, buf) == 1) {
-		af = AF_INET;
-	} else if (inet_pton(AF_INET6, addr, buf) == 1) {
-		af = AF_INET6;
-	}
-	return af;
-}
-
-static int str_to_ipv4(ip_addr_t *ip, char *addr)
-{
-	int err = 0;
-	// format: x.x.x.x -> split by '.' and convert bytes
-	const char *delim = ".";
-	char *token = NULL;
-	int i = 0;
-
-	token = strtok(addr, delim);
-	while (token != NULL) {
-		const int val = atoi(token);
-		if (val >= 0 && val < 256) {
-			if (i >= 4) {
-				// x.x.x.x.x -> wrong format
-				err = -1;
-				goto out;
-			}
-			ip->value.ip4[i] = (uint8_t) val;
-			i++;
-		} else {
-			err = -1;
-			goto out;
-		}
-		token = strtok(NULL, delim);
-	}
-out:
-	return err;
-}
-
-static int str_to_ipv6(ip_addr_t *ip, char *addr)
-{
-	int err = 0;
-	// format: abcd:abcd:...:abcd (16B)
-	// ab => 1 byte, cd => 1 byte
-	const char *delim = ":";
-	char *token = NULL;
-	const uint8_t byte_val = 0xff;
-	int val = 0;
-	uint8_t first = 0;
-	uint8_t second = 0;
-	int i = 0;
-
-	token = strtok(addr, delim);
-	while (token != NULL) {
-		val = atoi(token);
-		first = (uint8_t) (val & (byte_val << 8));
-		second = (uint8_t) (val & (byte_val));
-		if (i >= 16) {
-			err = -1;
-			goto out;
-		}
-
-		ip->value.ip6[i] = first;
-		ip->value.ip6[i + 1] = second;
-		i += 2;
-		token = strtok(NULL, delim);
-	}
-out:
-	return err;
-}
-*/
