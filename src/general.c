@@ -55,10 +55,10 @@ typedef struct {
 	size_t num_values;
 } result_values_t;
 */
-static ntp_server_list_t *ntp_servers;
 static local_user_list_t *user_list;
 
 dns_server_element_t *dns_servers_head = NULL;
+UT_array *ntp_servers = NULL;
 
 #define BASE_YANG_MODEL "ietf-system"
 #define SYSTEM_YANG_MODEL "/" BASE_YANG_MODEL ":system"
@@ -191,10 +191,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 		goto error_out;
 	}
 
-	// dns_server_list_init(&dns_servers);
-
 	local_user_list_init(&user_list);
-
 	SRPLG_LOG_INF(PLUGIN_NAME, "start session to startup datastore");
 
 	connection = sr_session_get_connection(session);
@@ -222,9 +219,10 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 		}
 	}
 
-	error = ntp_server_list_init(session, &ntp_servers);
+	// ntp servers array
+	error = ntp_server_array_init(session, ntp_servers);
 	if (error != 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_server_list_init error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_server_array_init error: %s", strerror(errno));
 		goto error_out;
 	}
 
@@ -654,9 +652,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 		sr_session_stop(startup_session);
 	}
 
-	if (ntp_servers) {
-		ntp_server_list_free(ntp_servers);
-	}
+	ntp_server_array_free(ntp_servers);
 
 	// dns_server_list_free(&dns_servers);
 	LL_FOREACH_SAFE(dns_servers_head, iter, tmp)
@@ -1041,13 +1037,13 @@ static int set_ntp(const char *xpath, char *value)
 
 		if (strcmp(ntp_node, "name") == 0) {
 			if (strcmp(value, "") == 0) {
-				error = ntp_server_list_set_delete(ntp_servers, ntp_server_name, true);
+				error = ntp_server_array_set_delete(ntp_servers, ntp_server_name, true);
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "ntp_server_list_set_delete error");
 					return -1;
 				}
 			} else {
-				error = ntp_server_list_add_server(ntp_servers, value);
+				error = ntp_server_array_add_server(ntp_servers, value);
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "error adding new ntp server");
 					return -1;
@@ -1055,7 +1051,7 @@ static int set_ntp(const char *xpath, char *value)
 			}
 
 		} else if (strcmp(ntp_node, "address") == 0) {
-			error = ntp_server_list_set_address(ntp_servers, ntp_server_name, value);
+			error = ntp_server_array_set_address(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server address");
 				return -1;
@@ -1068,14 +1064,14 @@ static int set_ntp(const char *xpath, char *value)
 			}
 
 		} else if (strcmp(ntp_node, "port") == 0) {
-			error = ntp_server_list_set_port(ntp_servers, ntp_server_name, value);
+			error = ntp_server_array_set_port(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server port");
 				return -1;
 			}
 
 		} else if (strcmp(ntp_node, "association-type") == 0) {
-			error = ntp_server_list_set_assoc_type(ntp_servers, ntp_server_name, value);
+			error = ntp_server_array_set_assoc_type(ntp_servers, ntp_server_name, value);
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server association-type");
 				return -1;
@@ -1083,13 +1079,13 @@ static int set_ntp(const char *xpath, char *value)
 
 		} else if (strcmp(ntp_node, "iburst") == 0) {
 			if (strcmp(value, "true") == 0) {
-				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "iburst");
+				error = ntp_server_array_set_iburst(ntp_servers, ntp_server_name, "iburst");
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server iburst");
 					return -1;
 				}
 			} else {
-				error = ntp_server_list_set_iburst(ntp_servers, ntp_server_name, "");
+				error = ntp_server_array_set_iburst(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server iburst");
 					return -1;
@@ -1098,13 +1094,13 @@ static int set_ntp(const char *xpath, char *value)
 
 		} else if (strcmp(ntp_node, "prefer") == 0) {
 			if (strcmp(value, "true") == 0) {
-				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "prefer");
+				error = ntp_server_array_set_prefer(ntp_servers, ntp_server_name, "prefer");
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server prefer");
 					return -1;
 				}
 			} else {
-				error = ntp_server_list_set_prefer(ntp_servers, ntp_server_name, "");
+				error = ntp_server_array_set_prefer(ntp_servers, ntp_server_name, "");
 				if (error != 0) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "error setting ntp server prefer");
 					return -1;

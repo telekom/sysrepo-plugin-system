@@ -18,7 +18,7 @@
 #include <stdbool.h>
 
 #define MAX_LOCAL_USERS 100 // TODO: update if needed
-#define MAX_AUTH_KEYS 10 // TODO: update if needed
+#define MAX_AUTH_KEYS 10	// TODO: update if needed
 #define MAX_USERNAME_LEN LOGIN_NAME_MAX
 #define MAX_ALG_SIZE 50
 #define MAX_KEY_DATA_SIZE 16384 // maximum RSA key size
@@ -64,7 +64,7 @@ struct local_user_list_s {
 int set_new_users(local_user_list_t *ul);
 int get_existing_users_from_passwd(char *existing_users[], int *num_users);
 
-int local_user_list_init(local_user_list_t **ul); 
+int local_user_list_init(local_user_list_t **ul);
 void local_user_list_free(local_user_list_t *ul);
 
 void local_user_init(local_user_t *u);
@@ -90,7 +90,7 @@ int remove_ssh_file(char *username, char *filename);
 int remove_home_dir(char *username);
 
 int create_dir(char *dir_path, char *username);
-int writing_to_key_file(char* in_dir, char *key_name, char *key_algorithm, char *key_data);
+int writing_to_key_file(char *in_dir, char *key_name, char *key_algorithm, char *key_data);
 
 bool has_pub_extension(char *name);
 // int add_pub_extension(char *name);
@@ -98,7 +98,6 @@ void remove_file_name_extension(char *name);
 int add_algorithm_key_data(local_user_list_t *ul, char *name, char *key_name, char *data_alg, int flag);
 void edit_path(char *new_path, char *old_path, char *name);
 int get_key_info(char *in_dir, local_user_list_t *ul, int i);
-
 
 int set_passwd_file(char *username);
 int set_shadow_file(char *username, char *password);
