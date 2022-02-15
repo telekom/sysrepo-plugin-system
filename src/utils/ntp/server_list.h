@@ -51,17 +51,17 @@ extern int ntp_get_server_name(char **name, char *address);
 extern int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entry);
 int ntp_parse_config(ntp_server_t *server_entry, char *line);
 
-int ntp_server_array_init(sr_session_ctx_t *session, UT_array *servers);
-int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array *servers);
-int ntp_add_server_entry_to_array(UT_array *servers, ntp_server_t *server_entry);
-int ntp_server_array_add_server(UT_array *servers, char *name);
-int ntp_server_array_set_address(UT_array *servers, char *name, char *address);
-int ntp_server_array_set_port(UT_array *servers, char *name, char *port);
-int ntp_server_array_set_assoc_type(UT_array *servers, char *name, char *assoc_type);
-int ntp_server_array_set_iburst(UT_array *servers, char *name, char *iburst);
-int ntp_server_array_set_prefer(UT_array *servers, char *name, char *prefer);
-int ntp_server_array_set_delete(UT_array *servers, char *name, bool delete_val);
-void ntp_server_array_free(UT_array *servers);
-int save_ntp_config(UT_array *servers);
+int ntp_server_array_init(sr_session_ctx_t *session, UT_array **servers);
+int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array **servers);
+int ntp_add_server_entry_to_array(UT_array **servers, ntp_server_t *server_entry);
+int ntp_server_array_add_server(UT_array **servers, char *name);
+int ntp_server_array_set_address(UT_array **servers, char *name, char *address);
+int ntp_server_array_set_port(UT_array **servers, char *name, char *port);
+int ntp_server_array_set_assoc_type(UT_array **servers, char *name, char *assoc_type);
+int ntp_server_array_set_iburst(UT_array **servers, char *name, char *iburst);
+int ntp_server_array_set_prefer(UT_array **servers, char *name, char *prefer);
+int ntp_server_array_set_delete(UT_array **servers, char *name, bool delete_val);
+void ntp_server_array_free(UT_array **servers);
+int save_ntp_config(UT_array **servers);
 
 #endif /* NTP_SERVER_LIST_H_ONCE */

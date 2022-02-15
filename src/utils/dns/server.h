@@ -51,11 +51,6 @@ struct dns_server_element_s {
 	struct dns_server_element_s *next;
 };
 
-struct dns_server_list_s {
-	dns_server_t *list;
-	int size;
-};
-
 // server functions
 void dns_server_init(dns_server_t *s);
 void dns_server_set_name(dns_server_t *s, char *name);
@@ -64,10 +59,10 @@ void dns_server_set_port(dns_server_t *s, int port);
 void dns_server_free(dns_server_t *s);
 
 // server list
-int dns_server_list_add(dns_server_element_t *head, char *name);
-int dns_server_list_delete(dns_server_element_t *head, char *name);
-int dns_server_list_set_address(dns_server_element_t *head, char *name, char *address);
-int dns_server_list_set_port(dns_server_element_t *head, char *name, int port);
-int dns_server_list_dump(dns_server_element_t *head);
+int dns_server_list_add(dns_server_element_t **head, char *name);
+int dns_server_list_delete(dns_server_element_t **head, char *name);
+int dns_server_list_set_address(dns_server_element_t **head, char *name, char *address);
+int dns_server_list_set_port(dns_server_element_t **head, char *name, int port);
+int dns_server_list_dump(dns_server_element_t **head);
 
 #endif // DNS_SERVER_H

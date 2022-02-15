@@ -13,6 +13,7 @@
 
 #include "user_authentication.h"
 #include "utils/memory.h"
+#include "utils/uthash/utarray.h"
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
@@ -28,178 +29,355 @@
 #include <shadow.h>
 #include <dirent.h>
 
-/* TODO:
- * 		- add entry to /etc/group
- */
+// uthash local_user
+void local_user_copy_fn(void *dst, const void *src);
+void local_user_dtor_fn(void *elt);
+int local_user_cmp_fn(const void *p1, const void *p2);
 
-bool has_pub_extension(char *name)
+// uthash authorized_key
+void authorized_key_copy_fn(void *dst, const void *src);
+void authorized_key_dtor_fn(void *elt);
+int authorized_key_cmp_fn(const void *p1, const void *p2);
+
+// helpers
+
+int get_existing_users_from_passwd(char *existing_users[], int *num_users);
+
+int remove_user_entry(char *name);
+int remove_line_from_file(char *orig, char *tmp, char *backup, char *username);
+int remove_ssh_file(char *username, char *filename);
+int remove_home_dir(char *username);
+
+int create_dir(char *dir_path, char *username);
+int writing_to_key_file(char *in_dir, char *key_name, char *key_algorithm, char *key_data);
+
+// int add_pub_extension(char *name);
+void remove_file_name_extension(char *name);
+void edit_path(char *new_path, char *old_path, char *name);
+
+int set_passwd_file(char *username);
+int set_shadow_file(char *username, char *password);
+int copy_file(char *src, char *dst);
+int create_home_dir(char *username, char *home_dir_buffer, size_t buffer_size);
+int create_ssh_dir(char *username, const char *home_dir_buffer, char *ssh_dir_buffer, size_t buffer_size);
+int set_owner(char *path);
+
+void authorized_key_init(authorized_key_t *key)
 {
-	size_t len = strlen (name);
-	return len > 4 && strcmp(name + len - 4, ".pub") == 0;
+	key->name = NULL;
+	key->algorithm = NULL;
+	key->key_data = NULL;
 }
-/*
-int add_pub_extension(char *name)
-{
-	size_t tmp_len = 0;
-	char *temp_string = NULL;
 
-	tmp_len = strlen(name) + strlen(".pub") + 1;
-	temp_string = xmalloc(tmp_len);
-	if (snprintf(temp_string, tmp_len, "%s.pub", name) < 0) {
-		goto fail;
-	}
-
-	name = xrealloc(name, tmp_len);
-	if (snprintf(name, tmp_len, "%s", temp_string) < 0) {
-		goto fail;
-	}
-	FREE_SAFE(temp_string);
-	return 0;
-fail:
-	FREE_SAFE(temp_string);
-	return -1;
-} */
-/*
-void remove_file_name_extension(char *name)
-{
-	size_t len = strlen (name);
-	strncpy (name, name, len - 4);
-} 
-*/
-
-int set_new_users(local_user_list_t *ul)
+int authorized_key_set_name(authorized_key_t *key, const char *name)
 {
 	int error = 0;
-	char *existing_users[MAX_LOCAL_USERS] = {0};
-	int num_existing_users = 0;
-	size_t username_len = 0;
-	bool user_exists = false;
-	char *user_home_dir_path = NULL;
-	char *user_ssh_dir_path = NULL;
 
-	// check if username password or public key algorithm is an empty string
-	// remove users or ssh public key files if so
-	error = delete_users(ul);
-	if (error != 0) {
-		goto error_out;
+	if (key->name) {
+		FREE_SAFE(key->name);
 	}
 
-	// get list of already existing user names from passwd file
-	error = get_existing_users_from_passwd(existing_users, &num_existing_users);
+	key->name = name ? xstrdup(name) : NULL;
 
-	// iterate through internal user list
-	for (int i = 0; i < MAX_LOCAL_USERS; i++) {
-		if (ul->users[i].name == NULL) {
-			continue; // in case a user was deleted somewhere in the internal list
-		}
+	return error;
+}
 
-		user_exists = false;
+int authorized_key_set_algorithm(authorized_key_t *key, const char *algorithm)
+{
+	int error = 0;
 
-		// iterate through existing users in passwd file
-		for (int j = 0; j < num_existing_users; j++) {
-			username_len = strnlen(existing_users[j], MAX_USERNAME_LEN);
+	if (key->algorithm) {
+		FREE_SAFE(key->algorithm);
+	}
 
-			// check if current user from internal list is already in passwd file
-			if (strncmp(ul->users[i].name, existing_users[j], username_len) == 0 ) {
-				// user is already in passwd
-				// skip this user
-				user_exists = true;
-				break;
-			}
-		}
+	key->algorithm = algorithm ? xstrdup(algorithm) : NULL;
 
-		if (!user_exists) { // if the user doesn't already exist in passwd, add the user
-			// add this user to passwd
-			error = set_passwd_file(ul->users[i].name);
-			if (error != 0) {
-				goto error_out;
-			}
+	return error;
+}
 
-			// add this user to shadow
-			error = set_shadow_file(ul->users[i].name, ul->users[i].password);
-			if (error != 0) {
-				goto error_out;
-			}
-		}
+int authorized_key_set_key_data(authorized_key_t *key, const char *key_data)
+{
+	int error = 0;
 
-		// create home dir if it doesn't exist
-		error = create_home_dir(ul->users[i].name, &user_home_dir_path);
+	if (key->key_data) {
+		FREE_SAFE(key->key_data);
+	}
+
+	key->key_data = key_data ? xstrdup(key_data) : NULL;
+
+	return error;
+}
+
+void authorized_key_free(authorized_key_t *key)
+{
+	if (key->name) {
+		FREE_SAFE(key->name);
+	}
+
+	if (key->algorithm) {
+		FREE_SAFE(key->algorithm);
+	}
+
+	if (key->key_data) {
+		FREE_SAFE(key->key_data);
+	}
+}
+
+void authorized_key_array_init(UT_array **keys)
+{
+	UT_icd auth_icd = {
+		.sz = sizeof(authorized_key_t),
+		.copy = authorized_key_copy_fn,
+		.dtor = authorized_key_dtor_fn,
+		.init = NULL,
+	};
+	utarray_new(*keys, &auth_icd);
+	utarray_reserve(*keys, MAX_AUTH_KEYS);
+}
+
+int authorized_key_array_add_key(UT_array **keys, const char *key)
+{
+	int error = 0;
+	authorized_key_t *found = NULL;
+	authorized_key_t tmp_key = {.name = (char *) key, NULL};
+
+	if (utarray_len(*keys) >= MAX_AUTH_KEYS) {
+		return -1;
+	}
+
+	found = utarray_find(*keys, &tmp_key, authorized_key_cmp_fn);
+	if (!found) {
+		// add the key + sort array
+		utarray_push_back(*keys, &tmp_key);
+		utarray_sort(*keys, authorized_key_cmp_fn);
+	} else {
+		// key already exists -> error
+		error = -1;
+	}
+
+	return error;
+}
+
+int authorized_key_array_set_algorithm(UT_array **keys, const char *key, const char *algorithm)
+{
+	int error = 0;
+	authorized_key_t *found = NULL;
+	authorized_key_t tmp_key = {.name = (char *) key, NULL};
+
+	found = utarray_find(*keys, &tmp_key, authorized_key_cmp_fn);
+	if (found) {
+		// set key algorithm
+		error = authorized_key_set_algorithm(found, algorithm);
+	} else {
+		// unknown key -> error
+		error = -1;
+	}
+
+	return error;
+}
+
+int authorized_key_array_set_key_data(UT_array **keys, const char *key, const char *algorithm)
+{
+	int error = 0;
+	authorized_key_t *found = NULL;
+	authorized_key_t tmp_key = {.name = (char *) key, NULL};
+
+	found = utarray_find(*keys, &tmp_key, authorized_key_cmp_fn);
+	if (found) {
+		// set key data
+		error = authorized_key_set_key_data(found, algorithm);
+	} else {
+		// unknown key -> error
+		error = -1;
+	}
+
+	return error;
+}
+
+int authorized_key_array_set_ssh_key(UT_array **keys, const char *dir)
+{
+	int error = 0;
+
+	char *ssh_filename = NULL;
+	char *ssh_key_algo = NULL;
+	char *ssh_key_data = NULL;
+
+	authorized_key_t *key_iter = NULL;
+
+	while ((key_iter = utarray_next(*keys, key_iter)) != NULL) {
+		ssh_filename = key_iter->name;
+		ssh_key_algo = key_iter->algorithm;
+		ssh_key_data = key_iter->key_data;
+
+		error = writing_to_key_file((char *) dir, ssh_filename, ssh_key_algo, ssh_key_data);
 		if (error != 0) {
 			goto error_out;
 		}
-
-		if (ul->users[i].auth.count > 0) {
-			// create ssh dir, if it doesn't exist
-			error = create_ssh_dir(ul->users[i].name, user_home_dir_path, &user_ssh_dir_path);
-			if (error != 0) {
-				goto error_out;
-			}
-
-			// set ssh keys for users
-			error = set_ssh_key(&ul->users[i].auth, user_ssh_dir_path);
-			if (error != 0) {
-				goto error_out;
-			}
-
-			FREE_SAFE(user_ssh_dir_path);
-		}
-
-		FREE_SAFE(user_home_dir_path);
-
-	}
-
-	// cleanup existing_users
-	for (int i = 0; i < num_existing_users; i++) {
-		FREE_SAFE(existing_users[i]);
 	}
 
 	return 0;
 
 error_out:
-	if (num_existing_users > 0) {
-		for (int i = 0; i < num_existing_users; i++) {
-			FREE_SAFE(existing_users[i]);
-		}
-	}
-
-	if (user_home_dir_path != NULL) {
-		FREE_SAFE(user_home_dir_path);
-	}
-
-	if (user_ssh_dir_path != NULL) {
-		FREE_SAFE(user_ssh_dir_path);
-	}
 
 	return -1;
 }
 
-int create_home_dir(char *username, char **home_dir_path)
+void authorized_key_array_free(UT_array **keys)
+{
+	utarray_free(*keys);
+	*keys = NULL;
+}
+
+void local_user_init(local_user_t *user)
+{
+	user->name = NULL;
+	user->password = NULL;
+	user->nologin = false;
+	authorized_key_array_init(&user->auth_keys);
+}
+
+int local_user_set_name(local_user_t *user, const char *name)
+{
+	if (user->name) {
+		FREE_SAFE(user->name);
+	}
+
+	user->name = name ? xstrdup(name) : NULL;
+
+	return 0;
+}
+
+int local_user_set_password(local_user_t *user, const char *password)
+{
+	if (user->password) {
+		FREE_SAFE(user->password);
+	}
+
+	user->password = password ? xstrdup(password) : NULL;
+
+	return 0;
+}
+
+int local_user_set_nologin(local_user_t *user, bool nologin)
+{
+	user->nologin = nologin;
+	return 0;
+}
+
+int local_user_get_key_info(local_user_t *user, const char *dir)
 {
 	int error = 0;
-	size_t len = 0;
+	FILE *entry_file = NULL;
+	DIR *FD = NULL;
+	struct dirent *in_file = NULL;
+
+	char fpath_buffer[PATH_MAX] = {0};
+	char alg_buffer[MAX_ALG_SIZE] = {0};
+	char key_data_buffer[MAX_KEY_DATA_SIZE] = {0};
+
+	if ((FD = opendir(dir)) == NULL) {
+		error = 1;
+		goto out;
+	} else {
+		while ((in_file = readdir(FD))) {
+			char key_name[100] = {0};
+
+			if (!has_pub_extension(in_file->d_name)) {
+				continue;
+			}
+
+			if (snprintf(fpath_buffer, sizeof(fpath_buffer), "%s/%s", dir, in_file->d_name) < 0) {
+				error = -1;
+				goto out;
+			}
+
+			entry_file = fopen(fpath_buffer, "r");
+			if (entry_file == NULL) {
+				error = 1;
+				goto out;
+			}
+
+			snprintf(key_name, sizeof(key_name), "%s", in_file->d_name);
+			error = authorized_key_array_add_key(&user->auth_keys, key_name);
+			if (error) {
+				goto out;
+			}
+
+			rewind(entry_file);
+			fscanf(entry_file, "%s %s", alg_buffer, key_data_buffer);
+
+			error = authorized_key_array_set_algorithm(&user->auth_keys, key_name, alg_buffer);
+			if (error != 0) {
+				goto out;
+			}
+
+			error = authorized_key_array_set_key_data(&user->auth_keys, key_name, key_data_buffer);
+			if (error != 0) {
+				goto out;
+			}
+
+			fclose(entry_file);
+			entry_file = NULL;
+		}
+	}
+
+out:
+	if (entry_file != NULL) {
+		fclose(entry_file);
+	}
+
+	closedir(FD);
+	return error;
+}
+
+void local_user_free(local_user_t *user)
+{
+	if (user->name) {
+		FREE_SAFE(user->name);
+	}
+
+	if (user->password) {
+		FREE_SAFE(user->password);
+	}
+
+	authorized_key_array_free(&user->auth_keys);
+}
+
+/* TODO:
+ * 		- add entry to /etc/group
+ */
+bool has_pub_extension(char *name)
+{
+	size_t len = strlen(name);
+	return len > 4 && strcmp(name + len - 4, ".pub") == 0;
+}
+
+int create_home_dir(char *username, char *home_dir_buffer, size_t buffer_size)
+{
+	int error = 0;
 	DIR *home_dir = NULL;
 
 	// create home dir path
 	if (strcmp(username, ROOT_USERNAME) == 0) {
-		len = strlen("/root/") + 1;
-		*home_dir_path = xstrndup("/root/", len);
+		// root
+		if (snprintf(home_dir_buffer, buffer_size, "/root/") < 0) {
+			goto error_out;
+		}
 	} else {
 		// regular users
-		len = strlen("/home/") + strlen(username) + 1;
-		*home_dir_path = xmalloc(len);
-		if (snprintf(*home_dir_path, len, "/home/%s", username) < 0) {
+		if (snprintf(home_dir_buffer, buffer_size, "/home/%s", username) < 0) {
 			goto error_out;
 		}
 	}
 
 	// check if home dir exists
-	home_dir = opendir(*home_dir_path);
+	home_dir = opendir(home_dir_buffer);
 	if (home_dir != NULL) {
 		// dir exists
 	} else if (ENOENT == errno) {
 		// dir doesn't exist
 		// create home dir
-		error = create_dir(*home_dir_path, username);
+		error = create_dir(home_dir_buffer, username);
 		if (error != 0) {
 			goto error_out;
 		}
@@ -212,33 +390,30 @@ int create_home_dir(char *username, char **home_dir_path)
 	return 0;
 
 error_out:
-	if (home_dir != NULL){
+	if (home_dir != NULL) {
 		closedir(home_dir);
 	}
 	return -1;
 }
 
-int create_ssh_dir(char *username, char *home_dir_path, char **ssh_dir_path)
+int create_ssh_dir(char *username, const char *home_dir_buffer, char *ssh_dir_buffer, size_t buffer_size)
 {
 	int error = 0;
-	size_t len = 0;
 	DIR *ssh_dir = NULL;
 
 	// create .ssh dir path
-	len = strlen(home_dir_path) + strlen("/.ssh") + 1;
-	*ssh_dir_path = xmalloc(len);
-	if (snprintf(*ssh_dir_path, len, "%s/.ssh", home_dir_path) < 0) {
+	if (snprintf(ssh_dir_buffer, buffer_size, "%s/.ssh", home_dir_buffer) < 0) {
 		goto error_out;
 	}
 
 	// check if .ssh dir exists
-	ssh_dir = opendir(*ssh_dir_path);
+	ssh_dir = opendir(ssh_dir_buffer);
 	if (ssh_dir != NULL) {
 		// dir exists
 	} else if (ENOENT == errno) {
 		// dir doesn't exist
 		// create home dir
-		error = create_dir(*ssh_dir_path, username);
+		error = create_dir(ssh_dir_buffer, username);
 		if (error != 0) {
 			goto error_out;
 		}
@@ -254,71 +429,6 @@ error_out:
 	if (ssh_dir != NULL) {
 		closedir(ssh_dir);
 	}
-	return -1;
-}
-
-
-
-int delete_users(local_user_list_t *ul)
-{
-	int error = 0;
-	bool remove_user = false;
-
-	for (int i = 0; i < ul->count; i++) {
-		remove_user = false;
-
-		if (ul->users[i].name == NULL || strlen(ul->users[i].name ) == 0) {
-			continue;
-		}
-
-		if (strcmp(ul->users[i].password, "") == 0) {
-			// remove the user from passwd and shadow file
-			error = remove_user_entry(ul->users[i].name);
-			if (error != 0) {
-				goto error_out;
-			}
-
-			remove_user = true;
-		}
-
-		for (int j = 0; j < ul->users[i].auth.count; j++) {
-			if (ul->users[i].auth.authorized_keys[j].algorithm == NULL) {
-				continue;
-			}
-
-			if (strcmp(ul->users[i].auth.authorized_keys[j].algorithm, "") == 0) {
-				// remove the ssh public key file
-				error = remove_ssh_file(ul->users[i].name, ul->users[i].auth.authorized_keys[j].name);
-				if (error != 0) {
-					goto error_out;
-				}
-
-				// remove the ssh file info from internal list
-				authorized_key_list_free(&ul->users[i].auth);
-
-				// decrease the counter
-				ul->users[i].auth.count--;
-			}
-		}
-
-		if (remove_user == true) {
-			// remove home dir as well
-			error = remove_home_dir(ul->users[i].name);
-			if (error != 0) {
-				goto error_out;
-			}
-
-			// remove user from internal list
-			local_user_free(&ul->users[i]);
-
-			// decrease the counter
-			ul->count--;
-		}
-	}
-
-	return 0;
-
-error_out:
 	return -1;
 }
 
@@ -435,7 +545,7 @@ error_out:
 		FREE_SAFE(line);
 	}
 
-	if (access(orig, F_OK) != 0 ) {
+	if (access(orig, F_OK) != 0) {
 		rename(backup, orig);
 	}
 
@@ -487,7 +597,6 @@ int get_existing_users_from_passwd(char *existing_users[], int *num_users)
 {
 	struct passwd *pwd = {0};
 	int count = 1; // counter starts at 1 because we manually added "root" first
-	size_t len = 0;
 
 	// root will always be present, so set it as first element
 	existing_users[0] = xstrdup("root");
@@ -503,9 +612,7 @@ int get_existing_users_from_passwd(char *existing_users[], int *num_users)
 		// check if user has uid => 1000 and iss < 65534
 		// uid 65534 belongs to the "nobody" user
 		if (pwd->pw_uid >= 1000 && pwd->pw_uid < 65534) {
-			len = strnlen(pwd->pw_name, MAX_USERNAME_LEN);
-			existing_users[count] = xstrndup(pwd->pw_name, len);
-
+			existing_users[count] = xstrdup(pwd->pw_name);
 			count++;
 		}
 	} while ((pwd = getpwent()) != NULL);
@@ -520,11 +627,11 @@ error_out:
 	return -1;
 }
 
-int writing_to_key_file(char* in_dir, char *key_name, char *key_algorithm, char *key_data) 
+int writing_to_key_file(char *in_dir, char *key_name, char *key_algorithm, char *key_data)
 {
 	size_t string_len = 0;
 	FILE *file_key = NULL;
-	char* file_path = NULL;
+	char *file_path = NULL;
 
 	string_len = strlen(in_dir) + strlen("/") + strlen(key_name) + 1;
 	file_path = xmalloc(string_len);
@@ -580,38 +687,6 @@ int set_owner(char *path)
 
 	endpwent();
 	return 0;
-}
-
-int set_ssh_key(authorized_key_list_t *user_auth, char *ssh_dir_path)
-{
-	int error = 0;
-	char *username = NULL;
-	char *ssh_filename = NULL;
-	char *ssh_key_algo = NULL;
-	char *ssh_key_data = NULL;
-
-	for(int i = 0; i < user_auth->count; i++) {
-		username = user_auth->authorized_keys[i].name;
-
-		if (username== NULL) {
-			continue;
-		}
-
-		ssh_filename = user_auth->authorized_keys[i].name;
-		ssh_key_algo = user_auth->authorized_keys[i].algorithm;
-		ssh_key_data = user_auth->authorized_keys[i].key_data;
-
-		error = writing_to_key_file(ssh_dir_path, ssh_filename, ssh_key_algo, ssh_key_data);
-		if (error != 0) {
-			goto error_out;
-		}
-	}
-
-	return 0;
-
-error_out:
-
-	return -1;
 }
 
 int create_dir(char *dir_path, char *username)
@@ -683,12 +758,12 @@ int set_passwd_file(char *username)
 	// add the new users entry into the temp file
 	p.pw_name = xstrdup(username);
 	p.pw_passwd = strdup("x");
-	p.pw_shell = strdup ("/bin/bash");
+	p.pw_shell = strdup("/bin/bash");
 
 	p.pw_uid = ++last_uid;
 	p.pw_gid = ++last_gid;
 
-	username_len = strlen ("/home/") + strlen(p.pw_name) + 1;
+	username_len = strlen("/home/") + strlen(p.pw_name) + 1;
 	p.pw_dir = xmalloc(username_len);
 	if (snprintf(p.pw_dir, username_len, "/home/%s", p.pw_name) < 0) {
 		goto error_out;
@@ -778,7 +853,7 @@ int set_shadow_file(char *username, char *password)
 	username_len = strlen(username) + 1;
 	s.sp_namp = strndup(username, username_len);
 
-	username_len = strlen (password) + 1;
+	username_len = strlen(password) + 1;
 	s.sp_pwdp = strndup(password, username_len);
 	s.sp_lstchg = -1; // -1 value corresponds to an empty string
 	s.sp_max = 99999;
@@ -787,7 +862,7 @@ int set_shadow_file(char *username, char *password)
 
 	s.sp_expire = -1;
 	//s.sp_flag = 0; // not used
-	s.sp_inact =  -1;
+	s.sp_inact = -1;
 
 	if (putspent(&s, tmp_shf) != 0) {
 		goto error_out;
@@ -828,7 +903,7 @@ error_out:
 		FREE_SAFE(s.sp_pwdp);
 	}
 
-	if (access(PASSWD_FILE, F_OK) != 0 )
+	if (access(PASSWD_FILE, F_OK) != 0)
 		rename(PASSWD_BAK_FILE, PASSWD_FILE);
 
 	if (tmp_shf != NULL)
@@ -853,12 +928,12 @@ int copy_file(char *src, char *dst)
 		goto error_out;
 	}
 
-	write_fd = open(dst, O_CREAT|O_WRONLY|O_TRUNC, stat_buf.st_mode);
+	write_fd = open(dst, O_CREAT | O_WRONLY | O_TRUNC, stat_buf.st_mode);
 	if (write_fd == -1) {
 		goto error_out;
 	}
 
-	if (sendfile(write_fd, read_fd, &offset, (size_t)stat_buf.st_size) == -1) {
+	if (sendfile(write_fd, read_fd, &offset, (size_t) stat_buf.st_size) == -1) {
 		goto error_out;
 	}
 
@@ -879,395 +954,396 @@ error_out:
 	return -1;
 }
 
-void authorized_key_init(authorized_key_t *k)
-{	
-	k->name = NULL;
-	k->algorithm = NULL;
-	k->key_data = NULL;
-}
-
-void authorized_key_free(authorized_key_t *k)
+int local_user_array_init(UT_array **users)
 {
-	if (k->name) {
-		FREE_SAFE(k->name);
-	}
-	if (k->algorithm) {
-		FREE_SAFE(k->algorithm);
-	}
-	if (k->key_data) {
-		FREE_SAFE(k->key_data);
-	}
-}
-
-void authorized_key_list_init(authorized_key_list_t *ul)
-{
-	for (int i = 0; i < MAX_AUTH_KEYS; i++) {
-		authorized_key_init(&ul->authorized_keys[i]);
-	}
-	ul->count = 0;
-}
-
-void authorized_key_list_free(authorized_key_list_t *ul)
-{
-	for (int i = 0; i < ul->count; i++) {
-		authorized_key_free(&ul->authorized_keys[i]);
-	}
-}
-	
-void local_user_init(local_user_t *u)
-{
-	u->name = NULL;
-	u->password = NULL;
-	u->nologin = false;
-
-	authorized_key_list_init(&u->auth);	
-}
-
-void local_user_free(local_user_t *u)
-{
-	if (u->name) {
-		FREE_SAFE(u->name);
-	}
-	if (u->password) {
-		FREE_SAFE(u->password);
-	}
-
-	authorized_key_list_free(&u->auth);	
-}
-
-int local_user_add_user(local_user_list_t *ul, char *name)
-{
-	bool name_found = false;
-
-	if (ul->count >= MAX_LOCAL_USERS) {
-		return EINVAL;
-	}
-
-	for (int i = 0; i < ul->count; i++) {
-		if (ul->users[i].name != NULL) { // in case we deleted a user it will be NULL
-			if (strcmp(ul->users[i].name, name) == 0) {
-				name_found = true;
-				break;
-			}
-		}
-	}
-
-	if (!name_found) {
-		// set the new user to the first free one in the list
-		// the one with name == 0
-		int pos = ul->count;
-		for (int i = 0; i < ul->count; i++) {
-			if (ul->users[i].name == NULL) {
-				pos = i;
-				break;
-			}
-		}
-
-		ul->users[pos].name = xstrdup(name);
-
-		if (pos == ul->count) {
-			++ul->count;
-		}
-	}
-
-	return 0;
-}
-
-int local_user_set_password(local_user_list_t *ul, char *name, char *password)
-{
-	bool local_user_found = false;
-
-	for (int i = 0; i < ul->count; i++ ) {
-		if (strcmp(ul->users[i].name, name) == 0) {
-			// if password was already set, free it first, and then reset it
-			if (ul->users[i].password != NULL) {
-				FREE_SAFE(ul->users[i].password);
-			}
-
-			size_t tmp_len = 0;
-			tmp_len = strlen(password);
-			ul->users[i].password = strndup(password, tmp_len + 1);
-
-			if (strcmp(password, "!") == 0 || strcmp(password, "*") == 0) {
-				ul->users[i].nologin = true;
-			}
-
-
-			local_user_found = true;
-			break;
-		}	
-	}
-	if(!local_user_found) {
-		return -1;
-	}
-	return 0;
-}
-
-int local_user_add_key(local_user_list_t *ul, char *name, char *key_name)
-{
-	bool local_user_found = false;
-	size_t tmp_len = 0;
-
-	for (int i = 0; i < ul->count; i++) {
-		if (strcmp(ul->users[i].name, name) == 0) {
-			local_user_found = true;
-	
-			for (int j = 0; j < ul->users[i].auth.count; j++) {
-				if (strncmp(ul->users[i].auth.authorized_keys[j].name, key_name, strlen(key_name)+1) == 0) {
-					return 0;
-				}
-			}
-			tmp_len = strlen(key_name);
-			ul->users[i].auth.authorized_keys[ul->users[i].auth.count].name = strndup(key_name, tmp_len + 1);
-			ul->users[i].auth.count++;
-			break;	
-		}		
-	}
-	if(!local_user_found) {
-		return -1;
-	}
-
-	return 0;
-}
-
-int add_algorithm_key_data(local_user_list_t *ul, char *name, char *key_name, char *data_alg, int flag)
-{
-	bool local_user_found = false;
-	bool key_found = false;
-
-	for (int i = 0; i < ul->count; i++) {
-		if (strcmp(ul->users[i].name, name) == 0) {
-			local_user_found = true;
-			for (int j = 0; j < ul->users[i].auth.count; j++) {
-				if (strcmp(ul->users[i].auth.authorized_keys[j].name, key_name) == 0) {
-					key_found = true;
-
-					size_t tmp_len = 0;
-					tmp_len = strlen(data_alg);
-					if(flag) {
-						ul->users[i].auth.authorized_keys[j].key_data = strndup(data_alg, tmp_len + 1);
-						goto end;
-					} else {
-						ul->users[i].auth.authorized_keys[j].algorithm = strndup(data_alg, tmp_len + 1);
-						goto end;	
-					}
-				}
-			}
-		}
-	}
-end:
-	if(!local_user_found || !key_found) {
-		return -1;
-	}
-
-	return 0;
-}
-
-int local_user_add_algorithm(local_user_list_t *ul, char *name, char *key_name, char *algorithm)
-{
-	int flag = 0;
 	int error = 0;
-	error = add_algorithm_key_data(ul, name, key_name, algorithm, flag);
+
+	UT_icd users_icd = (UT_icd){
+		.sz = sizeof(local_user_t),
+		.init = NULL,
+		.copy = local_user_copy_fn,
+		.dtor = local_user_dtor_fn,
+	};
+
+	utarray_new(*users, &users_icd);
+	utarray_reserve(*users, MAX_LOCAL_USERS);
+
+	error = local_user_array_add_existing(users);
 	if (error) {
-		fprintf(stderr, "Error : Failed to add algorithm - %s\n", strerror(errno));
+		return -1;
 	}
+
 	return error;
 }
 
-int local_user_add_key_data(local_user_list_t *ul, char *name, char *key_name, char *key_data)
+int local_user_array_add_existing(UT_array **users)
 {
-	int flag = 1;
 	int error = 0;
-	error = add_algorithm_key_data(ul, name, key_name, key_data, flag);
-	if (error) {
-		fprintf(stderr, "Error : Failed to add key data - %s\n", strerror(errno));
-	}
-	return error;
-}
 
-int get_key_info(char *in_dir, local_user_list_t *ul, int i)
-{
-	FILE *entry_file = NULL;
-	DIR* FD = NULL;
-	struct dirent* in_file = NULL;
-	int error = 0;
-	
-	char* file_path = NULL;
-	char *line1 = NULL;
-	char *line2 = NULL;
-	size_t in_file_len = 0;
-	size_t string_len = 0;
+	struct passwd *pwd = NULL;
+	struct spwd *pwdshd = NULL;
 
-	if ((FD = opendir(in_dir)) == NULL) {
-		fprintf(stderr, "Error : Failed to open input directory %s - %s\n", in_dir, strerror(errno));
-		error = 1;
-		goto out;
-	} else {
-		while ((in_file = readdir(FD))) {
-			char key_name[100] = {0};
-			in_file_len = strlen(in_file->d_name);
-			if (in_file_len <= 4) {
-				continue;
-			}
-
-			if (!has_pub_extension(in_file->d_name)) {
-				error = 0;
-				goto out;
-			}
-
-			string_len = strlen(in_dir) + strlen("/") + strlen(in_file->d_name) + 1;
-			file_path = xmalloc(string_len);
-			if (snprintf(file_path, string_len, "%s/%s", in_dir, in_file->d_name) < 0) {
-				error = -1;
-				goto out;
-			} 
-
-			entry_file = fopen(file_path, "r");
-			if (entry_file == NULL) {
-				fprintf(stderr, "Error : Failed to open entry file - %s\n", strerror(errno));
-				error = 1;
-				goto out;
-			}
-
-			//adding key: key_name is name of file
-			snprintf(key_name, strlen(in_file->d_name)+1, "%s", in_file->d_name);
-
-			error = local_user_add_key(ul, ul->users[i].name, key_name);
-			if (error) {
-				fprintf(stderr, "Error : Failed to add key - %s\n", strerror(errno));
-				error = 1;
-				goto out;
-			}
-			//reading .pub file
-			line1 = xmalloc(MAX_ALG_SIZE * sizeof(char));
-			line2 = xmalloc(MAX_KEY_DATA_SIZE * sizeof(char));
-			rewind(entry_file);
-			fscanf(entry_file, "%s %s", line1, line2);
-
-			local_user_add_algorithm(ul, ul->users[i].name, key_name, line1);
-
-			local_user_add_key_data(ul, ul->users[i].name, key_name, line2);
-		}
-	}
-
-out:
-	if (entry_file != NULL) {
-		fclose(entry_file);
-	}
-
-	if (file_path != NULL) {
-		FREE_SAFE(file_path);
-	}
-
-	if (line1 != NULL) {
-		FREE_SAFE(line1);
-	}
-
-	if (line2 != NULL) {
-		FREE_SAFE(line2);
-	}
-
-	closedir(FD);
-	return error;
-}
-
-int add_existing_local_users(local_user_list_t *ul)
-{
-	int i = 0;
-	int error1 = 0;
-	int counting_flag = 0;
-	struct passwd *pwd = {0};
-	struct spwd *pwdshd = {0};
-	char* in_dir;
-	size_t string_len = 0;
+	local_user_t tmp_user = {0};
+	local_user_t *user_iter = NULL;
+	char dir_buffer[PATH_MAX] = {0};
 
 	setpwent();
 
 	// adding username
 	while ((pwd = getpwent()) != NULL) {
-		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)){ 
-			local_user_add_user(ul, pwd->pw_name);			
-		}
-	} 
-	// adding password
-	while((pwdshd = getspent()) != NULL) {
-		for(i = 0; i< ul->count; i++) {
-			if(strncmp(ul->users[i].name, pwdshd->sp_namp, strlen(pwdshd->sp_namp)) == 0) {
-				local_user_set_password(ul, pwdshd->sp_namp, pwdshd->sp_pwdp);
-				counting_flag++;
-				if(counting_flag == ul->count) {
-					goto exit_adding_pass;
-				}
-				break;
-			}
-		}
-	} 
-exit_adding_pass:
-	for(i = 0; i< ul->count; i++) {
-		if (strncmp(ul->users[i].name, "root", 4) == 0) {
-			string_len = strlen ("/root/.ssh") + 1;
-			in_dir = xmalloc(string_len);
-			if (snprintf(in_dir, string_len, "/root/.ssh") < 0) {
+		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)) {
+			error = local_user_array_add_user(users, pwd->pw_name);
+			if (error != 0) {
 				goto fail;
-			} 
-			error1 = get_key_info(in_dir, ul, i);
-			if(error1) {
-				FREE_SAFE(in_dir);
-				continue;
-			}
-
-		} else {
-			string_len = strlen ("/home/") + strlen(ul->users[i].name) + strlen("/.ssh")+ 1;
-			in_dir = xmalloc(string_len);
-			if (snprintf(in_dir, string_len, "/home/%s/.ssh", ul->users[i].name) < 0) {
-				goto fail;
-			} 
-			
-			error1 = get_key_info(in_dir, ul, i);
-			if(error1) {
-				FREE_SAFE(in_dir);
-				continue;
 			}
 		}
-		FREE_SAFE(in_dir);
 	}
 
-	endpwent();
+	// enable use of _find()
+	utarray_sort(*users, local_user_cmp_fn);
 
-	return 0;
+	// adding password
+	while ((pwdshd = getspent()) != NULL) {
+		tmp_user.name = pwdshd->sp_namp;
+
+		local_user_t *found = utarray_find(*users, &tmp_user, local_user_cmp_fn);
+		if (found) {
+			error = local_user_set_password(found, pwdshd->sp_pwdp);
+			if (error) {
+				goto fail;
+			}
+		}
+	}
+
+	while ((user_iter = utarray_next(*users, user_iter)) != NULL) {
+		if (!strncmp(user_iter->name, "root", 4)) {
+			if (snprintf(dir_buffer, sizeof(dir_buffer), "/root/.ssh") < 0) {
+				goto fail;
+			}
+		} else {
+			if (snprintf(dir_buffer, sizeof(dir_buffer), "/home/%s/.ssh", user_iter->name) < 0) {
+				goto fail;
+			}
+		}
+		error = local_user_get_key_info(user_iter, dir_buffer);
+		if (error != 0) {
+			goto fail;
+		}
+	}
+
+	goto out;
 
 fail:
-	if (in_dir != NULL) {
-		FREE_SAFE(in_dir);
-	}
+	error = -1;
 
+out:
 	endpwent();
 
 	return -1;
 }
 
-int local_user_list_init(local_user_list_t **ul)
+int local_user_array_add_user(UT_array **users, const char *name)
 {
 	int error = 0;
-	*ul = xmalloc(sizeof(local_user_list_t));
-	
-	for (int i = 0; i < MAX_LOCAL_USERS; i++) {
-		local_user_init(&(*ul)->users[i]);
-	}
-	(*ul)->count = 0;
+	local_user_t *found = NULL;
+	local_user_t user = {0};
 
-	error = add_existing_local_users(*ul);
-	if (error) {
-		fprintf(stderr, "add_existing_local_users error : %s\n", strerror(errno));
-		return -1;
+	if (utarray_len(*users) >= MAX_LOCAL_USERS) {
+		return EINVAL;
+	}
+
+	user.name = (char *) name;
+	found = utarray_find(*users, &user, local_user_cmp_fn);
+
+	if (!found) {
+		// add to the array + sort because of find() functions
+		utarray_push_back(*users, &user);
+		utarray_sort(*users, local_user_cmp_fn);
+	}
+
+	return error;
+}
+
+int local_user_array_set_password(UT_array **users, const char *name, const char *password)
+{
+	int error = 0;
+	local_user_t *found = NULL;
+	local_user_t user = {.name = (char *) name};
+
+	found = utarray_find(*users, &user, local_user_cmp_fn);
+
+	if (found) {
+		error = local_user_set_password(found, password);
+	} else {
+		error = -1;
+	}
+
+	return error;
+}
+
+int local_user_array_add_key(UT_array **users, const char *name, const char *key)
+{
+	int error = 0;
+
+	local_user_t *found = NULL;
+	local_user_t user = {.name = (char *) name};
+
+	found = utarray_find(*users, &user, local_user_cmp_fn);
+
+	if (found) {
+		error = authorized_key_array_add_key(&found->auth_keys, key);
+	} else {
+		error = -1;
+	}
+
+	return error;
+}
+
+int local_user_array_set_key_algorithm(UT_array **users, const char *name, const char *key, const char *algorithm)
+{
+	int error = 0;
+
+	local_user_t *found = NULL;
+	local_user_t user = {.name = (char *) name};
+
+	found = utarray_find(*users, &user, local_user_cmp_fn);
+
+	if (found) {
+		error = authorized_key_array_set_algorithm(&found->auth_keys, key, algorithm);
+	} else {
+		error = -1;
+	}
+
+	return error;
+}
+
+int local_user_array_set_key_data(UT_array **users, const char *name, const char *key, const char *key_data)
+{
+	int error = 0;
+
+	local_user_t *found = NULL;
+	local_user_t user = {.name = (char *) name};
+
+	found = utarray_find(*users, &user, local_user_cmp_fn);
+
+	if (found) {
+		error = authorized_key_array_set_key_data(&found->auth_keys, key, key_data);
+	} else {
+		error = -1;
+	}
+
+	return error;
+}
+
+int local_user_array_set_new_users(UT_array **users)
+{
+	int error = 0;
+	char *existing_users[MAX_LOCAL_USERS] = {0};
+	int num_existing_users = 0;
+	bool user_exists = false;
+
+	char home_dir_buffer[PATH_MAX] = {0};
+	char ssh_dir_buffer[PATH_MAX] = {0};
+
+	local_user_t *user_iter = NULL;
+
+	// check if username password or public key algorithm is an empty string
+	// remove users or ssh public key files if so
+	error = local_user_array_delete_users(users);
+	if (error != 0) {
+		goto error_out;
+	}
+
+	// get list of already existing user names from passwd file
+	error = get_existing_users_from_passwd(existing_users, &num_existing_users);
+	if (error != 0) {
+		goto error_out;
+	}
+
+	while ((user_iter = utarray_next(*users, user_iter)) != NULL) {
+		user_exists = false;
+		for (int j = 0; j < num_existing_users; j++) {
+			if (strcmp(user_iter->name, existing_users[j]) == 0) {
+				// user is already in passwd
+				// skip this user
+				user_exists = true;
+				break;
+			}
+		}
+
+		if (!user_exists) { // if the user doesn't already exist in passwd, add the user
+			// add this user to passwd
+			error = set_passwd_file(user_iter->name);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			// add this user to shadow
+			error = set_shadow_file(user_iter->name, user_iter->password);
+			if (error != 0) {
+				goto error_out;
+			}
+		}
+
+		// create home dir if it doesn't exist
+		error = create_home_dir(user_iter->name, home_dir_buffer, sizeof(home_dir_buffer));
+		if (error != 0) {
+			goto error_out;
+		}
+
+		if (utarray_len(user_iter->auth_keys) > 0) {
+			error = create_ssh_dir(user_iter->name, home_dir_buffer, ssh_dir_buffer, sizeof(ssh_dir_buffer));
+			if (error != 0) {
+				goto error_out;
+			}
+
+			// set ssh keys for users
+			error = authorized_key_array_set_ssh_key(&user_iter->auth_keys, ssh_dir_buffer);
+			if (error != 0) {
+				goto error_out;
+			}
+		}
+
+		// TODO: investigate if necessarry
+		memset(home_dir_buffer, 0, sizeof(home_dir_buffer));
+		memset(ssh_dir_buffer, 0, sizeof(ssh_dir_buffer));
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	// cleanup existing_users
+	for (int i = 0; i < num_existing_users; i++) {
+		FREE_SAFE(existing_users[i]);
+	}
+
+	return error;
+}
+
+int local_user_array_delete_users(UT_array **users)
+{
+	int error = 0;
+	bool remove_user = false;
+	local_user_t *user_iter = NULL;
+	authorized_key_t *key_iter = NULL;
+	unsigned int user_count = 0;
+	unsigned int key_count = 0;
+
+	while ((user_iter = utarray_next(*users, user_iter)) != NULL) {
+		remove_user = false;
+
+		if (strcmp(user_iter->password, "") == 0) {
+			// remove the user from passwd and shadow file
+			error = remove_user_entry(user_iter->name);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			remove_user = true;
+		}
+
+		key_count = 0;
+		while ((key_iter = utarray_next(user_iter->auth_keys, key_iter)) != NULL) {
+			if (strcmp(key_iter->algorithm, "") == 0) {
+				// remove the ssh public key file
+				error = remove_ssh_file(user_iter->name, key_iter->name);
+				if (error != 0) {
+					goto error_out;
+				}
+
+				// remove current key from the array
+				key_iter = utarray_prev(user_iter->auth_keys, key_iter);
+				utarray_erase(user_iter->auth_keys, key_count, 1);
+				--key_count;
+				continue;
+			}
+			key_count++;
+		}
+
+		if (remove_user == true) {
+			// remove home dir as well
+			error = remove_home_dir(user_iter->name);
+			if (error != 0) {
+				goto error_out;
+			}
+
+			// remove current user from the array
+			user_iter = utarray_prev(*users, user_iter);
+			utarray_erase(*users, user_count, 1);
+			--user_count;
+			continue;
+		}
+
+		++user_count;
 	}
 
 	return 0;
+
+error_out:
+	return -1;
 }
 
-void local_user_list_free(local_user_list_t *ul)
+void local_user_array_free(UT_array **users)
 {
-	for (int i = 0; i < ul->count; i++) {
-		local_user_free(&ul->users[i]);
+	utarray_free(*users);
+	*users = NULL;
+}
+
+void local_user_copy_fn(void *dst, const void *src)
+{
+	local_user_t *d = (local_user_t *) dst;
+	local_user_t *s = (local_user_t *) src;
+	authorized_key_t *tmp = NULL;
+
+	// setup auth_keys
+	local_user_init(d);
+
+	local_user_set_name(d, s->name);
+	local_user_set_password(d, s->password);
+	local_user_set_nologin(d, s->nologin);
+
+	if (s->auth_keys) {
+		while ((tmp = utarray_next(s->auth_keys, tmp)) != NULL) {
+			utarray_push_back(d->auth_keys, tmp);
+		}
 	}
+}
+
+void local_user_dtor_fn(void *elt)
+{
+	local_user_free(elt);
+}
+
+int local_user_cmp_fn(const void *p1, const void *p2)
+{
+	local_user_t *u1 = (local_user_t *) p1;
+	local_user_t *u2 = (local_user_t *) p2;
+	return strcmp(u1->name, u2->name);
+}
+
+void authorized_key_copy_fn(void *dst, const void *src)
+{
+	authorized_key_t *d = (authorized_key_t *) dst;
+	authorized_key_t *s = (authorized_key_t *) src;
+
+	authorized_key_init(d);
+
+	authorized_key_set_name(d, s->name);
+	authorized_key_set_algorithm(d, s->algorithm);
+	authorized_key_set_key_data(d, s->key_data);
+}
+
+void authorized_key_dtor_fn(void *elt)
+{
+	authorized_key_free(elt);
+}
+
+int authorized_key_cmp_fn(const void *p1, const void *p2)
+{
+	authorized_key_t *k1 = (authorized_key_t *) p1;
+	authorized_key_t *k2 = (authorized_key_t *) p2;
+	return strcmp(k1->name, k2->name);
 }

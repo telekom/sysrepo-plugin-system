@@ -72,20 +72,20 @@ void ntp_server_free(ntp_server_t *s)
 	s->delete = false;
 }
 
-int ntp_server_array_init(sr_session_ctx_t *session, UT_array *servers)
+int ntp_server_array_init(sr_session_ctx_t *session, UT_array **servers)
 {
 	int error = 0;
 
 	UT_icd ntp_servers_icd = {sizeof(ntp_server_t), .init = NULL, .copy = ntp_server_copy_fn, .dtor = ntp_server_dtor_fn};
-	utarray_new(servers, &ntp_servers_icd);
-	utarray_reserve(servers, NTP_MAX_SERVERS);
+	utarray_new(*servers, &ntp_servers_icd);
+	utarray_reserve(*servers, NTP_MAX_SERVERS);
 
 	error = ntp_server_array_add_existing_servers(session, servers);
 
 	return error;
 }
 
-int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array *servers)
+int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array **servers)
 {
 	int error = 0;
 	FILE *fp = NULL;
@@ -158,47 +158,51 @@ error_out:
 	return -1;
 }
 
-int ntp_add_server_entry_to_array(UT_array *servers, ntp_server_t *server_entry)
+int ntp_add_server_entry_to_array(UT_array **servers, ntp_server_t *server_entry)
 {
 	int error = 0;
-	unsigned len = 0;
 	ntp_server_t *found = NULL;
 
-	len = utarray_len(servers);
-	if (len + 1 >= NTP_MAX_SERVERS) {
+	if (utarray_len(*servers) >= NTP_MAX_SERVERS) {
 		return EINVAL;
 	}
 
-	found = utarray_find(servers, server_entry, ntp_server_cmp_fn);
-	if (found == NULL) {
-		utarray_push_back(servers, server_entry);
+	found = utarray_find(*servers, server_entry, ntp_server_cmp_fn);
+	if (!found) {
+		utarray_push_back(*servers, server_entry);
+		utarray_sort(*servers, ntp_server_cmp_fn);
 	}
 
 	return error;
 }
 
-int ntp_server_array_add_server(UT_array *servers, char *name)
+int ntp_server_array_add_server(UT_array **servers, char *name)
 {
 	int error = 0;
-
+	ntp_server_t *found = NULL;
 	ntp_server_t server = {0};
+
+	if (utarray_len(*servers) >= NTP_MAX_SERVERS) {
+		return EINVAL;
+	}
 
 	// set name for copy() function
 	server.name = name;
-
-	// add new server -> sort when added because of utarray_find() function later
-	utarray_push_back(servers, &server);
-	utarray_sort(servers, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &server, ntp_server_cmp_fn);
+	if (!found) {
+		utarray_push_back(*servers, &server);
+		utarray_sort(*servers, ntp_server_cmp_fn);
+	}
 
 	return error;
 }
 
-int ntp_server_array_set_address(UT_array *servers, char *name, char *address)
+int ntp_server_array_set_address(UT_array **servers, char *name, char *address)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		if (found->address) {
 			FREE_SAFE(found->address);
@@ -211,12 +215,12 @@ int ntp_server_array_set_address(UT_array *servers, char *name, char *address)
 	return 0;
 }
 
-int ntp_server_array_set_port(UT_array *servers, char *name, char *port)
+int ntp_server_array_set_port(UT_array **servers, char *name, char *port)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		if (found->port) {
 			FREE_SAFE(found->port);
@@ -229,12 +233,12 @@ int ntp_server_array_set_port(UT_array *servers, char *name, char *port)
 	return 0;
 }
 
-int ntp_server_array_set_assoc_type(UT_array *servers, char *name, char *assoc_type)
+int ntp_server_array_set_assoc_type(UT_array **servers, char *name, char *assoc_type)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		if (found->assoc_type) {
 			FREE_SAFE(found->assoc_type);
@@ -247,12 +251,12 @@ int ntp_server_array_set_assoc_type(UT_array *servers, char *name, char *assoc_t
 	return 0;
 }
 
-int ntp_server_array_set_iburst(UT_array *servers, char *name, char *iburst)
+int ntp_server_array_set_iburst(UT_array **servers, char *name, char *iburst)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		if (found->iburst) {
 			FREE_SAFE(found->iburst);
@@ -265,12 +269,12 @@ int ntp_server_array_set_iburst(UT_array *servers, char *name, char *iburst)
 	return 0;
 }
 
-int ntp_server_array_set_prefer(UT_array *servers, char *name, char *prefer)
+int ntp_server_array_set_prefer(UT_array **servers, char *name, char *prefer)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		if (found->prefer) {
 			FREE_SAFE(found->prefer);
@@ -283,12 +287,12 @@ int ntp_server_array_set_prefer(UT_array *servers, char *name, char *prefer)
 	return 0;
 }
 
-int ntp_server_array_set_delete(UT_array *servers, char *name, bool delete_val)
+int ntp_server_array_set_delete(UT_array **servers, char *name, bool delete_val)
 {
 	ntp_server_t find = {0}, *found = NULL;
 	find.name = name;
 
-	found = utarray_find(servers, &find, ntp_server_cmp_fn);
+	found = utarray_find(*servers, &find, ntp_server_cmp_fn);
 	if (found) {
 		found->delete = delete_val;
 	} else {
@@ -298,12 +302,13 @@ int ntp_server_array_set_delete(UT_array *servers, char *name, bool delete_val)
 	return 0;
 }
 
-void ntp_server_array_free(UT_array *servers)
+void ntp_server_array_free(UT_array **servers)
 {
-	utarray_free(servers);
+	utarray_free(*servers);
+	*servers = NULL;
 }
 
-int save_ntp_config(UT_array *servers)
+int save_ntp_config(UT_array **servers)
 {
 	char *cfg_entry = NULL;
 	FILE *fp = NULL;
@@ -345,17 +350,17 @@ int save_ntp_config(UT_array *servers)
 
 	// used for deletion of servers
 	unsigned int idx = 0;
-	while ((iter = (ntp_server_t *) utarray_next(servers, iter)) != NULL) {
+	while ((iter = (ntp_server_t *) utarray_next(*servers, iter)) != NULL) {
 		if (iter->name == NULL) {
 			continue;
 		}
 
 		if (iter->delete == true) {
 			// first step back for next iteration
-			iter = utarray_prev(servers, iter);
+			iter = utarray_prev(*servers, iter);
 
 			// delete the current server and move on
-			utarray_erase(servers, idx, 1);
+			utarray_erase(*servers, idx, 1);
 			--idx;
 			continue;
 		} else {
@@ -514,44 +519,6 @@ int ntp_parse_config(ntp_server_t *server_entry, char *line)
 error_out:
 
 	return -1;
-}
-
-int ntp_server_list_add_server(ntp_server_list_t *sl, char *name)
-{
-	bool name_found = false;
-
-	if (sl->count >= NTP_MAX_SERVERS) {
-		return EINVAL;
-	}
-
-	for (int i = 0; i < sl->count; i++) {
-		if (strcmp(sl->servers[i].name, name) == 0) {
-			if (sl->servers[i].name != NULL) { // in case we deleted a server it will be NULL
-				name_found = true;
-				break;
-			}
-		}
-	}
-
-	if (!name_found) {
-		// set the new server to the first free one in the list
-		// the one with name == 0
-		int pos = sl->count;
-		for (int i = 0; i < sl->count; i++) {
-			if (sl->servers[i].name == NULL) {
-				pos = i;
-				break;
-			}
-		}
-
-		ntp_server_set_name(&sl->servers[pos], name);
-
-		if (pos == sl->count) {
-			++sl->count;
-		}
-	}
-
-	return 0;
 }
 
 void ntp_server_copy_fn(void *dst, const void *src)

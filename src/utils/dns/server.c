@@ -86,51 +86,7 @@ void dns_server_free(dns_server_t *s)
 	dns_server_init(s);
 }
 
-void dns_server_list_init(dns_server_list_t *sl)
-{
-	sl->list = NULL;
-	sl->size = 0;
-}
-
-int dns_server_list_add_server(dns_server_list_t *sl, char *name)
-{
-	int err = 0;
-	bool name_found = false;
-
-	for (int i = 0; i < sl->size; i++) {
-		if (sl->list[i].name == NULL) {
-			continue;
-		}
-
-		if (strcmp(sl->list[i].name, name) == 0) {
-			name_found = true;
-			break;
-		}
-	}
-
-	if (!name_found) {
-		int pos = sl->size;
-		for (int i = 0; i < sl->size; i++) {
-			if (sl->list[i].name == NULL) {
-				pos = i;
-				break;
-			}
-		}
-
-		if (pos == sl->size) {
-			sl->list = xrealloc(sl->list, sizeof(dns_server_t) * (unsigned long) (sl->size + 1));
-		}
-		dns_server_init(&sl->list[pos]);
-		dns_server_set_name(&sl->list[pos], name);
-		if (pos == sl->size) {
-			++sl->size;
-		}
-	}
-
-	return err;
-}
-
-int dns_server_list_add(dns_server_element_t *head, char *name)
+int dns_server_list_add(dns_server_element_t **head, char *name)
 {
 	int err = 0;
 	dns_server_element_t *iter = NULL, *new_node = NULL, *search = NULL;
@@ -138,14 +94,14 @@ int dns_server_list_add(dns_server_element_t *head, char *name)
 	// search for the name first
 	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
 	search->server.name = name;
-	LL_SEARCH(head, iter, search, element_comparator);
+	LL_SEARCH(*head, iter, search, element_comparator);
 
 	if (iter == NULL) {
 		// add new server if none found
 		new_node = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
 		dns_server_init(&new_node->server);
 		dns_server_set_name(&new_node->server, name);
-		LL_APPEND(head, new_node);
+		LL_APPEND(*head, new_node);
 	}
 
 	// release search node
@@ -154,7 +110,7 @@ int dns_server_list_add(dns_server_element_t *head, char *name)
 	return err;
 }
 
-int dns_server_list_delete(dns_server_element_t *head, char *name)
+int dns_server_list_delete(dns_server_element_t **head, char *name)
 {
 	int err = 0;
 	dns_server_element_t *iter = NULL, *search = NULL;
@@ -162,7 +118,7 @@ int dns_server_list_delete(dns_server_element_t *head, char *name)
 	// search for the name first
 	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
 	search->server.name = name;
-	LL_SEARCH(head, iter, search, element_comparator);
+	LL_SEARCH(*head, iter, search, element_comparator);
 
 	if (iter) {
 		// remove node from the list
@@ -175,7 +131,7 @@ int dns_server_list_delete(dns_server_element_t *head, char *name)
 	return err;
 }
 
-int dns_server_list_set_address(dns_server_element_t *head, char *name, char *address)
+int dns_server_list_set_address(dns_server_element_t **head, char *name, char *address)
 {
 	int err = 0;
 	dns_server_element_t *iter = NULL, *search = NULL;
@@ -183,7 +139,7 @@ int dns_server_list_set_address(dns_server_element_t *head, char *name, char *ad
 	// search for the name first
 	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
 	search->server.name = name;
-	LL_SEARCH(head, iter, search, element_comparator);
+	LL_SEARCH(*head, iter, search, element_comparator);
 
 	if (iter) {
 		dns_server_set_address(&iter->server, address);
@@ -195,7 +151,7 @@ int dns_server_list_set_address(dns_server_element_t *head, char *name, char *ad
 	return err;
 }
 
-int dns_server_list_set_port(dns_server_element_t *head, char *name, int port)
+int dns_server_list_set_port(dns_server_element_t **head, char *name, int port)
 {
 	int err = 0;
 	dns_server_element_t *iter = NULL, *search = NULL;
@@ -203,7 +159,7 @@ int dns_server_list_set_port(dns_server_element_t *head, char *name, int port)
 	// search for the name first
 	search = (dns_server_element_t *) malloc(sizeof(dns_server_element_t));
 	search->server.name = name;
-	LL_SEARCH(head, iter, search, element_comparator);
+	LL_SEARCH(*head, iter, search, element_comparator);
 
 	if (iter) {
 		dns_server_set_port(&iter->server, port);
@@ -215,7 +171,7 @@ int dns_server_list_set_port(dns_server_element_t *head, char *name, int port)
 	return err;
 }
 
-int dns_server_list_dump(dns_server_element_t *head)
+int dns_server_list_dump(dns_server_element_t **head)
 {
 	int err = 0;
 	dns_server_element_t *iter = NULL;
@@ -257,7 +213,7 @@ int dns_server_list_dump(dns_server_element_t *head)
 		goto invalid;
 	}
 
-	LL_FOREACH(head, iter)
+	LL_FOREACH(*head, iter)
 	{
 		dns_server_t *srv = &iter->server;
 
@@ -360,7 +316,7 @@ finish:
 	}
 
 	int count = 0;
-	LL_FOREACH(head, iter)
+	LL_FOREACH(*head, iter)
 	{
 		dns_server_t *srv = &iter->server;
 
@@ -390,7 +346,7 @@ finish:
 		search = malloc(sizeof(*search));
 		search->server.name = cfg.nameserver[i];
 
-		LL_SEARCH(head, iter, search, element_comparator);
+		LL_SEARCH(*head, iter, search, element_comparator);
 		if (iter == NULL) {
 			// nameserver not found -> remove it from the config
 			rc_err = rconf_remove_nameserver(&cfg, cfg.nameserver[i]);
