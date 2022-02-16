@@ -23,6 +23,7 @@
 #include "utils/memory.h"
 #include "utils/dns/server.h"
 #include "utils/uthash/utlist.h"
+#include "common.h"
 
 static int element_comparator(dns_server_element_t *el1, dns_server_element_t *el2);
 

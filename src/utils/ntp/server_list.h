@@ -16,7 +16,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <sysrepo.h>
-#include "sysrepo_types.h"
+#include <sysrepo_types.h>
 #include "utils/uthash/utarray.h"
 
 #define NTP_MAX_SERVERS 20 // TODO: update if needed
@@ -47,8 +47,8 @@ struct ntp_server_list_s {
 	uint8_t count;
 };
 
-extern int ntp_get_server_name(char **name, char *address);
-extern int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entry);
+extern int system_ntp_get_server_name(char **name, char *address);
+extern int system_ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entry);
 int ntp_parse_config(ntp_server_t *server_entry, char *line);
 
 int ntp_server_array_init(sr_session_ctx_t *session, UT_array **servers);

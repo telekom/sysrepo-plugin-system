@@ -1039,7 +1039,7 @@ fail:
 out:
 	endpwent();
 
-	return -1;
+	return error;
 }
 
 int local_user_array_add_user(UT_array **users, const char *name)

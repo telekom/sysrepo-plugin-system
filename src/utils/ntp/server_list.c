@@ -128,7 +128,7 @@ int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array **
 				// this means that the server entry was already in the /etc/ntp.conf
 				// and since we don't know the name, we set it to match the address
 				// now we have to save the entry to the datastore as well
-				error = ntp_set_entry_datastore(session, &server_entry);
+				error = system_ntp_set_entry_datastore(session, &server_entry);
 				if (error != 0) {
 					goto error_out;
 				}
@@ -479,7 +479,7 @@ int ntp_parse_config(ntp_server_t *server_entry, char *line)
 				}
 
 				// get name of server from file
-				error = ntp_get_server_name(&server_entry->name, server_entry->address);
+				error = system_ntp_get_server_name(&server_entry->name, server_entry->address);
 				if (error != 0) {
 					goto error_out;
 				}

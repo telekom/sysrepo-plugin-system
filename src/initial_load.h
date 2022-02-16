@@ -11,13 +11,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef GENERAL_PLUGIN_H
-#define GENERAL_PLUGIN_H
+#ifndef GENERAL_PLUGIN_INITIAL_LOAD_H
+#define GENERAL_PLUGIN_INITIAL_LOAD_H
 
+// project
+#include "context.h"
+
+// lib
 #include <sysrepo.h>
-#include "common.h"
 
-int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data);
-void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data);
+int system_initial_load(system_ctx_t *ctx, sr_session_ctx_t *session);
 
-#endif /* GENERAL_PLUGIN_H */
+#endif // GENERAL_PLUGIN_INITIAL_LOAD_H
