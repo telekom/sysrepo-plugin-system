@@ -15,8 +15,8 @@
 #define GENERAL_PLUGIN_CONTEXT_H
 
 #include <sysrepo.h>
+#include <sysrepo_types.h>
 
-#include "sysrepo_types.h"
 #include "utils/dns/server.h"
 #include "utils/uthash/utarray.h"
 

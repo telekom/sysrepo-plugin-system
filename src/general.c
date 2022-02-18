@@ -46,6 +46,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	// set memory to zero
 	*ctx = (system_ctx_t){0};
+	*private_data = ctx;
 
 	location_file_path = system_get_plugin_file_path(LOCATION_FILENAME, true);
 	if (location_file_path == NULL) {
@@ -168,6 +169,43 @@ out:
 	return error ? SR_ERR_CALLBACK_FAILED : SR_ERR_OK;
 }
 
+void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
+{
+	dns_server_element_t *iter = NULL, *tmp = NULL;
+	system_ctx_t *ctx = (system_ctx_t *) private_data;
+
+	sr_session_ctx_t *startup_session = ctx->startup_session;
+
+	if (startup_session) {
+		sr_session_stop(startup_session);
+	}
+
+	if (ctx->ntp_servers) {
+		ntp_server_array_free(&ctx->ntp_servers);
+	}
+
+	if (ctx->dns_servers_head) {
+		LL_FOREACH_SAFE(ctx->dns_servers_head, iter, tmp)
+		{
+			// free data structure
+			dns_server_free(&iter->server);
+
+			// free list element
+			LL_DELETE(ctx->dns_servers_head, iter);
+			free(iter);
+		}
+	}
+
+	if (ctx->local_users) {
+		local_user_array_free(&ctx->local_users);
+	}
+
+	// free context memory at the end after cleaning up all context members
+	FREE_SAFE(ctx);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "plugin cleanup finished");
+}
+
 static bool system_running_datastore_is_empty_check(void)
 {
 	FILE *sysrepocfg_DS_empty_check = NULL;
@@ -190,35 +228,4 @@ out:
 	}
 
 	return is_empty;
-}
-
-void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
-{
-	dns_server_element_t *iter = NULL, *tmp = NULL;
-	system_ctx_t *ctx = (system_ctx_t *) private_data;
-
-	sr_session_ctx_t *startup_session = ctx->startup_session;
-
-	if (startup_session) {
-		sr_session_stop(startup_session);
-	}
-
-	ntp_server_array_free(&ctx->ntp_servers);
-
-	LL_FOREACH_SAFE(ctx->dns_servers_head, iter, tmp)
-	{
-		// free data structure
-		dns_server_free(&iter->server);
-
-		// free list element
-		LL_DELETE(ctx->dns_servers_head, iter);
-		free(iter);
-	}
-
-	local_user_array_free(&ctx->local_users);
-
-	// free context memory at the end after cleaning up all context members
-	FREE_SAFE(ctx);
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "plugin cleanup finished");
 }

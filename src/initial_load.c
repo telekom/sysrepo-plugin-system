@@ -136,6 +136,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 	authorized_key_t *key_iter = NULL;
 
 	while ((user_iter = utarray_next(ctx->local_users, user_iter)) != NULL) {
+		// SRPLG_LOG_DBG(PLUGIN_NAME, "user name: %s", user_iter->name);
 		error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']", user_iter->name);
 		if (error < 0) {
 			// snprintf error
@@ -149,6 +150,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 		}
 
 		if (!user_iter->nologin) {
+			// SRPLG_LOG_DBG(PLUGIN_NAME, "user password: %s", user_iter->password);
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_iter->name);
 			if (error < 0) {
 				// snprintf error
@@ -163,7 +165,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 		}
 
 		while ((key_iter = utarray_next(user_iter->auth_keys, key_iter)) != NULL) {
-			SRPLG_LOG_DBG(PLUGIN_NAME, "key: %s = %s", key_iter->name, key_iter->algorithm);
+			// SRPLG_LOG_DBG(PLUGIN_NAME, "key: %s = %s", key_iter->name, key_iter->algorithm);
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']", user_iter->name, key_iter->name);
 			if (error < 0) {
 				// snprintf error
@@ -188,6 +190,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 				goto error_out;
 			}
 
+			// SRPLG_LOG_DBG(PLUGIN_NAME, "key: %s = %s", key_iter->name, key_iter->key_data);
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/key-data", user_iter->name, key_iter->name);
 			if (error < 0) {
 				// snprintf error

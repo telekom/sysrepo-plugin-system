@@ -987,8 +987,6 @@ int local_user_array_add_existing(UT_array **users)
 	local_user_t *user_iter = NULL;
 	char dir_buffer[PATH_MAX] = {0};
 
-	setpwent();
-
 	// adding username
 	while ((pwd = getpwent()) != NULL) {
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, HOME_PATH, strlen(HOME_PATH)) == 0) || (pwd->pw_uid == 0)) {
