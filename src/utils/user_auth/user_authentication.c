@@ -13,7 +13,7 @@
 
 #include "user_authentication.h"
 #include "utils/memory.h"
-#include "utils/uthash/utarray.h"
+#include "utarray.h"
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>

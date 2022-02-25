@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <sysrepo.h>
 #include <sysrepo_types.h>
-#include "utils/uthash/utarray.h"
+#include "utarray.h"
 
 #define NTP_MAX_SERVERS 20 // TODO: update if needed
 #define NTP_CONFIG_FILE "/etc/ntp.conf"
@@ -29,7 +29,6 @@
 #define NTP_MAX_PREFER_LEN 6
 #define NTP_MAX_ENTRY_LEN 100
 
-typedef struct ntp_server_list_s ntp_server_list_t;
 typedef struct ntp_server_s ntp_server_t;
 
 struct ntp_server_s {
@@ -40,11 +39,6 @@ struct ntp_server_s {
 	char *iburst;
 	char *prefer;
 	bool delete;
-};
-
-struct ntp_server_list_s {
-	ntp_server_t servers[NTP_MAX_SERVERS];
-	uint8_t count;
 };
 
 extern int system_ntp_get_server_name(char **name, char *address);

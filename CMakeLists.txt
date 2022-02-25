@@ -9,6 +9,7 @@ option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src/
+    ${CMAKE_SOURCE_DIR}/deps/uthash/include
 )
 
 set(SOURCES

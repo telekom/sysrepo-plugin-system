@@ -18,7 +18,7 @@
 #include <sysrepo_types.h>
 
 #include "utils/dns/server.h"
-#include "utils/uthash/utarray.h"
+#include "utarray.h"
 
 typedef struct system_ctx_s {
 	dns_server_element_t *dns_servers_head;

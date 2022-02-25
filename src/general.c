@@ -23,8 +23,8 @@
 #include "utils/user_auth/user_authentication.h"
 
 // uthash library
-#include "utils/uthash/utlist.h"
-#include "utils/uthash/utarray.h"
+#include "utlist.h"
+#include "utarray.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>

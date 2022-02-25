@@ -16,7 +16,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include "utils/uthash/utarray.h"
+#include "utarray.h"
 
 #define MAX_LOCAL_USERS 100 // TODO: update if needed
 #define MAX_AUTH_KEYS 10	// TODO: update if needed

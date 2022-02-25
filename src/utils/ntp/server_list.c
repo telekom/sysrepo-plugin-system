@@ -13,7 +13,7 @@
 
 #include "server_list.h"
 #include "../memory.h"
-#include "utils/uthash/utarray.h"
+#include "utarray.h"
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
