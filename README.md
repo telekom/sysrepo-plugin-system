@@ -41,6 +41,8 @@ First clone the repository:
 
 ```
 $ git clone https://github.com/telekom/sysrepo-plugin-system
+$ git submodule init
+$ git submodule update
 ```
 
 Next, create a build directory and generate the build recipes using CMake:
@@ -73,8 +75,8 @@ $ make -j$(nproc) install
 The plugin requires the `iana-crypt-hash` and `ietf-system` YANG modules to be loaded into the Sysrepo datastore. This can be achieved by invoking the following commands:
 
 ```
-$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang 
-$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang     
+$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang
+$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang
 ```
 
 ## Code of Conduct
@@ -83,7 +85,7 @@ This project has adopted the [Contributor Covenant](https://www.contributor-cove
 
 ## Working Language
 
-We decided to apply _English_ as the primary project language.  
+We decided to apply _English_ as the primary project language.
 
 Consequently, all content will be made available primarily in English. We also ask all interested people to use English as language to create issues, in their code (comments, documentation etc.) and when you send requests to us. The application itself and all end-user facing content will be made available in other languages as needed.
 
