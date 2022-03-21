@@ -18,8 +18,20 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <pwd.h>
+#include <sys/utsname.h>
+#include <sys/sysinfo.h>
+#include <sys/dir.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <linux/sysinfo.h>
+#include <string.h>
 
-#include "general.c"
+#include "common.h"
+#include "callbacks.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
@@ -85,7 +97,6 @@ int __wrap_clock_settime(clockid_t clock_id, const struct timespec *tp)
 	return (int) mock();
 }
 
-
 static void test_correct_set_datetime(void **state)
 {
 	(void) state;
@@ -93,7 +104,7 @@ static void test_correct_set_datetime(void **state)
 
 	expect_value(__wrap_clock_settime, clock_id, CLOCK_REALTIME);
 	will_return(__wrap_clock_settime, 0);
-	rc = set_datetime("2021-02-09T09:02:39Z");
+	rc = system_set_datetime("2021-02-09T09:02:39Z");
 	assert_int_equal(rc, 0);
 
 	return;
@@ -118,11 +129,9 @@ static void test_incorrect_set_datetime(void **state)
 	};
 
 	for (size_t i = 0; i < ARRAY_SIZE(incorrect_table); i++) {
-		rc = set_datetime(incorrect_table[i].datetime);
+		rc = system_set_datetime(incorrect_table[i].datetime);
 		assert_int_equal(rc, incorrect_table[i].expected_rc);
 	}
-
-
 }
 
 static void test_correct_get_datetime_info(void **state)
@@ -135,7 +144,7 @@ static void test_correct_get_datetime_info(void **state)
 	will_return(__wrap_time, 1615406419);
 	will_return(__wrap_sysinfo, 1000);
 	will_return(__wrap_sysinfo, 0);
-	rc = get_datetime_info(current_datetime, boot_datetime);
+	rc = system_get_datetime_info(current_datetime, boot_datetime);
 	assert_int_equal(rc, 0);
 	assert_string_equal(current_datetime, "2021-03-10T21:00:19Z");
 	assert_string_equal(boot_datetime, "2021-03-10T20:43:39Z");
@@ -152,7 +161,7 @@ static void test_incorrect_get_datetime_info(void **state)
 	will_return(__wrap_sysinfo, 0);
 	will_return(__wrap_sysinfo, -1);
 	// Test handling of sysinfo error
-	rc = get_datetime_info(current_datetime, boot_datetime);
+	rc = system_get_datetime_info(current_datetime, boot_datetime);
 	assert_int_equal(rc, -1);
 }
 
@@ -185,7 +194,7 @@ static void test_correct_get_os_info(void **state)
 	will_return(__wrap_uname, os_version_expected);
 	will_return(__wrap_uname, machine_expected);
 	will_return(__wrap_uname, 0);
-	rc = get_os_info(&os_name, &os_release, &os_version, &machine);
+	rc = system_get_os_info(&os_name, &os_release, &os_version, &machine);
 	assert_int_equal(rc, 0);
 	assert_string_equal(os_name, os_name_expected);
 	assert_string_equal(os_release, os_release_expected);
@@ -211,7 +220,7 @@ static void test_incorrect_get_os_info(void **state)
 	will_return(__wrap_uname, os_version_expected);
 	will_return(__wrap_uname, machine_expected);
 	will_return(__wrap_uname, -1);
-	rc = get_os_info(&os_name, &os_release, &os_version, &machine);
+	rc = system_get_os_info(&os_name, &os_release, &os_version, &machine);
 	assert_int_equal(rc, -1);
 	assert_null(os_name);
 	assert_null(os_release);
@@ -245,7 +254,7 @@ static void test_correct_get_timezone_name(void **state)
 
 	will_return(__wrap_readlink, timezone_path);
 	will_return(__wrap_readlink, strlen(timezone_path));
-	rc = get_timezone_name(timezone_name);
+	rc = system_get_timezone_name(timezone_name);
 	assert_int_equal(rc, 0);
 	assert_string_equal(timezone_name, expected_timezone);
 }
@@ -259,7 +268,7 @@ static void test_incorrect_get_timezone_name(void **state)
 
 	will_return(__wrap_readlink, timezone_path);
 	will_return(__wrap_readlink, strlen(timezone_path));
-	rc = get_timezone_name(timezone_name);
+	rc = system_get_timezone_name(timezone_name);
 	assert_int_equal(rc, -1);
 	assert_string_equal(timezone_name, "This shouldn't change");
 }
@@ -273,10 +282,9 @@ static void test_readlink_fail_get_timezone_name(void **state)
 
 	will_return(__wrap_readlink, timezone_path);
 	will_return(__wrap_readlink, -1);
-	rc = get_timezone_name(timezone_name);
+	rc = system_get_timezone_name(timezone_name);
 	assert_int_equal(rc, -1);
 	assert_string_equal(timezone_name, "This shouldn't change");
-
 }
 
 ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
@@ -297,8 +305,8 @@ ssize_t __wrap_readlink(const char *pathname, char *buf, size_t bufsize)
 	}
 
 	memcpy(buf, target, min);
-	
-	return min;
+
+	return (ssize_t) min;
 }
 
 static void test_correct_get_plugin_file_path(void **state)
@@ -308,13 +316,13 @@ static void test_correct_get_plugin_file_path(void **state)
 	bool create = false;
 
 	char *expected_getenv = "/tmp";
-		
+
 	const char *expected_file_path = "/tmp/file";
 	char *file_path;
 
 	will_return(__wrap_getenv, expected_getenv);
 	will_return(__wrap_access, 0);
-	file_path = get_plugin_file_path(filename, create);
+	file_path = system_get_plugin_file_path(filename, create);
 	assert_non_null(file_path);
 	assert_string_equal(file_path, expected_file_path);
 }
@@ -327,7 +335,7 @@ static void test_getenv_fail_get_plugin_file_path(void **state)
 	char *file_path;
 
 	will_return(__wrap_getenv, NULL);
-	file_path = get_plugin_file_path(filename, create);
+	file_path = system_get_plugin_file_path(filename, create);
 	assert_null(file_path);
 }
 
@@ -341,7 +349,7 @@ static void test_access_fail_get_plugin_file_path(void **state)
 
 	will_return(__wrap_getenv, expected_getenv);
 	will_return(__wrap_access, -1);
-	file_path = get_plugin_file_path(filename, create);
+	file_path = system_get_plugin_file_path(filename, create);
 	assert_null(file_path);
 }
 
@@ -356,13 +364,12 @@ static void test_fopen_fail_get_plugin_file_path(void **state)
 	will_return(__wrap_getenv, expected_getenv);
 	will_return(__wrap_access, -1);
 	will_return(__wrap_fopen, NULL);
-	file_path = get_plugin_file_path(filename, create);
+	file_path = system_get_plugin_file_path(filename, create);
 	assert_null(file_path);
-
 }
 
 char *__wrap_getenv(const char *name)
-{	
+{
 	return (char *) mock();
 }
 
@@ -385,7 +392,7 @@ static void test_correct_get_contact_info(void **state)
 
 	pwd1->pw_name = malloc(strlen(CONTACT_USERNAME) + 1);
 	pwd1->pw_name = CONTACT_USERNAME;
-	
+
 	pwd1->pw_gecos = malloc(strlen("user1") + 1);
 	pwd1->pw_gecos = "user1";
 
@@ -394,7 +401,7 @@ static void test_correct_get_contact_info(void **state)
 	will_return(__wrap_getpwent, pwd1);
 	will_return(__wrap_getpwent, NULL);
 	expect_function_call(__wrap_endpwent);
-	rc = get_contact_info(value);
+	rc = system_get_contact_info(value);
 	assert_int_equal(rc, 0);
 	assert_string_equal(value, pwd1->pw_gecos);
 }
@@ -415,9 +422,8 @@ static void test_incorrect_get_contact_info(void **state)
 	char value[MAX_GECOS_LEN];
 	int rc;
 
-
 	will_return(__wrap_getpwent, NULL);
-	rc = get_contact_info(value);
+	rc = system_get_contact_info(value);
 	assert_int_equal(rc, -1);
 }
 
@@ -425,23 +431,43 @@ static void test_correct_set_contact_info(void **state)
 {
 	(void) state;
 	const char *value = "user1";
-	struct passwd pwd[] = {{.pw_name = "test", .pw_gecos = "testcontact",
-			.pw_uid = 1001, .pw_gid = 1001, .pw_dir = "/home/test", .pw_shell = "/bin/bash",},
-			{.pw_name = "root", .pw_gecos = "testcontact",
-			.pw_uid = 0, .pw_gid = 0, .pw_dir = "/root", .pw_shell = "/bin/bash",},
-			{.pw_name = "test2", .pw_gecos = "testcontact",
-			.pw_uid = 1002, .pw_gid = 1002, .pw_dir = "/home/test2", .pw_shell = "/bin/bash",},
+	struct passwd pwd[] = {
+		{
+			.pw_name = "test",
+			.pw_gecos = "testcontact",
+			.pw_uid = 1001,
+			.pw_gid = 1001,
+			.pw_dir = "/home/test",
+			.pw_shell = "/bin/bash",
+		},
+		{
+			.pw_name = "root",
+			.pw_gecos = "testcontact",
+			.pw_uid = 0,
+			.pw_gid = 0,
+			.pw_dir = "/root",
+			.pw_shell = "/bin/bash",
+		},
+		{
+			.pw_name = "test2",
+			.pw_gecos = "testcontact",
+			.pw_uid = 1002,
+			.pw_gid = 1002,
+			.pw_dir = "/home/test2",
+			.pw_shell = "/bin/bash",
+		},
 	};
-	struct stat stat_buf = {0};	
+	struct stat stat_buf = {0};
 	int rc = 0;
 	FILE *fp = NULL;
 	int read_fd = 0;
 	int write_fd = 0;
 #define BUF_SIZE 1000
 	char buf[BUF_SIZE];
-	const char *contact_path= "./tmp_passwd";
+	const char *contact_path = "./tmp_passwd";
 	const char *expected_passwd_path = "./passwd_result";
-	const char *expected_passwd_lines[] = {"test::1001:1001:testcontact:/home/test:/bin/bash\n",
+	const char *expected_passwd_lines[] = {
+		"test::1001:1001:testcontact:/home/test:/bin/bash\n",
 		"root::0:0:user1:/root:/bin/bash\n",
 		"test2::1002:1002:testcontact:/home/test2:/bin/bash\n",
 	};
@@ -455,7 +481,7 @@ static void test_correct_set_contact_info(void **state)
 	will_return(__wrap_getpwent, &pwd[0]);
 	will_return(__wrap_getpwent, &pwd[1]);
 	will_return(__wrap_getpwent, &pwd[2]);
- 	will_return(__wrap_getpwent, NULL);
+	will_return(__wrap_getpwent, NULL);
 
 	will_return(__wrap_rename, 0);
 
@@ -470,7 +496,7 @@ static void test_correct_set_contact_info(void **state)
 
 	will_return(__wrap_remove, 0);
 
-	rc = set_contact_info(value);
+	rc = system_set_contact_info(value);
 	assert_int_equal(rc, 0);
 
 	fp = __real_fopen(expected_passwd_path, "r");
@@ -494,8 +520,8 @@ static void test_incorrect_set_contact_info(void **state)
 
 	will_return(__wrap_fopen, NULL);
 	will_return(__wrap_access, 0);
-	rc = set_contact_info(value);
-	assert_int_equal(rc, -1);	
+	rc = system_set_contact_info(value);
+	assert_int_equal(rc, -1);
 }
 
 int __wrap_open(const char *pathname, int flags, mode_t mode)
@@ -515,7 +541,7 @@ static void test_correct_get_location(void **state)
 	int rc;
 
 	FILE *fp = NULL;
-	
+
 	char *location_file = NULL;
 
 	char expected[1 + 1] = ".";
@@ -523,15 +549,15 @@ static void test_correct_get_location(void **state)
 	will_return(__wrap_getenv, expected);
 	will_return(__wrap_access, 0);
 
-	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
+	location_file = system_get_plugin_file_path(LOCATION_FILENAME, true);
 	assert_non_null(location_file);
 
 	assert_string_equal(location_file, "./location_info");
-	
+
 	fp = __real_fopen(location_file, "w+");
 
 	assert_non_null(fp);
-	
+
 	assert_int_equal(fwrite("location_get", strlen("location_get") + 1, 1, fp), 1);
 	assert_non_null(fp);
 
@@ -540,12 +566,12 @@ static void test_correct_get_location(void **state)
 	will_return(__wrap_getenv, ".");
 	will_return(__wrap_access, 0);
 
-	will_return(__wrap_fopen, fp);	
+	will_return(__wrap_fopen, fp);
 
 	char location[MAX_LOCATION_LENGTH];
 
-	rc = get_location(location);
-	
+	rc = system_get_location(location);
+
 	assert_string_equal(location, "location_get");
 	assert_int_equal(rc, 0);
 }
@@ -556,8 +582,8 @@ static void test_incorrect_get_location(void **state)
 	char location[MAX_LOCATION_LENGTH];
 	int rc;
 
-	will_return(__wrap_getenv, NULL);	
-	rc = get_location(location);
+	will_return(__wrap_getenv, NULL);
+	rc = system_get_location(location);
 	assert_int_equal(rc, -1);
 }
 
@@ -575,7 +601,7 @@ static void test_correct_set_location(void **state)
 
 	FILE *fp = NULL;
 	int fd = -1;
-	
+
 	char *location_file = NULL;
 
 	char expected[1 + 1] = ".";
@@ -583,20 +609,20 @@ static void test_correct_set_location(void **state)
 	will_return(__wrap_getenv, expected);
 	will_return(__wrap_access, 0);
 
-	location_file = get_plugin_file_path(LOCATION_FILENAME, true);
+	location_file = system_get_plugin_file_path(LOCATION_FILENAME, true);
 	assert_non_null(location_file);
 
 	assert_string_equal(location_file, "./location_info");
-	
+
 	will_return(__wrap_getenv, "./");
 	will_return(__wrap_access, 0);
 
-	fd = __real_open(location_file, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
+	fd = __real_open(location_file, O_CREAT | O_WRONLY | O_TRUNC, S_IRWXU);
 	assert_int_not_equal(fd, -1);
 
 	will_return(__wrap_open, fd);
 
-	rc = set_location(location);
+	rc = system_set_location(location);
 	assert_int_equal(rc, 0);
 
 	fp = __real_fopen(location_file, "r");
@@ -604,7 +630,6 @@ static void test_correct_set_location(void **state)
 
 	fgets(location, MAX_LOCATION_LENGTH, fp);
 	assert_string_equal(expected_location, location);
-
 }
 
 static void test_incorrect_set_location(void **state)
@@ -613,7 +638,7 @@ static void test_incorrect_set_location(void **state)
 	char location[MAX_LOCATION_LENGTH] = "loc";
 	int rc;
 
-	will_return(__wrap_getenv, NULL);	
-	rc = set_location(location);
+	will_return(__wrap_getenv, NULL);
+	rc = system_set_location(location);
 	assert_int_equal(rc, -1);
 }

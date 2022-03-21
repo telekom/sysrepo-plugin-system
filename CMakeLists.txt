@@ -9,10 +9,14 @@ option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src/
+    ${CMAKE_SOURCE_DIR}/deps/uthash/include
 )
 
 set(SOURCES
     src/general.c
+    src/common.c
+    src/callbacks.c
+    src/initial_load.c
     src/utils/memory.c
     src/utils/ntp/server_list.c
     src/utils/dns/resolv_conf.c

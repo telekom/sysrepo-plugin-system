@@ -5,7 +5,7 @@
  * BSD 3-Clause license which is available at
  * https://opensource.org/licenses/BSD-3-Clause
  *
- * SPDX-FileCopyrightText: 2021 Deutsche Telekom AG
+ * SPDX-FileCopyrightText: 2022 Deutsche Telekom AG
  * SPDX-FileContributor: Sartura Ltd.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -16,6 +16,8 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <sysrepo.h>
+#include <sysrepo_types.h>
+#include "utarray.h"
 
 #define NTP_MAX_SERVERS 20 // TODO: update if needed
 #define NTP_CONFIG_FILE "/etc/ntp.conf"
@@ -27,7 +29,6 @@
 #define NTP_MAX_PREFER_LEN 6
 #define NTP_MAX_ENTRY_LEN 100
 
-typedef struct ntp_server_list_s ntp_server_list_t;
 typedef struct ntp_server_s ntp_server_t;
 
 struct ntp_server_s {
@@ -40,26 +41,21 @@ struct ntp_server_s {
 	bool delete;
 };
 
-struct ntp_server_list_s {
-	ntp_server_t servers[NTP_MAX_SERVERS];
-	uint8_t count;
-};
-
-extern int ntp_get_server_name(char **name, char *address);
-extern int ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entry);
-
-int ntp_server_list_init(sr_session_ctx_t *session, ntp_server_list_t **sl);
-int ntp_server_list_add_existing_servers(sr_session_ctx_t *session, ntp_server_list_t *sl);
+extern int system_ntp_get_server_name(char **name, char *address);
+extern int system_ntp_set_entry_datastore(sr_session_ctx_t *session, ntp_server_t *server_entry);
 int ntp_parse_config(ntp_server_t *server_entry, char *line);
-int ntp_add_server_entry_to_list(ntp_server_list_t *sl, ntp_server_t *server_entry);
-int ntp_server_list_add_server(ntp_server_list_t *sl, char *name);
-int ntp_server_list_set_address(ntp_server_list_t *sl, char *name, char *address);
-int ntp_server_list_set_port(ntp_server_list_t *sl, char *name, char *port);
-int ntp_server_list_set_assoc_type(ntp_server_list_t *sl, char *name, char *assoc_type);
-int ntp_server_list_set_iburst(ntp_server_list_t *sl, char *name, char *iburst);
-int ntp_server_list_set_prefer(ntp_server_list_t *sl, char *name, char *prefer);
-int ntp_server_list_set_delete(ntp_server_list_t *sl, char *name, bool delete_val);
-void ntp_server_list_free(ntp_server_list_t *sl);
-int save_ntp_config(ntp_server_list_t *sl);
+
+int ntp_server_array_init(sr_session_ctx_t *session, UT_array **servers);
+int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array **servers);
+int ntp_add_server_entry_to_array(UT_array **servers, ntp_server_t *server_entry);
+int ntp_server_array_add_server(UT_array **servers, char *name);
+int ntp_server_array_set_address(UT_array **servers, char *name, char *address);
+int ntp_server_array_set_port(UT_array **servers, char *name, char *port);
+int ntp_server_array_set_assoc_type(UT_array **servers, char *name, char *assoc_type);
+int ntp_server_array_set_iburst(UT_array **servers, char *name, char *iburst);
+int ntp_server_array_set_prefer(UT_array **servers, char *name, char *prefer);
+int ntp_server_array_set_delete(UT_array **servers, char *name, bool delete_val);
+void ntp_server_array_free(UT_array **servers);
+int save_ntp_config(UT_array **servers);
 
 #endif /* NTP_SERVER_LIST_H_ONCE */

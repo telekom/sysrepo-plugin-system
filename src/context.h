@@ -11,13 +11,20 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef GENERAL_PLUGIN_H
-#define GENERAL_PLUGIN_H
+#ifndef GENERAL_PLUGIN_CONTEXT_H
+#define GENERAL_PLUGIN_CONTEXT_H
 
 #include <sysrepo.h>
-#include "common.h"
+#include <sysrepo_types.h>
 
-int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data);
-void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data);
+#include "utils/dns/server.h"
+#include "utarray.h"
 
-#endif /* GENERAL_PLUGIN_H */
+typedef struct system_ctx_s {
+	dns_server_element_t *dns_servers_head;
+	UT_array *ntp_servers;
+	UT_array *local_users;
+	sr_session_ctx_t *startup_session;
+} system_ctx_t;
+
+#endif // GENERAL_PLUGIN_CONTEXT_H
