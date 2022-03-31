@@ -59,6 +59,7 @@ $ mkdir build
 $ cd build
 $ cmake -DSYSTEMD_IFINDEX=1 ..
 ```
+note: SYSTEMD_IFINDEX cmake flag is the index of the interface you wish to configure DNS on (to get a list of indexes for all interfaces, use: `ip link`)
 
 The default configuration builds the plugin as a stand-alone foreground application. To build the plugin as a shared object file for use with `sysrepo-plugind`, run the following instead:
 
