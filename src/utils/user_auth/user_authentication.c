@@ -1010,9 +1010,14 @@ int local_user_array_add_existing(UT_array **users)
 
 		local_user_t *found = utarray_find(*users, &tmp_user, local_user_cmp_fn);
 		if (found) {
-			error = local_user_set_password(found, pwdshd->sp_pwdp);
-			if (error) {
-				goto fail;
+			/* A password field which starts with a exclamation mark means that
+			 * the password is locked.
+			 * Set the value to NULL.
+			 */
+			if (strcmp(pwdshd->sp_pwdp, "!") == 0) {
+				local_user_set_password(found, NULL);
+			} else {
+				local_user_set_password(found, pwdshd->sp_pwdp);
 			}
 		}
 	}
@@ -1239,15 +1244,16 @@ int local_user_array_delete_users(UT_array **users)
 
 	while ((user_iter = utarray_next(*users, user_iter)) != NULL) {
 		remove_user = false;
+		if (user_iter->password != NULL) {
+			if (strcmp(user_iter->password, "") == 0) {
+				// remove the user from passwd and shadow file
+				error = remove_user_entry(user_iter->name);
+				if (error != 0) {
+					goto error_out;
+				}
 
-		if (strcmp(user_iter->password, "") == 0) {
-			// remove the user from passwd and shadow file
-			error = remove_user_entry(user_iter->name);
-			if (error != 0) {
-				goto error_out;
+				remove_user = true;
 			}
-
-			remove_user = true;
 		}
 
 		key_count = 0;

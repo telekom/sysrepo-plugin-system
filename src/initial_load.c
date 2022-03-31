@@ -162,7 +162,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 			goto error_out;
 		}
 
-		if (!user_iter->nologin) {
+		if (!user_iter->nologin && user_iter->password != NULL) {
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "user password: %s", user_iter->password);
 			error = snprintf(tmp_buffer, sizeof(tmp_buffer), "/ietf-system:system/authentication/user[name='%s']/password", user_iter->name);
 			if (error < 0) {
@@ -170,7 +170,7 @@ int system_initial_load_local_users(system_ctx_t *ctx, sr_session_ctx_t *session
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf failed");
 				goto error_out;
 			}
-			error = sr_set_item_str(session, tmp_buffer, user_iter->password ? user_iter->password : "", NULL, SR_EDIT_DEFAULT);
+			error = sr_set_item_str(session, tmp_buffer, user_iter->password, NULL, SR_EDIT_DEFAULT);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error (%d): %s", error, sr_strerror(error));
 				goto error_out;
