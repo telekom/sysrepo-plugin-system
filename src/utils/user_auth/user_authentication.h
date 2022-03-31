@@ -16,6 +16,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <sysrepo.h>
 #include "utarray.h"
 
 #define MAX_LOCAL_USERS 100 // TODO: update if needed

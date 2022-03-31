@@ -276,6 +276,8 @@ int local_user_get_key_info(local_user_t *user, const char *dir)
 	char key_data_buffer[MAX_KEY_DATA_SIZE] = {0};
 
 	if ((FD = opendir(dir)) == NULL) {
+		/* in case .ssh dir doesn't exist, return 1 instead of -1 */
+		SRPLG_LOG_INF("system-plugin", ".ssh directory doesn't exist for user: %s", user->name);
 		error = 1;
 		goto out;
 	} else {
@@ -969,7 +971,9 @@ int local_user_array_init(UT_array **users)
 	utarray_reserve(*users, MAX_LOCAL_USERS);
 
 	error = local_user_array_add_existing(users);
-	if (error) {
+	if (error == 1) {
+		return 0;
+	} else if (error != 0) {
 		return -1;
 	}
 
@@ -1024,7 +1028,10 @@ int local_user_array_add_existing(UT_array **users)
 			}
 		}
 		error = local_user_get_key_info(user_iter, dir_buffer);
-		if (error != 0) {
+		if (error == 1) {
+			/* .ssh dir doesn't exist for this user */
+			continue;
+		} else if (error != 0) {
 			goto fail;
 		}
 	}
