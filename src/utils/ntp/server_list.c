@@ -94,6 +94,11 @@ int ntp_server_array_add_existing_servers(sr_session_ctx_t *session, UT_array **
 	ssize_t read = 0;
 	ntp_server_t server_entry = {0};
 
+	// check if ntp.conf file exists
+	if (access(NTP_CONFIG_FILE, F_OK) != 0) {
+		return 0;
+	}
+
 	// open ntp.conf file for reading
 	fp = fopen(NTP_CONFIG_FILE, "r");
 	if (fp == NULL) {
@@ -321,6 +326,15 @@ int save_ntp_config(UT_array **servers)
 	struct stat stat_buf = {0};
 	off_t offset = 0;
 	ntp_server_t *iter = NULL;
+
+	// check if ntp.conf file exists
+	if (access(NTP_CONFIG_FILE, F_OK) != 0) {
+		// create the ntp.conf file if it's not in /etc/ntp.conf
+		fp = fopen(NTP_CONFIG_FILE, "w");
+		if (fp == NULL) {
+			goto fail;
+		}
+	}
 
 	// open ntp.conf file for reading
 	fp = fopen(NTP_CONFIG_FILE, "r");
