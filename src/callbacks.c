@@ -57,6 +57,7 @@ int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id,
 	sr_change_iter_t *system_change_iter = NULL;
 	sr_change_oper_t operation = SR_OP_CREATED;
 	const struct lyd_node *node = NULL;
+	char path[512] = {0};
 	const char *prev_value = NULL;
 	const char *prev_list = NULL;
 	int prev_default = false;
@@ -83,7 +84,9 @@ int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id,
 	}
 
 	if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &system_change_iter);
+		sprintf(path, "%s//.", xpath);
+
+		error = sr_get_changes_iter(session, path, &system_change_iter);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -171,7 +174,7 @@ int system_module_change_cb(sr_session_ctx_t *session, uint32_t subscription_id,
 	goto out;
 
 error_out:
-	//TODO: handle errors here
+	error = SR_ERR_CALLBACK_FAILED;
 
 out:
 	FREE_SAFE(node_xpath);
