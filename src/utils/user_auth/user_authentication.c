@@ -1012,9 +1012,11 @@ int local_user_array_add_existing(UT_array **users)
 		if (found) {
 			/* A password field which starts with a exclamation mark means that
 			 * the password is locked.
-			 * Set the value to NULL.
+			 * Majority of root accounts are paswordless and therefore contain
+			 * only asterisk in the password field.
+			 * Set the value to NULL in both cases.
 			 */
-			if (strcmp(pwdshd->sp_pwdp, "!") == 0) {
+			if (strcmp(pwdshd->sp_pwdp, "!") == 0 || strcmp(pwdshd->sp_pwdp, "*") == 0) {
 				local_user_set_password(found, NULL);
 			} else {
 				local_user_set_password(found, pwdshd->sp_pwdp);
