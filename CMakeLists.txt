@@ -56,6 +56,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(LIBSYSTEMD)
+find_package(AUGYANG)
 
 target_link_libraries(
     ${PROJECT_NAME}
@@ -77,6 +78,13 @@ if(SYSTEMD_FOUND)
     add_compile_definitions(SYSTEMD)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${SYSTEMD_LIBRARIES})
     include_directories(${SYSTEMD_INCLUDE_DIRS})    
+endif()
+
+# augyang support
+if(AUGYANG_FOUND)
+    add_compile_definitions(AUGYANG)
+else(AUGYANG_FOUND)
+    message(WARNING "AUGYANG not found - augeas support will be disabled")
 endif()
 
 if(ENABLE_BUILD_TESTS)
