@@ -298,6 +298,7 @@ error_out:
 int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
+	bool prepared_changes = false;
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
@@ -310,6 +311,18 @@ int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *va
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname error: %s", strerror(errno));
 			}
+
+#ifdef AUGYANG
+			SRPLG_LOG_DBG(PLUGIN_NAME, "setting /etc/hostname value using srds_augeas DS");
+			// support srds_augeas datastore - modify /etc/hostname yang datastore + /etc/hosts
+			error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", value, NULL, 0);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error: %s", sr_strerror(error));
+			} else {
+				SRPLG_LOG_DBG(PLUGIN_NAME, "/etc/hostname set");
+				prepared_changes = true;
+			}
+#endif
 		}
 	} else if (strcmp(xpath, CONTACT_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {
@@ -387,6 +400,16 @@ int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *va
 			}
 		}
 	}
+
+#ifdef AUGYANG
+	if (prepared_changes) {
+		SRPLG_LOG_DBG(PLUGIN_NAME, "applying /etc/hostname changes");
+		error = sr_apply_changes(ctx->startup_session, 0);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes error: %s", sr_strerror(error));
+		}
+	}
+#endif
 
 	return error;
 }

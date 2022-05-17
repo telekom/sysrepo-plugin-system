@@ -16,6 +16,7 @@
 #include "common.h"
 #include "initial_load.h"
 #include "callbacks.h"
+#include "libyang/printer_data.h"
 #include "utils/memory.h"
 #include "utils/ntp/server_list.h"
 #include "utils/dns/search.h"
@@ -86,6 +87,16 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	// setup private data to carry the plugin context throughout the plugin execution
 	ctx->startup_session = startup_session;
 	*private_data = ctx;
+
+	// sr_data_t *subtree;
+
+	// error = sr_get_subtree(session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", 0, &subtree);
+	// if (error) {
+	// 	SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_subtree error: %d -> %s", error, sr_strerror(error));
+	// 	goto error_out;
+	// }
+
+	// lyd_print_file(stdout, subtree->tree, LYD_JSON, 0);
 
 	if (system_running_datastore_is_empty_check() == true) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "running DS is empty, loading data");

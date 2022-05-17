@@ -13,6 +13,7 @@
 
 #include "initial_load.h"
 #include "common.h"
+#include "sysrepo.h"
 #include "utils/user_auth/user_authentication.h"
 #include "utils/memory.h"
 
