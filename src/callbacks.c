@@ -306,6 +306,17 @@ int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *va
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname error: %s", strerror(errno));
 			}
+
+#ifdef AUGYANG
+			SRPLG_LOG_DBG(PLUGIN_NAME, "removing /etc/hostname value - setting to \"none\"");
+			error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", "none", NULL, 0);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error: %s", sr_strerror(error));
+			} else {
+				SRPLG_LOG_DBG(PLUGIN_NAME, "/etc/hostname deleted");
+				prepared_changes = true;
+			}
+#endif
 		} else {
 			error = sethostname(value, strnlen(value, HOST_NAME_MAX));
 			if (error != 0) {
@@ -314,7 +325,6 @@ int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *va
 
 #ifdef AUGYANG
 			SRPLG_LOG_DBG(PLUGIN_NAME, "setting /etc/hostname value using srds_augeas DS");
-			// support srds_augeas datastore - modify /etc/hostname yang datastore + /etc/hosts
 			error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", value, NULL, 0);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str error: %s", sr_strerror(error));
