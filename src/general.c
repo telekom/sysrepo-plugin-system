@@ -17,6 +17,7 @@
 #include "initial_load.h"
 #include "callbacks.h"
 #include "libyang/printer_data.h"
+#include "sysrepo_types.h"
 #include "utils/memory.h"
 #include "utils/ntp/server_list.h"
 #include "utils/dns/search.h"
@@ -30,7 +31,7 @@
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
 
-static bool system_running_datastore_is_empty_check(void);
+static bool system_check_empty_datastore(sr_session_ctx_t *session);
 
 int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 {
@@ -88,25 +89,17 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 	ctx->startup_session = startup_session;
 	*private_data = ctx;
 
-	// sr_data_t *subtree;
+	SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup datastore");
 
-	// error = sr_get_subtree(session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", 0, &subtree);
-	// if (error) {
-	// 	SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_subtree error: %d -> %s", error, sr_strerror(error));
-	// 	goto error_out;
-	// }
-
-	// lyd_print_file(stdout, subtree->tree, LYD_JSON, 0);
-
-	if (system_running_datastore_is_empty_check() == true) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "running DS is empty, loading data");
-		error = system_initial_load(ctx, session);
+	if (system_check_empty_datastore(startup_session)) {
+		SRPLG_LOG_INF(PLUGIN_NAME, "startup DS is empty, loading initial data");
+		error = system_initial_load(ctx, startup_session);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "load_data error");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_initial_load error");
 			goto error_out;
 		}
 
-		error = sr_copy_config(startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -217,26 +210,24 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data)
 	SRPLG_LOG_INF(PLUGIN_NAME, "plugin cleanup finished");
 }
 
-static bool system_running_datastore_is_empty_check(void)
+static bool system_check_empty_datastore(sr_session_ctx_t *session)
 {
-	FILE *sysrepocfg_DS_empty_check = NULL;
-	bool is_empty = false;
+	int error = SR_ERR_OK;
+	bool is_empty = true;
+	sr_val_t *values = NULL;
+	size_t value_cnt = 0;
 
-	sysrepocfg_DS_empty_check = popen(SYSREPOCFG_EMPTY_CHECK_COMMAND, "r");
-	if (sysrepocfg_DS_empty_check == NULL) {
-		SRPLG_LOG_WRN(PLUGIN_NAME, "could not execute %s", SYSREPOCFG_EMPTY_CHECK_COMMAND);
-		is_empty = true;
+	error = sr_get_items(session, HOSTNAME_YANG_PATH, 0, SR_OPER_DEFAULT, &values, &value_cnt);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_items() error (%d): %s", error, sr_strerror(error));
 		goto out;
 	}
 
-	if (fgetc(sysrepocfg_DS_empty_check) == EOF) {
-		is_empty = true;
+	if (value_cnt > 0) {
+		sr_free_values(values, value_cnt);
+		is_empty = false;
 	}
 
 out:
-	if (sysrepocfg_DS_empty_check) {
-		pclose(sysrepocfg_DS_empty_check);
-	}
-
 	return is_empty;
 }
