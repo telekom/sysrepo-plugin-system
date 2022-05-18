@@ -298,7 +298,10 @@ error_out:
 int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *value, sr_change_oper_t operation)
 {
 	int error = 0;
+
+#ifdef AUGYANG
 	bool prepared_changes = false;
+#endif
 
 	if (strcmp(xpath, HOSTNAME_YANG_PATH) == 0) {
 		if (operation == SR_OP_DELETED) {

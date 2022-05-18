@@ -26,10 +26,12 @@ int system_set_config_value(system_ctx_t *ctx, const char *xpath, const char *va
 int system_set_ntp(system_ctx_t *ctx, const char *xpath, char *value);
 int system_set_dns(system_ctx_t *ctx, const char *xpath, char *value, sr_change_oper_t operation);
 int system_set_user_authentication(system_ctx_t *ctx, const char *xpath, char *value);
+
 #ifndef SYSTEMD
 static int set_dns_timeout(char *value);
 static int set_dns_attempts(char *value);
 #endif
+
 int system_set_contact_info(const char *value);
 int system_set_timezone(const char *value);
 int system_set_datetime(char *datetime);
