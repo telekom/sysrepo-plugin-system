@@ -16,7 +16,7 @@
 #include "startup.h"
 
 // check if the datastore which the session uses is empty (startup or running)
-static bool bridging_datastore_is_empty(sr_session_ctx_t *session);
+static bool system_check_empty_datastore(sr_session_ctx_t *session);
 
 int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 {
@@ -45,21 +45,21 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	ctx->startup_session = startup_session;
 
-	if (bridging_datastore_is_empty(startup_session)) {
+	if (system_check_empty_datastore(startup_session)) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datasore is empty");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Loading initial system data");
-		// error = system_startup_load_data(ctx, startup_session);
-		// if (error) {
-		// 	SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading initial data into the startup datastore... exiting");
-		// 	goto error_out;
-		// }
+		error = system_startup_load_data(ctx, startup_session);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading initial data into the startup datastore... exiting");
+			goto error_out;
+		}
 
-		// // copy contents of the startup session to the current running session
-		// error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
-		// if (error) {
-		// 	SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-		// 	goto error_out;
-		// }
+		// copy contents of the startup session to the current running session
+		error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
 	}
 
 	goto out;
@@ -87,7 +87,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 	FREE_SAFE(ctx);
 }
 
-static bool bridging_datastore_is_empty(sr_session_ctx_t *session)
+static bool system_check_empty_datastore(sr_session_ctx_t *session)
 {
 	int error = SR_ERR_OK;
 	bool is_empty = true;
