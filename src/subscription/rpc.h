@@ -3,7 +3,7 @@
 
 #include <sysrepo_types.h>
 
-struct rpc {
+struct system_rpc {
 	const char *path;
 	sr_rpc_cb cb;
 };

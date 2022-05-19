@@ -40,7 +40,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	*private_data = ctx;
 
 	// module changes
-	struct module_change module_changes[] = {
+	struct system_module_change module_changes[] = {
 		{
 			SYSTEM_CONTACT_YANG_PATH,
 			system_change_contact,
@@ -96,7 +96,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	};
 
 	// rpcs
-	struct rpc rpcs[] = {
+	struct system_rpc rpcs[] = {
 		{
 			SYSTEM_SET_CURRENT_DATETIME_RPC_YANG_PATH,
 			system_rpc_set_current_datetime,
@@ -109,6 +109,18 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		{
 			SYSTEM_SHUTDOWN_RPC_YANG_PATH,
 			system_rpc_shutdown,
+		},
+	};
+
+	// operational getters
+	struct system_operational oper[] = {
+		{
+			SYSTEM_STATE_PLATFORM_YANG_PATH "/*",
+			system_operational_platform,
+		},
+		{
+			SYSTEM_STATE_CLOCK_YANG_PATH "/*",
+			system_operational_clock,
 		},
 	};
 
@@ -140,7 +152,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	// subscribe every module change
 	for (size_t i = 0; i < ARRAY_SIZE(module_changes); i++) {
-		const struct module_change *change = &module_changes[i];
+		const struct system_module_change *change = &module_changes[i];
 
 		// in case of work on a specific callback set it to NULL
 		if (change->cb) {
@@ -154,13 +166,26 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	// subscribe every rpc
 	for (size_t i = 0; i < ARRAY_SIZE(rpcs); i++) {
-		const struct rpc *rpc = &rpcs[i];
+		const struct system_rpc *rpc = &rpcs[i];
 
 		// in case of work on a specific callback set it to NULL
 		if (rpc->cb) {
-			error = sr_rpc_subscribe(running_session, rpc->path, rpc->cb, *private_data, 0, SR_SUBSCR_NO_THREAD, &subscription);
+			error = sr_rpc_subscribe(running_session, rpc->path, rpc->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
+				goto error_out;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(oper); i++) {
+		const struct system_operational *op = &oper[i];
+
+		// in case of work on a specific callback set it to NULL
+		if (op->cb) {
+			error = sr_oper_get_subscribe(running_session, BASE_YANG_MODEL, op->path, op->cb, NULL, SR_SUBSCR_DEFAULT, &subscription);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_oper_get_subscribe() error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 		}

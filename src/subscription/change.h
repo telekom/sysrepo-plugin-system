@@ -3,7 +3,7 @@
 
 #include <sysrepo_types.h>
 
-struct module_change {
+struct system_module_change {
 	const char *path;
 	sr_module_change_cb cb;
 };
