@@ -53,6 +53,7 @@ struct dns_server_element_s {
 void dns_server_init(dns_server_t *s);
 void dns_server_set_name(dns_server_t *s, char *name);
 int dns_server_set_address(dns_server_t *s, char *addr);
+char *dns_server_get_address_str(dns_server_t *s);
 void dns_server_set_port(dns_server_t *s, int port);
 void dns_server_free(dns_server_t *s);
 

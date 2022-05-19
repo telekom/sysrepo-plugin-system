@@ -65,6 +65,11 @@ int dns_server_set_address(dns_server_t *s, char *addr)
 	return err;
 }
 
+char *dns_server_get_address_str(dns_server_t *s)
+{
+	return get_server_ip(s);
+}
+
 static void dns_server_set_delete(dns_server_t *s, bool delete)
 {
 	s->delete = delete;
