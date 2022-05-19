@@ -91,21 +91,20 @@ static bool system_check_empty_datastore(sr_session_ctx_t *session)
 {
 	int error = SR_ERR_OK;
 	bool is_empty = true;
-	sr_data_t *test_data = NULL;
+	sr_val_t *values = NULL;
+	size_t value_cnt = 0;
 
-	error = sr_get_subtree(session, SYSTEM_SYSTEM_CONTAINER_YANG_PATH, 0, &test_data);
+	error = sr_get_items(session, SYSTEM_HOSTNAME_YANG_PATH, 0, SR_OPER_DEFAULT, &values, &value_cnt);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_subtree() error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_items() error (%d): %s", error, sr_strerror(error));
 		goto out;
 	}
 
-	if (test_data->tree != NULL && lyd_child(test_data->tree) != NULL) {
-		// main container found: datastore is not empty
+	if (value_cnt > 0) {
+		sr_free_values(values, value_cnt);
 		is_empty = false;
 	}
 
 out:
-	sr_release_data(test_data);
-
 	return is_empty;
 }
