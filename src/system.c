@@ -158,7 +158,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 		// in case of work on a specific callback set it to NULL
 		if (rpc->cb) {
-			error = sr_rpc_subscribe(running_session, rpc->path, rpc->cb, *private_data, 0, 1, &subscription);
+			error = sr_rpc_subscribe(running_session, rpc->path, rpc->cb, *private_data, 0, SR_SUBSCR_NO_THREAD, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
 				goto error_out;
