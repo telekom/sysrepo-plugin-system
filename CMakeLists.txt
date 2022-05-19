@@ -17,6 +17,11 @@ set(SOURCES
     src/ly_tree.c
     src/startup.c
     src/utils/memory.c
+
+    # subs
+    src/subscription/change.c
+    src/subscription/operational.c
+    src/subscription/rpc.c
 )
 
 if (NOT PLUGIN)
