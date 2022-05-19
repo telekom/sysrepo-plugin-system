@@ -7,10 +7,9 @@
 #include <sysrepo/xpath.h>
 #include <assert.h>
 #include <errno.h>
+#include <pwd.h>
 
 // helpers //
-
-static int system_set_contact_info(const char *value);
 
 ////
 
@@ -59,28 +58,8 @@ int system_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, c
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
 
-			switch (operation) {
-				case SR_OP_CREATED:
-				case SR_OP_MODIFIED:
-					// edit contact
-					error = system_set_contact_info(node_value);
-					if (error) {
-						SRPLG_LOG_DBG(PLUGIN_NAME, "system_set_contact_info() failed (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_DELETED:
-					// remove contact
-					error = system_set_contact_info("<UNDEFINED>");
-					if (error) {
-						SRPLG_LOG_DBG(PLUGIN_NAME, "system_set_contact_info() failed (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_MOVED:
-					// N/A
-					break;
-			}
+			// don't do anything - keep location stored in the datastore, no need to apply anywhere for now
+			// TODO: discuss
 		}
 	}
 
@@ -90,7 +69,7 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -563,11 +542,4 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
 	return SR_ERR_CALLBACK_FAILED;
-}
-
-static int system_set_contact_info(const char *value)
-{
-	int error = 0;
-
-	return error;
 }
