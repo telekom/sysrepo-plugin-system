@@ -43,56 +43,56 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		sr_module_change_cb cb;
 	} change_cbs[] = {
 		{
-			.path = SYSTEM_CONTACT_YANG_PATH,
-			.cb = system_change_contact,
+			SYSTEM_CONTACT_YANG_PATH,
+			system_change_contact,
 		},
 		{
-			.path = SYSTEM_HOSTNAME_YANG_PATH,
-			.cb = system_change_hostname,
+			SYSTEM_HOSTNAME_YANG_PATH,
+			system_change_hostname,
 		},
 		{
-			.path = SYSTEM_LOCATION_YANG_PATH,
-			.cb = system_change_location,
+			SYSTEM_LOCATION_YANG_PATH,
+			system_change_location,
 		},
 		{
-			.path = SYSTEM_TIMEZONE_NAME_YANG_PATH,
-			.cb = system_change_timezone_name,
+			SYSTEM_TIMEZONE_NAME_YANG_PATH,
+			system_change_timezone_name,
 		},
 		{
-			.path = SYSTEM_TIMEZONE_UTC_OFFSET_YANG_PATH,
-			.cb = system_change_timezone_utc_offset,
+			SYSTEM_TIMEZONE_UTC_OFFSET_YANG_PATH,
+			system_change_timezone_utc_offset,
 		},
 		{
-			.path = SYSTEM_NTP_ENABLED_YANG_PATH,
-			.cb = system_change_ntp_enabled,
+			SYSTEM_NTP_ENABLED_YANG_PATH,
+			system_change_ntp_enabled,
 		},
 		{
-			.path = SYSTEM_NTP_SERVER_YANG_PATH,
-			.cb = system_change_ntp_server,
+			SYSTEM_NTP_SERVER_YANG_PATH,
+			system_change_ntp_server,
 		},
 		{
-			.path = SYSTEM_DNS_RESOLVER_SEARCH_YANG_PATH,
-			.cb = system_change_dns_resolver_search,
+			SYSTEM_DNS_RESOLVER_SEARCH_YANG_PATH,
+			system_change_dns_resolver_search,
 		},
 		{
-			.path = SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH,
-			.cb = system_change_dns_resolver_server,
+			SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH,
+			system_change_dns_resolver_server,
 		},
 		{
-			.path = SYSTEM_DNS_RESOLVER_TIMEOUT_YANG_PATH,
-			.cb = system_change_dns_resolver_timeout,
+			SYSTEM_DNS_RESOLVER_TIMEOUT_YANG_PATH,
+			system_change_dns_resolver_timeout,
 		},
 		{
-			.path = SYSTEM_DNS_RESOLVER_ATTEMPTS_YANG_PATH,
-			.cb = system_change_dns_resolver_attempts,
+			SYSTEM_DNS_RESOLVER_ATTEMPTS_YANG_PATH,
+			system_change_dns_resolver_attempts,
 		},
 		{
-			.path = SYSTEM_AUTHENTICATION_USER_AUTHENTICATION_ORDER_YANG_PATH,
-			.cb = system_change_authentication_user_authentication_order,
+			SYSTEM_AUTHENTICATION_USER_AUTHENTICATION_ORDER_YANG_PATH,
+			system_change_authentication_user_authentication_order,
 		},
 		{
-			.path = SYSTEM_AUTHENTICATION_USER_YANG_PATH,
-			.cb = system_change_authentication_user,
+			SYSTEM_AUTHENTICATION_USER_YANG_PATH,
+			system_change_authentication_user,
 		},
 	};
 
