@@ -2,6 +2,7 @@
 #include "common.h"
 #include "context.h"
 #include "libyang/tree_data.h"
+#include "sysrepo_types.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
@@ -10,6 +11,9 @@
 #include <pwd.h>
 
 // helpers //
+
+static int system_set_timezone_name(const char *value);
+static int system_delete_timezone_name(void);
 
 ////
 
@@ -281,11 +285,31 @@ int system_change_timezone_name(sr_session_ctx_t *session, uint32_t subscription
 			node_value = lyd_get_value(node);
 
 			// make sure we're reading the right node
-			assert(strcmp(node_name, "contact") == 0);
+			assert(strcmp(node_name, "timezone-name") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+
+			switch (operation) {
+				case SR_OP_CREATED:
+				case SR_OP_MODIFIED:
+					error = system_set_timezone_name(node_value);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_set_timezone_name() failed (%d)", error);
+						goto error_out;
+					}
+					break;
+				case SR_OP_DELETED:
+					error = system_delete_timezone_name();
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_timezone_name() failed (%d)", error);
+						goto error_out;
+					}
+					break;
+				case SR_OP_MOVED:
+					break;
+			}
 		}
 	}
 
@@ -336,7 +360,7 @@ int system_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscr
 			node_value = lyd_get_value(node);
 
 			// make sure we're reading the right node
-			assert(strcmp(node_name, "contact") == 0);
+			assert(strcmp(node_name, "timezone-utc-offset") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
@@ -542,4 +566,69 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
 	return SR_ERR_CALLBACK_FAILED;
+}
+
+static int system_set_timezone_name(const char *value)
+{
+	int error = 0;
+	char path_buffer[PATH_MAX] = {0};
+
+	error = snprintf(path_buffer, sizeof(path_buffer), "%s/%s", SYSTEM_TIMEZONE_DIR, value);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+		goto error_out;
+	}
+
+	error = access(path_buffer, F_OK);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "access() failed (%d)", error);
+		goto error_out;
+	}
+
+	if (access(SYSTEM_LOCALTIME_FILE, F_OK) == 0) {
+		error = unlink(SYSTEM_LOCALTIME_FILE);
+		if (error != 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "unlink() failed (%d)", error);
+			goto error_out;
+		}
+	}
+
+	error = symlink(path_buffer, SYSTEM_LOCALTIME_FILE);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "symlink() failed (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
+static int system_delete_timezone_name(void)
+{
+	int error = 0;
+
+	error = access(SYSTEM_LOCALTIME_FILE, F_OK);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "/etc/localtime doesn't exist");
+		goto error_out;
+	}
+
+	error = unlink(SYSTEM_LOCALTIME_FILE);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "unlink() failed (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
 }

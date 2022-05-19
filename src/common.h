@@ -50,6 +50,9 @@
 #define SYSTEM_DATETIME_BUFFER_SIZE 30
 #define SYSTEM_UTS_LEN 64
 
+#define SYSTEM_TIMEZONE_DIR "/usr/share/zoneinfo"
+#define SYSTEM_LOCALTIME_FILE "/etc/localtime"
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #endif // SYSTEM_PLUGIN_COMMON_H
