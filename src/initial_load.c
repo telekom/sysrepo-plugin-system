@@ -14,9 +14,12 @@
 #include "initial_load.h"
 #include "common.h"
 #include "sysrepo.h"
+#include "sysrepo_types.h"
+#include "utils/dns/server.h"
 #include "utils/user_auth/user_authentication.h"
 #include "utils/memory.h"
 
+#include <utlist.h>
 #include <errno.h>
 
 // split initial load into parts
@@ -239,5 +242,46 @@ int system_initial_load_dns_servers(system_ctx_t *ctx, sr_session_ctx_t *session
 {
 	int error = 0;
 
+	dns_server_element_t *iter = NULL;
+	char path[PATH_MAX] = {0};
+	char value_path[PATH_MAX] = {0};
+
+	error = dns_server_list_load(&ctx->dns_servers_head);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "dns_server_list_load() failed");
+		goto error_out;
+	}
+
+	LL_FOREACH(ctx->dns_servers_head, iter)
+	{
+		// name
+		if ((error = snprintf(path, sizeof(path), "%s[name=\"%s\"]", DNS_RESOLVER_SERVER_YANG_PATH, iter->server.name)) < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed: %d", error);
+			goto error_out;
+		}
+		error = sr_set_item_str(session, path, iter->server.name, NULL, 0);
+		if (error != SR_ERR_OK) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str() failed (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+
+		// address
+		char *address = dns_server_get_address_str(&iter->server);
+		if ((error = snprintf(value_path, sizeof(value_path), "%s/udp-and-tcp/address", path)) < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed: %d", error);
+			goto error_out;
+		}
+		error = sr_set_item_str(session, value_path, address, NULL, 0);
+		if (error != SR_ERR_OK) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str() failed (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+out:
 	return error;
 }

@@ -26,6 +26,7 @@
 #include "common.h"
 
 static int element_comparator(dns_server_element_t *el1, dns_server_element_t *el2);
+static char *get_server_ip(dns_server_t *s);
 
 void dns_server_init(dns_server_t *s)
 {
@@ -64,6 +65,11 @@ int dns_server_set_address(dns_server_t *s, char *addr)
 	return err;
 }
 
+char *dns_server_get_address_str(dns_server_t *s)
+{
+	return get_server_ip(s);
+}
+
 static void dns_server_set_delete(dns_server_t *s, bool delete)
 {
 	s->delete = delete;
@@ -85,6 +91,172 @@ void dns_server_free(dns_server_t *s)
 	}
 #endif
 	dns_server_init(s);
+}
+
+int dns_server_list_load(dns_server_element_t **head)
+{
+	int error = 0;
+
+#ifdef SYSTEMD
+	int r;
+	sd_bus_message *msg = NULL;
+	sd_bus_error sdb_err = SD_BUS_ERROR_NULL;
+	sd_bus *bus = NULL;
+	dns_server_t tmp_server = {0};
+	int tmp_ifindex = 0;
+	size_t tmp_length = 0;
+
+	r = sd_bus_open_system(&bus);
+	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
+		goto finish;
+	}
+
+	r = sd_bus_get_property(
+		bus,
+		"org.freedesktop.resolve1",
+		"/org/freedesktop/resolve1",
+		"org.freedesktop.resolve1.Manager",
+		"DNS",
+		&sdb_err,
+		&msg,
+		"a(iiay)");
+
+	if (r < 0) {
+		goto invalid;
+	}
+
+	r = sd_bus_message_enter_container(msg, 'a', "(iiay)");
+	if (r < 0) {
+		goto invalid;
+	}
+
+	for (;;) {
+		const void *data;
+		r = sd_bus_message_enter_container(msg, 'r', "iiay");
+		if (r < 0) {
+			goto invalid;
+		}
+		if (r == 0) {
+			break;
+		}
+		r = sd_bus_message_read(msg, "ii", &tmp_ifindex, &tmp_server.addr.af);
+		if (r < 0) {
+			goto invalid;
+		}
+
+		switch (tmp_server.addr.af) {
+			case AF_INET:
+				r = sd_bus_message_read_array(msg, 'y', (const void **) &data, &tmp_length);
+				if (r >= 0) {
+					memcpy(tmp_server.addr.value.ip4, data, tmp_length);
+				}
+				break;
+			case AF_INET6:
+				r = sd_bus_message_read_array(msg, 'y', (const void **) &data, &tmp_length);
+				if (r >= 0) {
+					memcpy(tmp_server.addr.value.ip4, data, tmp_length);
+				}
+				break;
+			default:
+				// unknown address family -> for now abort
+				r = -1;
+				break;
+		}
+		if (r < 0) {
+			goto invalid;
+		}
+
+		r = sd_bus_message_exit_container(msg);
+		if (r < 0) {
+			goto invalid;
+		}
+
+		// got all the data -> get the name from the map and add it to the list
+		char *ip = get_server_ip(&tmp_server);
+		if (ip == NULL) {
+			goto invalid;
+		}
+
+		error = dns_server_list_add(head, ip);
+		if (error != 0) {
+			free(ip);
+			goto finish;
+		}
+
+		error = dns_server_list_set_address(head, ip, ip);
+		if (error != 0) {
+			free(ip);
+			goto finish;
+		}
+
+		// free converted ip
+		free(ip);
+	}
+
+	goto finish;
+
+invalid:
+	sd_bus_message_unref(msg);
+	sd_bus_flush_close_unref(bus);
+	SRPLG_LOG_ERR(PLUGIN_NAME, "sd-bus failure: %d, sdb_err contents: '%s'", r, sdb_err.message);
+	goto error_out;
+
+finish:
+	sd_bus_message_unref(msg);
+	sd_bus_flush_close_unref(bus);
+#else
+	rconf_error_t rc_err = rconf_error_none;
+	rconf_t rconf;
+
+	rconf_init(&rconf);
+	rc_err = rconf_load_file(&rconf, RESOLV_CONF_PATH);
+
+	if (rc_err != rconf_error_none) {
+		err = (int) rc_err;
+		goto out;
+	}
+
+	// names exist in the file -> use them to load data
+	for (int i = 0; i < rconf.nameserver_n; i++) {
+		const char *ip = rconf.nameserver[i];
+		const char *name = nameserver_map_get_name_for_addr(&map, ip);
+		if (!name) {
+			// no such name found -> use IP as a name and add that mapping to the map for later saving to file
+			name = ip;
+		}
+
+		// finally, add to the servers list
+		SRP_LOG_DBG("nameserver %d => %s = %s", i, name, ip);
+		error = dns_server_list_add_server(sl, (char *) name);
+		if (err != 0) {
+			break;
+		}
+		error = dns_server_list_set_address(sl, (char *) name, (char *) ip);
+		if (error != 0) {
+			break;
+		}
+	}
+
+	if (error) {
+		goto invalid;
+	}
+	goto valid;
+invalid:
+	// handle errors
+	SRP_LOG_ERRMSG("Unable to fully load server list for the dns-resolver container...");
+valid:
+	rconf_free(&rconf);
+#endif // SYSTEMD
+	if (error != 0) {
+		goto error_out;
+	}
+
+	goto out;
+error_out:
+	error = -1;
+out:
+	return error;
 }
 
 int dns_server_list_add(dns_server_element_t **head, char *name)
@@ -382,4 +554,37 @@ finish:
 static int element_comparator(dns_server_element_t *el1, dns_server_element_t *el2)
 {
 	return strcmp(el1->server.name, el2->server.name);
+}
+
+static char *get_server_ip(dns_server_t *s)
+{
+	char *ip = NULL;
+#ifdef SYSTEMD
+	const char *retval = NULL;
+	switch (s->addr.af) {
+		case AF_INET:
+			// allocate max characters
+			ip = (char *) malloc(sizeof(char) * (INET_ADDRSTRLEN + 1));
+			retval = inet_ntop(AF_INET, s->addr.value.ip4, ip, INET_ADDRSTRLEN);
+			if (retval == NULL) {
+				// error converting -> free ip allocated buffer and return NULL
+				free(ip);
+				ip = NULL;
+			}
+			break;
+		case AF_INET6:
+			ip = (char *) malloc(sizeof(char) * (INET6_ADDRSTRLEN + 1));
+			retval = inet_ntop(AF_INET6, s->addr.value.ip6, ip, INET6_ADDRSTRLEN);
+			if (retval == NULL) {
+				free(ip);
+				ip = NULL;
+			}
+			break;
+		default:
+			break;
+	}
+#else
+	ip = xstrdup(s->addr.value);
+#endif
+	return ip;
 }
