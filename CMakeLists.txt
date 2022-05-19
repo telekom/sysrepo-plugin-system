@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(sysrepo-plugin-general C)
+project(sysrepo-plugin-system C)
 
 include(CompileOptions.cmake)
 
@@ -13,16 +13,10 @@ include_directories(
 )
 
 set(SOURCES
-    src/general.c
-    src/common.c
-    src/callbacks.c
-    src/initial_load.c
+    src/system.c
+    src/ly_tree.c
+    src/startup.c
     src/utils/memory.c
-    src/utils/ntp/server_list.c
-    src/utils/dns/resolv_conf.c
-    src/utils/dns/search.c
-    src/utils/dns/server.c
-    src/utils/user_auth/user_authentication.c
 )
 
 if (NOT PLUGIN)
