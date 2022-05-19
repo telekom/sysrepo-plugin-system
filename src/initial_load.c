@@ -13,9 +13,12 @@
 
 #include "initial_load.h"
 #include "common.h"
+#include "sysrepo.h"
+#include "utils/dns/server.h"
 #include "utils/user_auth/user_authentication.h"
 #include "utils/memory.h"
 
+#include <utlist.h>
 #include <errno.h>
 
 // split initial load into parts
@@ -238,5 +241,23 @@ int system_initial_load_dns_servers(system_ctx_t *ctx, sr_session_ctx_t *session
 {
 	int error = 0;
 
+	dns_server_element_t *iter = NULL;
+
+	error = dns_server_list_load(&ctx->dns_servers_head);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "dns_server_list_load() failed");
+		goto error_out;
+	}
+
+	LL_FOREACH(ctx->dns_servers_head, iter)
+	{
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Loading DNS server %s", iter->server.name);
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+out:
 	return error;
 }
