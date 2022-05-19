@@ -15,6 +15,8 @@
 // bridging
 #include "startup.h"
 #include "subscription/change.h"
+#include "subscription/operational.h"
+#include "subscription/rpc.h"
 
 // check if the datastore which the session uses is empty (startup or running)
 static bool system_check_empty_datastore(sr_session_ctx_t *session);
@@ -38,10 +40,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	*private_data = ctx;
 
 	// module changes
-	struct module_change {
-		const char *path;
-		sr_module_change_cb cb;
-	} change_cbs[] = {
+	struct module_change module_changes[] = {
 		{
 			SYSTEM_CONTACT_YANG_PATH,
 			system_change_contact,
@@ -96,6 +95,23 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		},
 	};
 
+	// rpcs
+	struct rpc rpcs[] = {
+		{
+			SYSTEM_SET_CURRENT_DATETIME_RPC_YANG_PATH,
+			system_rpc_set_current_datetime,
+		},
+		{
+			SYSTEM_RESTART_RPC_YANG_PATH,
+			system_rpc_restart,
+		},
+
+		{
+			SYSTEM_SHUTDOWN_RPC_YANG_PATH,
+			system_rpc_shutdown,
+		},
+	};
+
 	connection = sr_session_get_connection(running_session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
 	if (error) {
@@ -123,12 +139,30 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	}
 
 	// subscribe every module change
-	for (size_t i = 0; i < sizeof(change_cbs) / sizeof(change_cbs[0]); i++) {
-		const struct module_change *change = &change_cbs[i];
-		error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe() error for \"%s\" (%d): %s", change->path, error, sr_strerror(error));
-			goto error_out;
+	for (size_t i = 0; i < ARRAY_SIZE(module_changes); i++) {
+		const struct module_change *change = &module_changes[i];
+
+		// in case of work on a specific callback set it to NULL
+		if (change->cb) {
+			error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe() error for \"%s\" (%d): %s", change->path, error, sr_strerror(error));
+				goto error_out;
+			}
+		}
+	}
+
+	// subscribe every rpc
+	for (size_t i = 0; i < ARRAY_SIZE(rpcs); i++) {
+		const struct rpc *rpc = &rpcs[i];
+
+		// in case of work on a specific callback set it to NULL
+		if (rpc->cb) {
+			error = sr_rpc_subscribe(running_session, rpc->path, rpc->cb, *private_data, 0, 1, &subscription);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_rpc_subscribe error (%d): %s", error, sr_strerror(error));
+				goto error_out;
+			}
 		}
 	}
 

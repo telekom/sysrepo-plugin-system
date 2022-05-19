@@ -7,6 +7,10 @@
 
 #define SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/" BASE_YANG_MODEL ":system"
 
+#define SYSTEM_SET_CURRENT_DATETIME_RPC_YANG_PATH "/" BASE_YANG_MODEL ":set-current-datetime"
+#define SYSTEM_RESTART_RPC_YANG_PATH "/" BASE_YANG_MODEL ":system-restart"
+#define SYSTEM_SHUTDOWN_RPC_YANG_PATH "/" BASE_YANG_MODEL ":system-shutdown"
+
 // system //
 #define SYSTEM_CONTACT_YANG_PATH SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/contact"
 #define SYSTEM_HOSTNAME_YANG_PATH SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/hostname"
@@ -29,5 +33,7 @@
 // authentication //
 #define SYSTEM_AUTHENTICATION_USER_AUTHENTICATION_ORDER_YANG_PATH SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/authentication/user-authentication-order"
 #define SYSTEM_AUTHENTICATION_USER_YANG_PATH SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/authentication/user"
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #endif // SYSTEM_PLUGIN_COMMON_H
