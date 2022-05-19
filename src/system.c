@@ -14,6 +14,7 @@
 
 // bridging
 #include "startup.h"
+#include "subscription/change.h"
 
 // check if the datastore which the session uses is empty (startup or running)
 static bool system_check_empty_datastore(sr_session_ctx_t *session);
@@ -35,6 +36,65 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	*ctx = (system_ctx_t){0};
 
 	*private_data = ctx;
+
+	// module changes
+	struct module_change {
+		const char *path;
+		sr_module_change_cb cb;
+	} change_cbs[] = {
+		{
+			.path = SYSTEM_CONTACT_YANG_PATH,
+			.cb = system_change_contact,
+		},
+		{
+			.path = SYSTEM_HOSTNAME_YANG_PATH,
+			.cb = system_change_hostname,
+		},
+		{
+			.path = SYSTEM_LOCATION_YANG_PATH,
+			.cb = system_change_location,
+		},
+		{
+			.path = SYSTEM_TIMEZONE_NAME_YANG_PATH,
+			.cb = system_change_timezone_name,
+		},
+		{
+			.path = SYSTEM_TIMEZONE_UTC_OFFSET_YANG_PATH,
+			.cb = system_change_timezone_utc_offset,
+		},
+		{
+			.path = SYSTEM_NTP_ENABLED_YANG_PATH,
+			.cb = system_change_ntp_enabled,
+		},
+		{
+			.path = SYSTEM_NTP_SERVER_YANG_PATH,
+			.cb = system_change_ntp_server,
+		},
+		{
+			.path = SYSTEM_DNS_RESOLVER_SEARCH_YANG_PATH,
+			.cb = system_change_dns_resolver_search,
+		},
+		{
+			.path = SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH,
+			.cb = system_change_dns_resolver_server,
+		},
+		{
+			.path = SYSTEM_DNS_RESOLVER_TIMEOUT_YANG_PATH,
+			.cb = system_change_dns_resolver_timeout,
+		},
+		{
+			.path = SYSTEM_DNS_RESOLVER_ATTEMPTS_YANG_PATH,
+			.cb = system_change_dns_resolver_attempts,
+		},
+		{
+			.path = SYSTEM_AUTHENTICATION_USER_AUTHENTICATION_ORDER_YANG_PATH,
+			.cb = system_change_authentication_user_authentication_order,
+		},
+		{
+			.path = SYSTEM_AUTHENTICATION_USER_YANG_PATH,
+			.cb = system_change_authentication_user,
+		},
+	};
 
 	connection = sr_session_get_connection(running_session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
@@ -58,6 +118,16 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+	}
+
+	// subscribe every module change
+	for (size_t i = 0; i < sizeof(change_cbs) / sizeof(change_cbs[0]); i++) {
+		const struct module_change *change = &change_cbs[i];
+		error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe() error for \"%s\" (%d): %s", change->path, error, sr_strerror(error));
 			goto error_out;
 		}
 	}
