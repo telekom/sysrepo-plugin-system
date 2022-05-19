@@ -2,6 +2,7 @@
 #include "common.h"
 #include "utils/memory.h"
 
+#include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #include <string.h>
 #include <errno.h>
@@ -22,8 +23,9 @@ struct system_clock {
 
 // helpers //
 
-static int get_platform_info(struct system_platform *platform);
-static void free_platform_info(struct system_platform *platform);
+static int system_get_platform_info(struct system_platform *platform);
+static void system_free_platform_info(struct system_platform *platform);
+static int system_get_clock_info(struct system_clock *clock);
 
 ////
 
@@ -33,16 +35,17 @@ int system_operational_platform(sr_session_ctx_t *session, uint32_t sub_id, cons
 	struct system_platform platform = {0};
 	const struct ly_ctx *ly_ctx = NULL;
 
-	error = get_platform_info(&platform);
+	error = system_get_platform_info(&platform);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "get_platform_info() error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_get_platform_info() error: %s", strerror(errno));
 		goto error_out;
 	}
 
 	if (*parent == NULL) {
 		ly_ctx = sr_acquire_context(sr_session_get_connection(session));
 		if (ly_ctx == NULL) {
-			goto out;
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_acquire_context() failed");
+			goto error_out;
 		}
 		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_PATH, NULL, 0, 0);
 	}
@@ -58,19 +61,45 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
 
-	free_platform_info(&platform);
+	system_free_platform_info(&platform);
 
 	return error;
 }
 
 int system_operational_clock(sr_session_ctx_t *session, uint32_t sub_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
 {
-	int error = 0;
+	int error = SR_ERR_OK;
+	struct system_clock clock = {0};
+	const struct ly_ctx *ly_ctx = NULL;
+
+	error = system_get_clock_info(&clock);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_get_platform_info() error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	if (*parent == NULL) {
+		ly_ctx = sr_acquire_context(sr_session_get_connection(session));
+		if (ly_ctx == NULL) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_acquire_context() failed");
+			goto error_out;
+		}
+		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_PATH, NULL, 0, 0);
+	}
+
+	lyd_new_path(*parent, NULL, SYSTEM_STATE_CLOCK_CURRENT_DATETIME_YANG_PATH, clock.current_datetime, 0, 0);
+	lyd_new_path(*parent, NULL, SYSTEM_STATE_CLOCK_BOOT_DATETIME_YANG_PATH, clock.boot_datetime, 0, 0);
+
+	goto out;
+
+error_out:
+	error = SR_ERR_CALLBACK_FAILED;
+out:
 
 	return error;
 }
 
-static int get_platform_info(struct system_platform *platform)
+static int system_get_platform_info(struct system_platform *platform)
 {
 	struct utsname uname_data = {0};
 
@@ -86,7 +115,7 @@ static int get_platform_info(struct system_platform *platform)
 	return 0;
 }
 
-static void free_platform_info(struct system_platform *platform)
+static void system_free_platform_info(struct system_platform *platform)
 {
 	if (platform->os_name) {
 		FREE_SAFE(platform->os_name);
@@ -100,4 +129,46 @@ static void free_platform_info(struct system_platform *platform)
 	if (platform->machine) {
 		FREE_SAFE(platform->machine);
 	}
+}
+
+static int system_get_clock_info(struct system_clock *clock)
+{
+	time_t now = 0;
+	struct tm *ts = {0};
+	struct sysinfo s_info = {0};
+	time_t uptime_seconds = 0;
+
+	now = time(NULL);
+
+	ts = localtime(&now);
+	if (ts == NULL) {
+		return -1;
+	}
+
+	/* must satisfy constraint:
+		"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[\+\-]\d{2}:\d{2})"
+		TODO: Add support for:
+			- 2021-02-09T06:02:39.234+01:00
+			- 2021-02-09T06:02:39.234Z
+			- 2021-02-09T06:02:39+11:11
+	*/
+
+	strftime(clock->current_datetime, SYSTEM_DATETIME_BUFFER_SIZE, "%FT%TZ", ts);
+
+	if (sysinfo(&s_info) != 0) {
+		return -1;
+	}
+
+	uptime_seconds = s_info.uptime;
+
+	time_t diff = now - uptime_seconds;
+
+	ts = localtime(&diff);
+	if (ts == NULL) {
+		return -1;
+	}
+
+	strftime(clock->boot_datetime, SYSTEM_DATETIME_BUFFER_SIZE, "%FT%TZ", ts);
+
+	return 0;
 }
