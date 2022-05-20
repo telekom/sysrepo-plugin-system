@@ -61,8 +61,7 @@ int system_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, c
 			assert(strcmp(node_name, "contact") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
 			// don't do anything - keep location stored in the datastore, no need to apply anywhere for now
 			// TODO: discuss
@@ -124,8 +123,7 @@ int system_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, 
 			assert(strcmp(node_name, "hostname") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
 			switch (operation) {
 				case SR_OP_CREATED:
@@ -232,8 +230,7 @@ int system_change_location(sr_session_ctx_t *session, uint32_t subscription_id, 
 			assert(strcmp(node_name, "location") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
 			// don't do anything - keep location stored in the datastore, no need to apply anywhere
 		}
@@ -290,8 +287,7 @@ int system_change_timezone_name(sr_session_ctx_t *session, uint32_t subscription
 			assert(strcmp(node_name, "timezone-name") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
 			switch (operation) {
 				case SR_OP_CREATED:
@@ -365,8 +361,7 @@ int system_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscr
 			assert(strcmp(node_name, "timezone-utc-offset") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 		}
 	}
 
@@ -470,8 +465,7 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 			assert(strcmp(node_name, "search") == 0);
 
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
 			switch (operation) {
 				case SR_OP_CREATED:
@@ -481,6 +475,7 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 						SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_search() error (%d)", error);
 						goto error_out;
 					}
+					break;
 				case SR_OP_DELETED:
 					error = system_delete_dns_search(node_value);
 					if (error) {
@@ -506,6 +501,19 @@ out:
 int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
+
+	// sysrepo
+	sr_change_iter_t *changes_iterator = NULL;
+	sr_change_oper_t operation = SR_OP_CREATED;
+	const char *prev_value = NULL, *prev_list = NULL;
+	int prev_default;
+
+	const char *node_name = NULL;
+	const char *node_value = NULL;
+
+	// libyang
+	const struct lyd_node *node = NULL;
+
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -518,6 +526,39 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		// before iterating changes fetch all current DNS records in the system
+
+		// after that - iterate over changes and apply them to the list in memory
+
+		// finally, apply the modified list to the system
+		error = sr_get_changes_iter(session, xpath, &changes_iterator);
+		if (error != SR_ERR_OK) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+
+		// collect all search values
+		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
+			// fetch node info
+			node_name = LYD_NAME(node);
+			node_value = lyd_get_value(node);
+
+			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+
+			switch (operation) {
+				case SR_OP_CREATED:
+				case SR_OP_MODIFIED:
+					break;
+				case SR_OP_DELETED:
+					if (!strcmp(node_name, "address")) {
+						// delete by address
+					}
+					break;
+				case SR_OP_MOVED:
+					break;
+			}
+		}
 	}
 
 	goto out;
@@ -542,6 +583,7 @@ int system_change_dns_resolver_timeout(sr_session_ctx_t *session, uint32_t subsc
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
 
 	goto out;
@@ -566,9 +608,11 @@ int system_change_dns_resolver_attempts(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
 
 	goto out;
+
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
