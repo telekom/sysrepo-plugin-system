@@ -8,6 +8,12 @@
 // uthash
 #include <utlist.h>
 
+// systemd or no-systemd
+#ifdef SYSTEMD
+#include <systemd/sd-bus.h>
+#else
+#endif
+
 // helpers
 
 static int system_gather_search_values(system_dns_search_element_t **head);
@@ -110,12 +116,164 @@ out:
 static int system_gather_search_values(system_dns_search_element_t **head)
 {
 	int error = 0;
+	system_dns_search_element_t *new_el = NULL;
+	system_dns_search_t tmp_search = {0};
+
+#ifdef SYSTEMD
+	int r;
+	sd_bus_message *msg = NULL;
+	sd_bus_error sdb_err = SD_BUS_ERROR_NULL;
+	sd_bus *bus = NULL;
+
+	r = sd_bus_open_system(&bus);
+	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
+		goto invalid;
+	}
+
+	r = sd_bus_get_property(
+		bus,
+		"org.freedesktop.resolve1",
+		"/org/freedesktop/resolve1",
+		"org.freedesktop.resolve1.Manager",
+		"Domains",
+		&sdb_err,
+		&msg,
+		"a(isb)");
+
+	if (r < 0) {
+		goto invalid;
+	}
+
+	// message recieved -> enter msg and get needed info
+	r = sd_bus_message_enter_container(msg, 'a', "(isb)");
+	if (r < 0) {
+		goto invalid;
+	}
+
+	for (;;) {
+		r = sd_bus_message_enter_container(msg, 'r', "isb");
+		if (r < 0) {
+			goto invalid;
+		}
+
+		if (r == 0) {
+			// done with reading data
+			break;
+		}
+
+		// read Domain struct
+		r = sd_bus_message_read(msg, "isb", &tmp_search.ifindex, &tmp_search.domain, &tmp_search.search);
+		if (r < 0) {
+			goto invalid;
+		}
+
+		// leave Domain struct
+		r = sd_bus_message_exit_container(msg);
+		if (r < 0) {
+			goto invalid;
+		}
+
+		// all read normally - allocate new element
+		new_el = (system_dns_search_element_t *) malloc(sizeof(system_dns_search_element_t));
+		if (!new_el) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "malloc() failed for new_el");
+			goto invalid;
+		}
+
+		// copy values read from sd-bus
+		new_el->search = tmp_search;
+
+		// append to the list
+		LL_APPEND(*head, new_el);
+	}
+
+	goto finish;
+
+invalid:
+	SRPLG_LOG_ERR(PLUGIN_NAME, "sd-bus failure (%d): %s", r, sdb_err.message);
+	error = -1;
+
+finish:
+	sd_bus_message_unref(msg);
+	sd_bus_flush_close_unref(bus);
+#else
+#endif
+
 	return error;
 }
 
 static int system_apply_search_values(system_dns_search_element_t *head)
 {
 	int error = 0;
+	system_dns_search_element_t *search_iter_el = NULL;
+
+#ifdef SYSTEMD
+	int r;
+	sd_bus_error sdb_err = SD_BUS_ERROR_NULL;
+	sd_bus_message *msg = NULL;
+	sd_bus_message *reply = NULL;
+	sd_bus *bus = NULL;
+
+	r = sd_bus_open_system(&bus);
+	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
+		goto invalid;
+	}
+
+	r = sd_bus_message_new_method_call(
+		bus,
+		&msg,
+		"org.freedesktop.resolve1",
+		"/org/freedesktop/resolve1",
+		"org.freedesktop.resolve1.Manager",
+		"SetLinkDomains");
+	if (r < 0) {
+		goto invalid;
+	}
+
+	// set ifindex to the first value in the list
+	r = sd_bus_message_append(msg, "i", SYSTEMD_IFINDEX);
+	if (r < 0) {
+		goto invalid;
+	}
+
+	r = sd_bus_message_open_container(msg, 'a', "(sb)");
+	if (r < 0) {
+		goto invalid;
+	}
+
+	LL_FOREACH(head, search_iter_el)
+	{
+		r = sd_bus_message_append(msg, "(sb)", search_iter_el->search.domain, search_iter_el->search.search);
+		if (r < 0) {
+			goto invalid;
+		}
+	}
+
+	r = sd_bus_message_close_container(msg);
+	if (r < 0) {
+		goto invalid;
+	}
+
+	r = sd_bus_call(bus, msg, 0, &sdb_err, &reply);
+	if (r < 0) {
+		goto invalid;
+	}
+
+	//SRP_LOG_INF("Set domains successfully!");
+	goto finish;
+
+invalid:
+	SRPLG_LOG_ERR(PLUGIN_NAME, "sd-bus failure (%d): %s", r, sdb_err.message);
+	error = -1;
+
+finish:
+	sd_bus_message_unref(msg);
+	sd_bus_flush_close_unref(bus);
+#else
+#endif
+
 	return error;
 }
 

@@ -78,6 +78,8 @@ struct system_ip_address_s {
 
 struct system_dns_search_s {
 	const char *domain;
+	int ifindex;
+	int search;
 };
 
 struct system_dns_server_s {
