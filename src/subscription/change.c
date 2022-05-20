@@ -798,6 +798,17 @@ static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t 
 
 	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
+	switch (operation) {
+		case SR_OP_CREATED:
+		case SR_OP_MODIFIED:
+			// add a new DNS record to the system
+			break;
+		case SR_OP_DELETED:
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
+
 	return error;
 }
 

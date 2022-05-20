@@ -113,6 +113,20 @@ out:
 	return error;
 }
 
+int system_add_dns_server(const char *value)
+{
+	int error = 0;
+
+	return error;
+}
+
+int system_delete_dns_server(const char *value)
+{
+	int error = 0;
+
+	return error;
+}
+
 static int system_gather_search_values(system_dns_search_element_t **head)
 {
 	int error = 0;
