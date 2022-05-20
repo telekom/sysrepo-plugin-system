@@ -95,7 +95,7 @@ struct system_dns_search_element_s {
 
 struct system_dns_server_element_s {
 	system_dns_server_t server;
-	struct system_dns_server_s *next;
+	struct system_dns_server_element_s *next;
 };
 
 #endif // SYSTEM_PLUGIN_COMMON_H
