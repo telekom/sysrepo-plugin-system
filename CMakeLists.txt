@@ -22,6 +22,9 @@ set(SOURCES
     src/subscription/change.c
     src/subscription/operational.c
     src/subscription/rpc.c
+
+    # change parts
+    src/subscription/change/dns_resolver.c
 )
 
 if (NOT PLUGIN)

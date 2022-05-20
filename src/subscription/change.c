@@ -1,8 +1,10 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
-#include "libyang/tree_data.h"
-#include "sysrepo_types.h"
+
+// submodules - helpers
+#include "change/dns_resolver.h"
+#include "utils/memory.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
@@ -427,6 +429,19 @@ out:
 int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
+
+	// sysrepo
+	sr_change_iter_t *changes_iterator = NULL;
+	sr_change_oper_t operation = SR_OP_CREATED;
+	const char *prev_value = NULL, *prev_list = NULL;
+	int prev_default;
+
+	const char *node_name = NULL;
+	const char *node_value = NULL;
+
+	// libyang
+	const struct lyd_node *node = NULL;
+
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -439,11 +454,51 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		error = sr_get_changes_iter(session, xpath, &changes_iterator);
+		if (error != SR_ERR_OK) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+
+		// collect all search values
+		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
+			// fetch node info
+			node_name = LYD_NAME(node);
+			node_value = lyd_get_value(node);
+
+			// make sure we're reading the right node
+			assert(strcmp(node_name, "search") == 0);
+
+			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s", node_name);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Value: %s; Operation: %d", node_value, operation);
+
+			switch (operation) {
+				case SR_OP_CREATED:
+				case SR_OP_MODIFIED:
+					error = system_add_dns_search(node_value);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_search() error (%d)", error);
+						goto error_out;
+					}
+				case SR_OP_DELETED:
+					error = system_delete_dns_search(node_value);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_dns_search() error (%d)", error);
+						goto error_out;
+					}
+					break;
+				case SR_OP_MOVED:
+					break;
+			}
+		}
 	}
 
 	goto out;
+
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
