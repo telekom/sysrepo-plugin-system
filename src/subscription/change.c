@@ -802,12 +802,30 @@ static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t 
 		case SR_OP_CREATED:
 		case SR_OP_MODIFIED:
 			// add a new DNS record to the system
+			error = system_add_dns_server(node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_server() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case SR_OP_DELETED:
+			// delete from the system based on the address value
+			error = system_delete_dns_server(node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_dns_server() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case SR_OP_MOVED:
 			break;
 	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 
 	return error;
 }
@@ -825,6 +843,8 @@ static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *se
 	assert(strcmp(node_name, "port") == 0);
 
 	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+
+	// unsupported for now
 
 	return error;
 }

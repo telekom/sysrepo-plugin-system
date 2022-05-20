@@ -170,7 +170,46 @@ out:
 int system_delete_dns_server(const char *value)
 {
 	int error = 0;
+	system_dns_server_element_t *servers_head = NULL;
+	system_dns_server_element_t *found_el = NULL;
+	system_dns_server_element_t to_remove_el = {0};
 
+	error = system_gather_server_values(&servers_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_gather_search_values() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_set_dns_server_address(&to_remove_el.server, value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_set_dns_server_address() failed (%d)", error);
+		goto error_out;
+	}
+
+	LL_SEARCH(servers_head, found_el, &to_remove_el, system_server_comparator);
+
+	if (found_el) {
+		// delete found element from the list
+		LL_DELETE(servers_head, found_el);
+	} else {
+		// error - unable to find value in the system to remove
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find search value of %s in the system", value);
+		goto error_out;
+	}
+
+	// set search values to the system
+	error = system_apply_server_values(servers_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_server_values() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return error;
 }
 
