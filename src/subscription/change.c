@@ -4,6 +4,7 @@
 
 // submodules - helpers
 #include "change/dns_resolver.h"
+#include "sysrepo_types.h"
 #include "utils/memory.h"
 
 #include <sysrepo.h>
@@ -14,8 +15,16 @@
 
 // helpers //
 
+typedef int (*system_change_cb)(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
+
 static int system_set_timezone_name(const char *value);
 static int system_delete_timezone_name(void);
+static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, system_change_cb cb);
+
+// dns-resolver/server callbacks:
+static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
 
 ////
 
@@ -455,7 +464,6 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 			goto error_out;
 		}
 
-		// collect all search values
 		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
 			// fetch node info
 			node_name = LYD_NAME(node);
@@ -502,19 +510,9 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 {
 	int error = SR_ERR_OK;
 
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
-
+	char xpath_buffer[PATH_MAX] = {0};
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
@@ -526,38 +524,40 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		// before iterating changes fetch all current DNS records in the system
-
-		// after that - iterate over changes and apply them to the list in memory
-
-		// finally, apply the modified list to the system
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		// name change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for name failed: %d", error);
 			goto error_out;
 		}
 
-		// collect all search values
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
+		// address change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//address", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_address);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
+			goto error_out;
+		}
 
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-			switch (operation) {
-				case SR_OP_CREATED:
-				case SR_OP_MODIFIED:
-					break;
-				case SR_OP_DELETED:
-					if (!strcmp(node_name, "address")) {
-						// delete by address
-					}
-					break;
-				case SR_OP_MOVED:
-					break;
-			}
+		// port change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//port", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_port);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
+			goto error_out;
 		}
 	}
 
@@ -729,5 +729,91 @@ error_out:
 	error = -1;
 
 out:
+	return error;
+}
+
+static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, system_change_cb cb)
+{
+	int error = 0;
+
+	// sysrepo
+	sr_change_iter_t *changes_iterator = NULL;
+	sr_change_oper_t operation = SR_OP_CREATED;
+	const char *prev_value = NULL, *prev_list = NULL;
+	int prev_default;
+
+	// libyang
+	const struct lyd_node *node = NULL;
+
+	error = sr_get_changes_iter(session, xpath, &changes_iterator);
+	if (error != SR_ERR_OK) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+
+	while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
+		error = cb(ctx, session, node, operation);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "callback failed for xpath %s", xpath);
+			goto error_out;
+		}
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
+static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+{
+	int error = 0;
+	const char *node_name = NULL;
+	const char *node_value = NULL;
+
+	node_name = LYD_NAME(node);
+	node_value = lyd_get_value(node);
+
+	assert(strcmp(node_name, "name") == 0);
+
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+
+	return error;
+}
+
+static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+{
+	int error = 0;
+
+	const char *node_name = NULL;
+	const char *node_value = NULL;
+
+	node_name = LYD_NAME(node);
+	node_value = lyd_get_value(node);
+
+	assert(strcmp(node_name, "address") == 0);
+
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+
+	return error;
+}
+
+static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+{
+	int error = 0;
+
+	const char *node_name = NULL;
+	const char *node_value = NULL;
+
+	node_name = LYD_NAME(node);
+	node_value = lyd_get_value(node);
+
+	assert(strcmp(node_name, "port") == 0);
+
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+
 	return error;
 }

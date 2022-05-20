@@ -74,7 +74,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			system_change_dns_resolver_search,
 		},
 		{
-			SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH "//*",
+			SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH,
 			system_change_dns_resolver_server,
 		},
 		{
