@@ -53,6 +53,9 @@
 #define SYSTEM_TIMEZONE_DIR "/usr/share/zoneinfo"
 #define SYSTEM_LOCALTIME_FILE "/etc/localtime"
 
+#define SYSTEM_HOSTNAME_LENGTH_MAX 64
+#define SYSTEM_TIMEZONE_NAME_LENGTH_MAX (14 * 3)
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 typedef struct system_dns_search_s system_dns_search_t;

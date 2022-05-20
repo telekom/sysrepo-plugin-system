@@ -1,8 +1,11 @@
 #include "startup.h"
 #include "common.h"
+#include "libyang/tree_data.h"
 #include "ly_tree.h"
 
 #include <sysrepo.h>
+#include <unistd.h>
+#include <errno.h>
 
 // helpers
 
@@ -65,6 +68,9 @@ error_out:
 	error = -1;
 
 out:
+	if (system_container_node) {
+		lyd_free_tree(system_container_node);
+	}
 	sr_release_context(conn_ctx);
 	return error;
 }
@@ -72,6 +78,26 @@ out:
 static int system_startup_load_hostname(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
+
+	error = gethostname(hostname_buffer, sizeof(hostname_buffer));
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "gethostname() error: %s", strerror(errno));
+		goto error_out;
+	}
+
+	error = system_ly_tree_create_hostname(ly_ctx, parent_node, hostname_buffer);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_hostname() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return error;
 }
 
@@ -90,5 +116,42 @@ static int system_startup_load_location(system_ctx_t *ctx, sr_session_ctx_t *ses
 static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	char timezone_name_buffer[PATH_MAX] = {0};
+	char timezone_path_buffer[PATH_MAX] = {0};
+
+	ssize_t len = 0;
+	size_t start = 0;
+
+	len = readlink(SYSTEM_LOCALTIME_FILE, timezone_path_buffer, sizeof(timezone_path_buffer) - 1);
+	if (len == -1) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "readlink() error");
+		goto error_out;
+	}
+
+	// terminate path
+	timezone_path_buffer[len] = 0;
+
+	// assert start is equal to the timezone dir path
+	if (strncmp(timezone_path_buffer, SYSTEM_TIMEZONE_DIR, sizeof(SYSTEM_TIMEZONE_DIR) - 1) != 0) {
+		goto error_out;
+	}
+
+	// fetch the rest of the path into timezone_name_buffer
+	start = sizeof(SYSTEM_TIMEZONE_DIR);
+	strcpy(timezone_name_buffer, &timezone_path_buffer[start]);
+
+	// set timezone-name leaf
+	error = system_ly_tree_create_timezone_name(ly_ctx, parent_node, timezone_name_buffer);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return error;
 }

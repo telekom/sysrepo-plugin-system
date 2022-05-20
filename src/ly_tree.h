@@ -16,6 +16,7 @@ int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct l
 int system_ly_tree_create_hostname(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *hostname);
 int system_ly_tree_create_contact(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *contact);
 int system_ly_tree_create_location(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *location);
+int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *timezone_name);
 
 // operational
 int system_ly_tree_create_system_state_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_state_container_node);
