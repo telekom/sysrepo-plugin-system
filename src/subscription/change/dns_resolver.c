@@ -28,7 +28,7 @@ static int system_set_dns_server_address(system_dns_server_t *server, const char
 
 ////
 
-int system_add_dns_search(const char *value)
+int system_create_dns_search(const char *value)
 {
 	int error = 0;
 	system_dns_search_element_t *search_head = NULL;
@@ -55,6 +55,54 @@ int system_add_dns_search(const char *value)
 
 	// append element to the list
 	LL_APPEND(search_head, new_search_el);
+
+	// set search values to the system
+	error = system_apply_search_values(search_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_search_values() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
+int system_modify_dns_search(const char *prev_value, const char *new_value)
+{
+	int error = 0;
+	system_dns_search_element_t *search_head = NULL;
+	system_dns_search_element_t *found_el = NULL;
+	system_dns_search_element_t to_remove_el = {0};
+
+	error = system_gather_search_values(&search_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_gather_search_values() error (%d)", error);
+		goto error_out;
+	}
+
+	// create element for search
+	to_remove_el.search.domain = xstrdup(prev_value);
+	if (!to_remove_el.search.domain) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "xstrdup() for domain failed");
+		goto error_out;
+	}
+
+	LL_SEARCH(search_head, found_el, &to_remove_el, system_search_comparator);
+
+	if (found_el) {
+		// search element found -> change its domain
+		free((char *) found_el->search.domain);
+		found_el->search.domain = xstrdup(new_value);
+	} else {
+		// error - unable to find value in the system to remove
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find search value of %s in the system", prev_value);
+		goto error_out;
+	}
 
 	// set search values to the system
 	error = system_apply_search_values(search_head);
@@ -119,7 +167,7 @@ out:
 	return error;
 }
 
-int system_add_dns_server(const char *value)
+int system_create_dns_server_address(const char *value)
 {
 	int error = 0;
 	system_dns_server_element_t *servers_head = NULL;
@@ -167,7 +215,57 @@ out:
 	return error;
 }
 
-int system_delete_dns_server(const char *value)
+int system_modify_dns_server_address(const char *prev_value, const char *new_value)
+{
+	int error = 0;
+	system_dns_server_element_t *servers_head = NULL;
+	system_dns_server_element_t *found_el = NULL;
+	system_dns_server_element_t to_remove_el = {0};
+
+	error = system_gather_server_values(&servers_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_gather_search_values() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_set_dns_server_address(&to_remove_el.server, prev_value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_set_dns_server_address() failed (%d)", error);
+		goto error_out;
+	}
+
+	LL_SEARCH(servers_head, found_el, &to_remove_el, system_server_comparator);
+
+	if (found_el) {
+		// change the address value of the server
+		error = system_set_dns_server_address(&found_el->server, new_value);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_set_dns_server_address() failed for %s", new_value);
+			goto error_out;
+		}
+	} else {
+		// error - unable to find value in the system to remove
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find server value of %s in the system", prev_value);
+		goto error_out;
+	}
+
+	// set search values to the system
+	error = system_apply_server_values(servers_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_server_values() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
+int system_delete_dns_server_address(const char *value)
 {
 	int error = 0;
 	system_dns_server_element_t *servers_head = NULL;
@@ -193,7 +291,7 @@ int system_delete_dns_server(const char *value)
 		LL_DELETE(servers_head, found_el);
 	} else {
 		// error - unable to find value in the system to remove
-		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find search value of %s in the system", value);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find server value of %s in the system", value);
 		goto error_out;
 	}
 

@@ -15,16 +15,16 @@
 
 // helpers //
 
-typedef int (*system_change_cb)(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
+typedef int (*system_change_cb)(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 
 static int system_set_timezone_name(const char *value);
 static int system_delete_timezone_name(void);
 static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, system_change_cb cb);
 
 // dns-resolver/server callbacks:
-static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 
 ////
 
@@ -477,12 +477,14 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 
 			switch (operation) {
 				case SR_OP_CREATED:
-				case SR_OP_MODIFIED:
-					error = system_add_dns_search(node_value);
+					error = system_create_dns_search(node_value);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_search() error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_create_dns_search() error (%d)", error);
 						goto error_out;
 					}
+					break;
+				case SR_OP_MODIFIED:
+					// find current one and replace it
 					break;
 				case SR_OP_DELETED:
 					error = system_delete_dns_search(node_value);
@@ -752,7 +754,7 @@ static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *s
 	}
 
 	while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-		error = cb(ctx, session, node, operation);
+		error = cb(ctx, session, prev_value, node, operation);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "callback failed for xpath %s", xpath);
 			goto error_out;
@@ -768,7 +770,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 	const char *node_name = NULL;
@@ -784,7 +786,7 @@ static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *se
 	return error;
 }
 
-static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 
@@ -800,9 +802,14 @@ static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t 
 
 	switch (operation) {
 		case SR_OP_CREATED:
+			error = system_create_dns_server_address(node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_server() error (%d)", error);
+				goto error_out;
+			}
+			break;
 		case SR_OP_MODIFIED:
-			// add a new DNS record to the system
-			error = system_add_dns_server(node_value);
+			error = system_modify_dns_server_address(prev_value, node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_server() error (%d)", error);
 				goto error_out;
@@ -810,7 +817,7 @@ static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t 
 			break;
 		case SR_OP_DELETED:
 			// delete from the system based on the address value
-			error = system_delete_dns_server(node_value);
+			error = system_delete_dns_server_address(node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_dns_server() error (%d)", error);
 				goto error_out;
@@ -830,7 +837,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 
