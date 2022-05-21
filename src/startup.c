@@ -15,6 +15,9 @@ static int system_startup_load_hostname(system_ctx_t *ctx, sr_session_ctx_t *ses
 static int system_startup_load_contact(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_location(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_ntp(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_dns_resolver(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_authentication(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
 ////
 
@@ -31,6 +34,9 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		system_startup_load_contact,
 		system_startup_load_location,
 		system_startup_load_timezone_name,
+		system_startup_load_ntp,
+		system_startup_load_dns_resolver,
+		system_startup_load_authentication,
 	};
 
 	conn_ctx = sr_session_get_connection(session);
@@ -167,5 +173,23 @@ error_out:
 	error = -1;
 
 out:
+	return error;
+}
+
+static int system_startup_load_ntp(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+{
+	int error = 0;
+	return error;
+}
+
+static int system_startup_load_dns_resolver(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+{
+	int error = 0;
+	return error;
+}
+
+static int system_startup_load_authentication(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+{
+	int error = 0;
 	return error;
 }

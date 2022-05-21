@@ -16,6 +16,7 @@ int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct l
 int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node);
 int system_ly_tree_create_ntp_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node);
 int system_ly_tree_create_dns_resolver_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node);
+int system_ly_tree_create_authentication_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **authentication_container_node);
 
 // leafs
 int system_ly_tree_create_hostname(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *hostname);
