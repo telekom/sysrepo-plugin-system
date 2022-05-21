@@ -67,6 +67,11 @@ int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct l
 	return system_ly_tree_create_container(ly_ctx, NULL, system_container_node, SYSTEM_SYSTEM_CONTAINER_YANG_PATH);
 }
 
+int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node)
+{
+	return system_ly_tree_create_container(ly_ctx, system_container_node, clock_container_node, "clock");
+}
+
 int system_ly_tree_create_hostname(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *hostname)
 {
 	return system_ly_tree_create_leaf(ly_ctx, system_container_node, NULL, "hostname", hostname);
@@ -82,9 +87,9 @@ int system_ly_tree_create_location(const struct ly_ctx *ly_ctx, struct lyd_node 
 	return system_ly_tree_create_leaf(ly_ctx, system_container_node, NULL, "location", location);
 }
 
-int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *timezone_name)
+int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *timezone_name)
 {
-	return system_ly_tree_create_leaf(ly_ctx, system_container_node, NULL, "clock/timezone-name", timezone_name);
+	return system_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "timezone-name", timezone_name);
 }
 
 int system_ly_tree_create_system_state_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_state_container_node)

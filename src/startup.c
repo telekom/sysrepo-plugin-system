@@ -124,6 +124,7 @@ static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t
 	int error = 0;
 	char timezone_name_buffer[PATH_MAX] = {0};
 	char timezone_path_buffer[PATH_MAX] = {0};
+	struct lyd_node *clock_container_node = NULL;
 
 	ssize_t len = 0;
 	size_t start = 0;
@@ -146,8 +147,15 @@ static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t
 	start = sizeof(SYSTEM_TIMEZONE_DIR);
 	strcpy(timezone_name_buffer, &timezone_path_buffer[start]);
 
+	// setup clock container
+	error = system_ly_tree_create_clock_container(ly_ctx, parent_node, &clock_container_node);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
+		goto error_out;
+	}
+
 	// set timezone-name leaf
-	error = system_ly_tree_create_timezone_name(ly_ctx, parent_node, timezone_name_buffer);
+	error = system_ly_tree_create_timezone_name(ly_ctx, clock_container_node, timezone_name_buffer);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
 		goto error_out;
