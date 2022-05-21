@@ -72,6 +72,16 @@ int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct ly
 	return system_ly_tree_create_container(ly_ctx, system_container_node, clock_container_node, "clock");
 }
 
+int system_ly_tree_create_ntp_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node)
+{
+	return system_ly_tree_create_container(ly_ctx, system_container_node, ntp_container_node, "ntp");
+}
+
+int system_ly_tree_create_dns_resolver_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node)
+{
+	return system_ly_tree_create_container(ly_ctx, system_container_node, dns_resolver_container_node, "dns-resolver");
+}
+
 int system_ly_tree_create_hostname(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *hostname)
 {
 	return system_ly_tree_create_leaf(ly_ctx, system_container_node, NULL, "hostname", hostname);
