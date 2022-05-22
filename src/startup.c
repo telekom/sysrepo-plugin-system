@@ -3,8 +3,9 @@
 #include "ly_tree.h"
 
 // API for getting system data
-#include "api/dns_resolver.h"
-#include "api/ntp.h"
+#include "api/dns_resolver/search.h"
+#include "api/dns_resolver/server.h"
+#include "api/ntp/server.h"
 
 // data manipulation
 #include "data/ip_address.h"

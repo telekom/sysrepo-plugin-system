@@ -44,3 +44,22 @@ void system_ip_address_free(system_ip_address_t *address)
 #endif
 	system_ip_address_init(address);
 }
+
+int system_ip_address_from_str(system_ip_address_t *address, const char *str)
+{
+	int error = 0;
+
+#ifdef SYSTEMD
+	if (inet_pton(AF_INET, str, address->value.v4) == 1) {
+		address->family = AF_INET;
+	} else if (inet_pton(AF_INET6, str, address->value.v6) == 1) {
+		address->family = AF_INET;
+	} else {
+		// should not be possible -> yang model already checks this, but just in case return an error
+		error = -1;
+	}
+#else
+#endif
+
+	return error;
+}

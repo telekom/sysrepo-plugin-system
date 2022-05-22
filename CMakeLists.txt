@@ -24,8 +24,9 @@ set(SOURCES
     src/subscription/rpc.c
 
     # API
-    src/api/dns_resolver.c
-    src/api/ntp.c
+    src/api/dns_resolver/server.c
+    src/api/dns_resolver/search.c
+    src/api/ntp/server.c
 
     # data
     src/data/dns_resolver/search.c

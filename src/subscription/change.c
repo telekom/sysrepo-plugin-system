@@ -4,8 +4,9 @@
 #include "utils/memory.h"
 
 // API for setting system data
-#include "api/dns_resolver.h"
-#include "api/ntp.h"
+#include "api/dns_resolver/search.h"
+#include "api/dns_resolver/server.h"
+#include "api/ntp/server.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
