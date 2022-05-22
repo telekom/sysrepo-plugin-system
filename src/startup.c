@@ -56,7 +56,7 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 
 		error = cb((void *) ctx, session, ly_ctx, system_container_node);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback for system container node failed");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback failed");
 			goto error_out;
 		}
 	}
