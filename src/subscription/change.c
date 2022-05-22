@@ -1,12 +1,11 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
-#include "dns_resolver.h"
-
-// submodules - helpers
-#include "srpc/types.h"
-#include "sysrepo_types.h"
 #include "utils/memory.h"
+
+// API for setting system data
+#include "api/dns_resolver.h"
+#include "api/ntp.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>

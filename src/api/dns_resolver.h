@@ -1,7 +1,7 @@
 #ifndef SYSTEM_PLUGIN_DNS_RESOLVER_H
 #define SYSTEM_PLUGIN_DNS_RESOLVER_H
 
-#include "common.h"
+#include "types.h"
 
 // search leaf-list
 int system_dns_resolver_load_search_values(system_dns_search_element_t **head);

@@ -16,13 +16,20 @@ set(SOURCES
     src/system.c
     src/ly_tree.c
     src/startup.c
-    src/dns_resolver.c
     src/utils/memory.c
 
     # subs
     src/subscription/change.c
     src/subscription/operational.c
     src/subscription/rpc.c
+
+    # API
+    src/api/dns_resolver.c
+    src/api/ntp.c
+
+    # data
+    src/data/dns_resolver.c
+    src/data/ntp.c
 )
 
 if (NOT PLUGIN)

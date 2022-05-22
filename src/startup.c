@@ -1,8 +1,10 @@
 #include "startup.h"
 #include "common.h"
-#include "dns_resolver.h"
 #include "ly_tree.h"
-#include "srpc/types.h"
+
+// API for getting system data
+#include "api/dns_resolver.h"
+#include "api/ntp.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
