@@ -28,8 +28,12 @@ set(SOURCES
     src/api/ntp.c
 
     # data
-    src/data/dns_resolver.c
-    src/data/ntp.c
+    src/data/dns_resolver/search.c
+    src/data/dns_resolver/search/list.c
+    src/data/dns_resolver/server.c
+    src/data/dns_resolver/server/list.c
+    src/data/ntp/server.c
+    src/data/ntp/server/array.c
 )
 
 if (NOT PLUGIN)

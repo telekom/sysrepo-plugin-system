@@ -1,4 +1,4 @@
-#include "dns_resolver.h"
+#include "search.h"
 #include "utils/memory.h"
 
 void system_dns_search_init(system_dns_search_t *search)

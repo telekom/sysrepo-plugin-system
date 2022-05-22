@@ -56,6 +56,8 @@
 #define SYSTEM_HOSTNAME_LENGTH_MAX 64
 #define SYSTEM_TIMEZONE_NAME_LENGTH_MAX (14 * 3)
 
+#define SYSTEM_NTP_SERVER_MAX_COUNT 20
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #endif // SYSTEM_PLUGIN_COMMON_H
