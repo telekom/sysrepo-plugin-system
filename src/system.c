@@ -13,10 +13,13 @@
 #include <libyang/tree_data.h>
 
 // bridging
+#include "srpc/types.h"
 #include "startup.h"
 #include "subscription/change.h"
 #include "subscription/operational.h"
 #include "subscription/rpc.h"
+
+#include <srpc.h>
 
 // check if the datastore which the session uses is empty (startup or running)
 static bool system_check_empty_datastore(sr_session_ctx_t *session);
@@ -40,7 +43,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	*private_data = ctx;
 
 	// module changes
-	struct system_module_change module_changes[] = {
+	srpc_module_change_t module_changes[] = {
 		{
 			SYSTEM_CONTACT_YANG_PATH,
 			system_change_contact,
@@ -96,7 +99,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	};
 
 	// rpcs
-	struct system_rpc rpcs[] = {
+	srpc_rpc_t rpcs[] = {
 		{
 			SYSTEM_SET_CURRENT_DATETIME_RPC_YANG_PATH,
 			system_rpc_set_current_datetime,
@@ -113,7 +116,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	};
 
 	// operational getters
-	struct system_operational oper[] = {
+	srpc_operational_t oper[] = {
 		{
 			SYSTEM_STATE_PLATFORM_YANG_PATH "/*",
 			system_operational_platform,
@@ -169,7 +172,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	// subscribe every module change
 	for (size_t i = 0; i < ARRAY_SIZE(module_changes); i++) {
-		const struct system_module_change *change = &module_changes[i];
+		const srpc_module_change_t *change = &module_changes[i];
 
 		// in case of work on a specific callback set it to NULL
 		if (change->cb) {
@@ -183,7 +186,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	// subscribe every rpc
 	for (size_t i = 0; i < ARRAY_SIZE(rpcs); i++) {
-		const struct system_rpc *rpc = &rpcs[i];
+		const srpc_rpc_t *rpc = &rpcs[i];
 
 		// in case of work on a specific callback set it to NULL
 		if (rpc->cb) {
@@ -195,8 +198,9 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 	}
 
+	// subscribe every operational getter
 	for (size_t i = 0; i < ARRAY_SIZE(oper); i++) {
-		const struct system_operational *op = &oper[i];
+		const srpc_operational_t *op = &oper[i];
 
 		// in case of work on a specific callback set it to NULL
 		if (op->cb) {
