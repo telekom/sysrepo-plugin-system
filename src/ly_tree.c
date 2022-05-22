@@ -6,27 +6,27 @@
 
 #include <srpc/ly_tree.h>
 
-int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_container_node)
+int system_ly_tree_create_system(const struct ly_ctx *ly_ctx, struct lyd_node **system_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, NULL, system_container_node, SYSTEM_SYSTEM_CONTAINER_YANG_PATH);
 }
 
-int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node)
+int system_ly_tree_create_clock(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, system_container_node, clock_container_node, "clock");
 }
 
-int system_ly_tree_create_ntp_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node)
+int system_ly_tree_create_ntp(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, system_container_node, ntp_container_node, "ntp");
 }
 
-int system_ly_tree_create_dns_resolver_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node)
+int system_ly_tree_create_dns_resolver(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, system_container_node, dns_resolver_container_node, "dns-resolver");
 }
 
-int system_ly_tree_create_authentication_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **authentication_container_node)
+int system_ly_tree_create_authentication(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **authentication_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, system_container_node, authentication_container_node, "authentication");
 }
@@ -51,7 +51,47 @@ int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_
 	return srpc_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "timezone-name", timezone_name);
 }
 
-int system_ly_tree_create_system_state_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_state_container_node)
+int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node)
 {
-	return srpc_ly_tree_create_container(ly_ctx, NULL, system_state_container_node, SYSTEM_STATE_YANG_PATH);
+	return srpc_ly_tree_create_container(ly_ctx, parent_node, system_state_container_node, SYSTEM_STATE_YANG_PATH);
+}
+
+int system_ly_tree_create_state_platform(const struct ly_ctx *ly_ctx, struct lyd_node *system_state_container_node, struct lyd_node **platform_container_node)
+{
+	return srpc_ly_tree_create_container(ly_ctx, system_state_container_node, platform_container_node, "platform");
+}
+
+int system_ly_tree_create_state_platform_os_name(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_name)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, platform_container_node, NULL, "os-name", os_name);
+}
+
+int system_ly_tree_create_state_platform_os_release(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_release)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, platform_container_node, NULL, "os-release", os_release);
+}
+
+int system_ly_tree_create_state_platform_os_version(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_version)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, platform_container_node, NULL, "os-version", os_version);
+}
+
+int system_ly_tree_create_state_platform_machine(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *machine)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, platform_container_node, NULL, "machine", machine);
+}
+
+int system_ly_tree_create_state_clock(const struct ly_ctx *ly_ctx, struct lyd_node *system_state_container_node, struct lyd_node **clock_container_node)
+{
+	return srpc_ly_tree_create_container(ly_ctx, system_state_container_node, clock_container_node, "clock");
+}
+
+int system_ly_tree_create_state_clock_current_datetime(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *current_datetime)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "current-datetime", current_datetime);
+}
+
+int system_ly_tree_create_state_clock_boot_datetime(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *boot_datetime)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "boot-datetime", boot_datetime);
 }

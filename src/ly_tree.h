@@ -4,11 +4,11 @@
 #include <libyang/libyang.h>
 
 // containers
-int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_container_node);
-int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node);
-int system_ly_tree_create_ntp_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node);
-int system_ly_tree_create_dns_resolver_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node);
-int system_ly_tree_create_authentication_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **authentication_container_node);
+int system_ly_tree_create_system(const struct ly_ctx *ly_ctx, struct lyd_node **system_container_node);
+int system_ly_tree_create_clock(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node);
+int system_ly_tree_create_ntp(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **ntp_container_node);
+int system_ly_tree_create_dns_resolver(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **dns_resolver_container_node);
+int system_ly_tree_create_authentication(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **authentication_container_node);
 
 // leafs
 int system_ly_tree_create_hostname(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *hostname);
@@ -17,6 +17,18 @@ int system_ly_tree_create_location(const struct ly_ctx *ly_ctx, struct lyd_node 
 int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *timezone_name);
 
 // operational
-int system_ly_tree_create_system_state_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_state_container_node);
+int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node);
+
+// platform
+int system_ly_tree_create_state_platform(const struct ly_ctx *ly_ctx, struct lyd_node *system_state_container_node, struct lyd_node **platform_container_node);
+int system_ly_tree_create_state_platform_os_name(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_name);
+int system_ly_tree_create_state_platform_os_release(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_release);
+int system_ly_tree_create_state_platform_os_version(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *os_version);
+int system_ly_tree_create_state_platform_machine(const struct ly_ctx *ly_ctx, struct lyd_node *platform_container_node, const char *machine);
+
+// clock
+int system_ly_tree_create_state_clock(const struct ly_ctx *ly_ctx, struct lyd_node *system_state_container_node, struct lyd_node **clock_container_node);
+int system_ly_tree_create_state_clock_current_datetime(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *current_datetime);
+int system_ly_tree_create_state_clock_boot_datetime(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *boot_datetime);
 
 #endif // SYSTEM_PLUGIN_LY_TREE_H

@@ -1,6 +1,5 @@
 #include "startup.h"
 #include "common.h"
-#include "libyang/tree_data.h"
 #include "ly_tree.h"
 
 #include <sysrepo.h>
@@ -47,7 +46,7 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	}
 
 	// load system container info
-	error = system_ly_tree_create_system_container(ly_ctx, &system_container_node);
+	error = system_ly_tree_create_system(ly_ctx, &system_container_node);
 	for (size_t i = 0; i < ARRAY_SIZE(system_container_callbacks); i++) {
 		error = system_container_callbacks[i]((void *) ctx, session, ly_ctx, system_container_node);
 		if (error) {
@@ -154,7 +153,7 @@ static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *sessi
 	strcpy(timezone_name_buffer, &timezone_path_buffer[start]);
 
 	// setup clock container
-	error = system_ly_tree_create_clock_container(ly_ctx, parent_node, &clock_container_node);
+	error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
 		goto error_out;

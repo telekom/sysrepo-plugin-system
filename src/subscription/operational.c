@@ -1,5 +1,6 @@
 #include "operational.h"
 #include "common.h"
+#include "ly_tree.h"
 #include "utils/memory.h"
 
 #include <sys/sysinfo.h>
@@ -8,6 +9,7 @@
 #include <errno.h>
 
 #include <sysrepo.h>
+#include <assert.h>
 
 struct system_platform {
 	char *os_name;
@@ -34,6 +36,7 @@ int system_operational_platform(sr_session_ctx_t *session, uint32_t sub_id, cons
 	int error = SR_ERR_OK;
 	struct system_platform platform = {0};
 	const struct ly_ctx *ly_ctx = NULL;
+	struct lyd_node *platform_container_node = *parent;
 
 	error = system_get_platform_info(&platform);
 	if (error) {
@@ -47,13 +50,34 @@ int system_operational_platform(sr_session_ctx_t *session, uint32_t sub_id, cons
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_acquire_context() failed");
 			goto error_out;
 		}
-		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_PATH, NULL, 0, 0);
 	}
 
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_PLATFORM_OS_NAME_YANG_PATH, platform.os_name, 0, 0);
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_PLATFORM_OS_RELEASE_YANG_PATH, platform.os_release, 0, 0);
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_PLATFORM_OS_VERSION_YANG_PATH, platform.os_version, 0, 0);
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_PLATFORM_OS_MACHINE_YANG_PATH, platform.machine, 0, 0);
+	// make sure the passed parent node is the platform container node - the one we subscribed to
+	assert(strcmp(LYD_NAME(platform_container_node), "platform") == 0);
+
+	error = system_ly_tree_create_state_platform_os_name(ly_ctx, platform_container_node, platform.os_name);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_platform_os_name() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_ly_tree_create_state_platform_os_release(ly_ctx, platform_container_node, platform.os_release);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_platform_os_release() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_ly_tree_create_state_platform_os_version(ly_ctx, platform_container_node, platform.os_version);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_platform_os_version() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_ly_tree_create_state_platform_machine(ly_ctx, platform_container_node, platform.machine);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_platform_machine() error (%d)", error);
+		goto error_out;
+	}
 
 	goto out;
 
@@ -71,6 +95,7 @@ int system_operational_clock(sr_session_ctx_t *session, uint32_t sub_id, const c
 	int error = SR_ERR_OK;
 	struct system_clock clock = {0};
 	const struct ly_ctx *ly_ctx = NULL;
+	struct lyd_node *clock_container_node = *parent;
 
 	error = system_get_clock_info(&clock);
 	if (error) {
@@ -84,11 +109,22 @@ int system_operational_clock(sr_session_ctx_t *session, uint32_t sub_id, const c
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_acquire_context() failed");
 			goto error_out;
 		}
-		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_PATH, NULL, 0, 0);
 	}
 
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_CLOCK_CURRENT_DATETIME_YANG_PATH, clock.current_datetime, 0, 0);
-	lyd_new_path(*parent, NULL, SYSTEM_STATE_CLOCK_BOOT_DATETIME_YANG_PATH, clock.boot_datetime, 0, 0);
+	// make sure the passed parent node is the clock container node - the one we subscribed to
+	assert(strcmp(LYD_NAME(clock_container_node), "clock") == 0);
+
+	error = system_ly_tree_create_state_clock_current_datetime(ly_ctx, clock_container_node, clock.current_datetime);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_clock_current_datetime() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_ly_tree_create_state_clock_boot_datetime(ly_ctx, clock_container_node, clock.boot_datetime);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_state_clock_boot_datetime() error (%d)", error);
+		goto error_out;
+	}
 
 	goto out;
 
