@@ -34,6 +34,7 @@ void system_dns_search_list_free(system_dns_search_element_t **head)
 	{
 		LL_DELETE(*head, iter_el);
 		system_dns_search_free(&iter_el->search);
+		free(iter_el);
 	}
 
 	system_dns_search_list_init(head);

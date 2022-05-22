@@ -34,6 +34,7 @@ void system_dns_server_list_free(system_dns_server_element_t **head)
 	{
 		LL_DELETE(*head, iter_el);
 		system_dns_server_free(&iter_el->server);
+		free(iter_el);
 	}
 
 	system_dns_server_list_init(head);
