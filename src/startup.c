@@ -7,17 +7,17 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <srpc.h>
+
 // helpers
 
-typedef int (*system_startup_load_cb)(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-
-static int system_startup_load_hostname(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_contact(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_location(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_ntp(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_dns_resolver(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_authentication(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
 ////
 
@@ -29,7 +29,7 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	struct lyd_node *system_container_node = NULL;
 	sr_conn_ctx_t *conn_ctx = NULL;
 
-	system_startup_load_cb system_container_callbacks[] = {
+	srpc_startup_load_cb system_container_callbacks[] = {
 		system_startup_load_hostname,
 		system_startup_load_contact,
 		system_startup_load_location,
@@ -49,7 +49,7 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	// load system container info
 	error = system_ly_tree_create_system_container(ly_ctx, &system_container_node);
 	for (size_t i = 0; i < ARRAY_SIZE(system_container_callbacks); i++) {
-		error = system_container_callbacks[i](ctx, session, ly_ctx, system_container_node);
+		error = system_container_callbacks[i]((void *) ctx, session, ly_ctx, system_container_node);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback for system container node failed");
 			goto error_out;
@@ -87,7 +87,7 @@ int system_startup_apply_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	return error;
 }
 
-static int system_startup_load_hostname(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
@@ -113,19 +113,19 @@ out:
 	return error;
 }
 
-static int system_startup_load_contact(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_location(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_timezone_name(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	char timezone_name_buffer[PATH_MAX] = {0};
@@ -176,19 +176,19 @@ out:
 	return error;
 }
 
-static int system_startup_load_ntp(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_dns_resolver(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_authentication(system_ctx_t *ctx, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;

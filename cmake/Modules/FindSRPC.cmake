@@ -1,5 +1,4 @@
 if (SRPC_LIBRARIES AND SRPC_INCLUDE_DIRS)
-# in cache already
     set(SRPC_FOUND TRUE)
 else ()
 
@@ -23,5 +22,4 @@ else ()
 
     set(SRPC_INCLUDE_DIRS ${SRPC_INCLUDE_DIR})
     set(SRPC_LIBRARIES ${SRPC_LIBRARY})
-
 endif ()

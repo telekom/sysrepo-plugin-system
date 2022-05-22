@@ -3,14 +3,6 @@
 
 #include <libyang/libyang.h>
 
-// running/startup
-
-// base helpers
-int system_ly_tree_create_container(const struct ly_ctx *ly_ctx, struct lyd_node *parent, struct lyd_node **store, const char *path);
-int system_ly_tree_create_list(const struct ly_ctx *ly_ctx, struct lyd_node *parent, struct lyd_node **store, const char *path, const char *key, const char *key_value);
-int system_ly_tree_create_leaf(const struct ly_ctx *ly_ctx, struct lyd_node *parent, struct lyd_node **store, const char *path, const char *value);
-int system_ly_tree_append_leaf_list(const struct ly_ctx *ly_ctx, struct lyd_node *parent, struct lyd_node **store, const char *path, const char *value);
-
 // containers
 int system_ly_tree_create_system_container(const struct ly_ctx *ly_ctx, struct lyd_node **system_container_node);
 int system_ly_tree_create_clock_container(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, struct lyd_node **clock_container_node);
