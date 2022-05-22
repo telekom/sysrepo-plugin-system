@@ -32,6 +32,9 @@ set(SOURCES
     src/data/dns_resolver/search/list.c
     src/data/dns_resolver/server.c
     src/data/dns_resolver/server/list.c
+
+    src/data/ip_address.c
+
     src/data/ntp/server.c
     src/data/ntp/server/array.c
 )

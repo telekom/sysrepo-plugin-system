@@ -6,6 +6,9 @@
 #include "api/dns_resolver.h"
 #include "api/ntp.h"
 
+// data manipulation
+#include "data/ip_address.h"
+
 #include <sysrepo.h>
 #include <unistd.h>
 #include <errno.h>
@@ -230,7 +233,7 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 
 	LL_FOREACH(servers_head, servers_iter_el)
 	{
-		error = system_dns_resolver_server_address_to_str(&servers_iter_el->server, address_buffer, sizeof(address_buffer));
+		error = system_ip_address_to_str(&servers_iter_el->server.address, address_buffer, sizeof(address_buffer));
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_server_address_to_str() error (%d)", error);
 			goto error_out;
