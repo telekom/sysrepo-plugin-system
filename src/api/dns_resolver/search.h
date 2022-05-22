@@ -6,7 +6,6 @@
 // load and store
 int system_dns_resolver_load_search_values(system_dns_search_element_t **head);
 int system_dns_resolver_store_search_values(system_dns_search_element_t *head);
-void system_dns_resolver_free_search_values(system_dns_search_element_t **head);
 
 // change
 int system_dns_resolver_create_dns_search(const char *value);

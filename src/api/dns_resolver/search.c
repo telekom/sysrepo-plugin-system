@@ -1,5 +1,7 @@
 #include "search.h"
 #include "common.h"
+#include "data/dns_resolver/search.h"
+#include "data/dns_resolver/search/list.h"
 #include "utils/memory.h"
 
 #include <systemd/sd-bus.h>
@@ -12,7 +14,6 @@ static int system_search_comparator(void *e1, void *e2);
 int system_dns_resolver_load_search_values(system_dns_search_element_t **head)
 {
 	int error = 0;
-	system_dns_search_element_t *new_el = NULL;
 	system_dns_search_t tmp_search = {0};
 
 #ifdef SYSTEMD
@@ -70,18 +71,11 @@ int system_dns_resolver_load_search_values(system_dns_search_element_t **head)
 			goto invalid;
 		}
 
-		// all read normally - allocate new element
-		new_el = (system_dns_search_element_t *) malloc(sizeof(system_dns_search_element_t));
-		if (!new_el) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "malloc() failed for new_el");
+		error = system_dns_search_list_add(head, tmp_search);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_list_add() error (%d)", error);
 			goto invalid;
 		}
-
-		// copy values read from sd-bus
-		new_el->search = tmp_search;
-
-		// append to the list
-		LL_APPEND(*head, new_el);
 	}
 
 	goto finish;
@@ -190,7 +184,8 @@ int system_dns_resolver_create_dns_search(const char *value)
 {
 	int error = 0;
 	system_dns_search_element_t *search_head = NULL;
-	system_dns_search_element_t *new_search_el = NULL;
+
+	system_dns_search_t new_search = {0};
 
 	error = system_dns_resolver_load_search_values(&search_head);
 	if (error) {
@@ -198,21 +193,19 @@ int system_dns_resolver_create_dns_search(const char *value)
 		goto error_out;
 	}
 
-	// create new element
-	new_search_el = (system_dns_search_element_t *) malloc(sizeof(system_dns_search_element_t));
-	if (!new_search_el) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "malloc() for new_search_el failed");
+	// setup new search value
+	error = system_dns_search_set_domain(&new_search, value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_set_domain() error (%d)", error);
 		goto error_out;
 	}
 
-	new_search_el->search.domain = xstrdup(value);
-	if (!new_search_el->search.domain) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "xstrdup() for domain failed");
+	// add the value to the list
+	error = system_dns_search_list_add(&search_head, new_search);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_list_add() error (%d)", error);
 		goto error_out;
 	}
-
-	// append element to the list
-	LL_APPEND(search_head, new_search_el);
 
 	// set search values to the system
 	error = system_dns_resolver_store_search_values(search_head);
@@ -227,7 +220,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_search_values(&search_head);
+	system_dns_search_list_free(&search_head);
 
 	return error;
 }
@@ -237,7 +230,7 @@ int system_dns_resolver_modify_dns_search(const char *prev_value, const char *ne
 	int error = 0;
 	system_dns_search_element_t *search_head = NULL;
 	system_dns_search_element_t *found_el = NULL;
-	system_dns_search_element_t to_remove_el = {0};
+	system_dns_search_element_t to_modify_el = {0};
 
 	error = system_dns_resolver_load_search_values(&search_head);
 	if (error) {
@@ -246,18 +239,21 @@ int system_dns_resolver_modify_dns_search(const char *prev_value, const char *ne
 	}
 
 	// create element for search
-	to_remove_el.search.domain = xstrdup(prev_value);
-	if (!to_remove_el.search.domain) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "xstrdup() for domain failed");
+	error = system_dns_search_set_domain(&to_modify_el.search, prev_value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_set_domain() error (%d) for %s", error, prev_value);
 		goto error_out;
 	}
 
-	LL_SEARCH(search_head, found_el, &to_remove_el, system_search_comparator);
+	LL_SEARCH(search_head, found_el, &to_modify_el, system_search_comparator);
 
 	if (found_el) {
 		// search element found -> change its domain
-		free((char *) found_el->search.domain);
-		found_el->search.domain = xstrdup(new_value);
+		error = system_dns_search_set_domain(&found_el->search, new_value);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_set_domain() error (%d) for %s", error, new_value);
+			goto error_out;
+		}
 	} else {
 		// error - unable to find value in the system to remove
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find search value of %s in the system", prev_value);
@@ -277,7 +273,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_search_values(&search_head);
+	system_dns_search_list_free(&search_head);
 
 	return error;
 }
@@ -296,9 +292,9 @@ int system_dns_resolver_delete_dns_search(const char *value)
 	}
 
 	// create element for search
-	to_remove_el.search.domain = xstrdup(value);
-	if (!to_remove_el.search.domain) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "xstrdup() for domain failed");
+	error = system_dns_search_set_domain(&to_remove_el.search, value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_set_domain() error (%d) for %s", error, value);
 		goto error_out;
 	}
 
@@ -326,7 +322,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_search_values(&search_head);
+	system_dns_search_list_free(&search_head);
 
 	return error;
 }

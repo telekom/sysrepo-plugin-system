@@ -10,6 +10,10 @@ int system_dns_search_set_domain(system_dns_search_t *search, const char *domain
 {
 	int error = 0;
 
+	if (search->domain) {
+		free((void *) search->domain);
+	}
+
 	search->domain = xstrdup(domain);
 
 	return error;

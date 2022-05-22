@@ -9,6 +9,8 @@
 
 // data manipulation
 #include "data/ip_address.h"
+#include "data/dns_resolver/search/list.h"
+#include "data/dns_resolver/server/list.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
@@ -276,7 +278,7 @@ error_out:
 
 out:
 	// free values
-	system_dns_resolver_free_search_values(&search_head);
+	system_dns_search_list_free(&search_head);
 	system_dns_resolver_free_server_values(&servers_head);
 
 	return error;
