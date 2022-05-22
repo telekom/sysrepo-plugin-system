@@ -57,6 +57,7 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${CMAKE_PROJE
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
+find_package(SRPC REQUIRED)
 find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
@@ -64,11 +65,13 @@ target_link_libraries(
     ${PROJECT_NAME}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
+    ${SRPC_LIBRARIES}
 )
 
 include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
+    ${SRPC_INCLUDE_DIRS}
 )
 
 if(SYSTEMD_FOUND)
