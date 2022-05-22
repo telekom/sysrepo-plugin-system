@@ -1,9 +1,9 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
+#include "dns_resolver.h"
 
 // submodules - helpers
-#include "change/dns_resolver.h"
 #include "srpc/types.h"
 #include "sysrepo_types.h"
 #include "utils/memory.h"
@@ -478,19 +478,24 @@ int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscr
 
 			switch (operation) {
 				case SR_OP_CREATED:
-					error = system_create_dns_search(node_value);
+					error = system_dns_resolver_create_dns_search(node_value);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_create_dns_search() error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_create_dns_search() error (%d)", error);
 						goto error_out;
 					}
 					break;
 				case SR_OP_MODIFIED:
 					// find current one and replace it
+					error = system_dns_resolver_modify_dns_search(prev_value, node_value);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_modify_dns_search() error (%d)", error);
+						goto error_out;
+					}
 					break;
 				case SR_OP_DELETED:
-					error = system_delete_dns_search(node_value);
+					error = system_dns_resolver_delete_dns_search(node_value);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_dns_search() error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_delete_dns_search() error (%d)", error);
 						goto error_out;
 					}
 					break;
@@ -803,14 +808,14 @@ static int system_change_dns_server_address(void *priv, sr_session_ctx_t *sessio
 
 	switch (operation) {
 		case SR_OP_CREATED:
-			error = system_create_dns_server_address(node_value);
+			error = system_dns_resolver_create_dns_server_address(node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_server() error (%d)", error);
 				goto error_out;
 			}
 			break;
 		case SR_OP_MODIFIED:
-			error = system_modify_dns_server_address(prev_value, node_value);
+			error = system_dns_resolver_modify_dns_server_address(prev_value, node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_add_dns_server() error (%d)", error);
 				goto error_out;
@@ -818,7 +823,7 @@ static int system_change_dns_server_address(void *priv, sr_session_ctx_t *sessio
 			break;
 		case SR_OP_DELETED:
 			// delete from the system based on the address value
-			error = system_delete_dns_server_address(node_value);
+			error = system_dns_resolver_delete_dns_server_address(node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_dns_server() error (%d)", error);
 				goto error_out;
