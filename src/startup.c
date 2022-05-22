@@ -2,6 +2,7 @@
 #include "common.h"
 #include "dns_resolver.h"
 #include "ly_tree.h"
+#include "srpc/types.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
@@ -51,7 +52,9 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	// load system container info
 	error = system_ly_tree_create_system(ly_ctx, &system_container_node);
 	for (size_t i = 0; i < ARRAY_SIZE(system_container_callbacks); i++) {
-		error = system_container_callbacks[i]((void *) ctx, session, ly_ctx, system_container_node);
+		srpc_startup_load_cb cb = system_container_callbacks[i];
+
+		error = cb((void *) ctx, session, ly_ctx, system_container_node);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback for system container node failed");
 			goto error_out;
@@ -187,9 +190,11 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	struct lyd_node *dns_resolver_container_node = NULL;
+	struct lyd_node *dns_resolver_container_node = NULL, *server_list_node = NULL;
 	system_dns_search_element_t *search_head = NULL, *search_iter_el = NULL;
 	system_dns_server_element_t *servers_head = NULL, *servers_iter_el = NULL;
+	char address_buffer[100] = {0};
+	char port_buffer[10] = {0};
 
 	// setup dns-resolver container
 	error = system_ly_tree_create_dns_resolver(ly_ctx, parent_node, &dns_resolver_container_node);
@@ -210,6 +215,52 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_server_values() error (%d)", error);
 		goto error_out;
+	}
+
+	LL_FOREACH(search_head, search_iter_el)
+	{
+		error = system_ly_tree_append_dns_resolver_search(ly_ctx, dns_resolver_container_node, search_iter_el->search.domain);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_append_dns_resolver_search() error (%d) for %s", error, search_iter_el->search.domain);
+			goto error_out;
+		}
+	}
+
+	LL_FOREACH(servers_head, servers_iter_el)
+	{
+		error = system_dns_resolver_server_address_to_str(&servers_iter_el->server, address_buffer, sizeof(address_buffer));
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_server_address_to_str() error (%d)", error);
+			goto error_out;
+		}
+
+		error = system_ly_tree_create_dns_resolver_server(ly_ctx, dns_resolver_container_node, &server_list_node, address_buffer);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_dns_resolver_server() error (%d) for %s", error, address_buffer);
+			goto error_out;
+		}
+
+		// address
+		error = system_ly_tree_create_dns_resolver_server_address(ly_ctx, server_list_node, address_buffer);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_dns_resolver_server_address() error (%d) for %s", error, address_buffer);
+			goto error_out;
+		}
+
+		// port
+		if (servers_iter_el->server.port != 0) {
+			error = snprintf(port_buffer, sizeof(port_buffer), "%d", servers_iter_el->server.port);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d) for %d port", error, servers_iter_el->server.port);
+				goto error_out;
+			}
+
+			error = system_ly_tree_create_dns_resolver_server_port(ly_ctx, server_list_node, port_buffer);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_dns_resolver_server_address() error (%d) for %s port", error, port_buffer);
+				goto error_out;
+			}
+		}
 	}
 
 	goto out;

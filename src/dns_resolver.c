@@ -738,6 +738,33 @@ out:
 	return error;
 }
 
+int system_dns_resolver_server_address_to_str(system_dns_server_t *server, char *buffer, unsigned int buffer_size)
+{
+#ifdef SYSTEMD
+	switch (server->address.family) {
+		case AF_INET:
+			if (inet_ntop(AF_INET, server->address.value.v4, buffer, buffer_size) == NULL) {
+				return -1;
+			}
+			return 0;
+			break;
+		case AF_INET6:
+			if (inet_ntop(AF_INET6, server->address.value.v6, buffer, buffer_size) == NULL) {
+				return -1;
+			}
+			break;
+		default:
+			break;
+	}
+#else
+	if (snprintf(buffer, buffer_size, "%s", server->address.value) > 0) {
+		return 0;
+	}
+#endif
+
+	return -1;
+}
+
 static int system_search_comparator(void *e1, void *e2)
 {
 	system_dns_search_element_t *s1 = (system_dns_search_element_t *) e1;
