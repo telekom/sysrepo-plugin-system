@@ -51,6 +51,26 @@ int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_
 	return srpc_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "timezone-name", timezone_name);
 }
 
+int system_ly_tree_append_dns_resolver_search(const struct ly_ctx *ly_ctx, struct lyd_node *dns_resolver_container_node, const char *value)
+{
+	return srpc_ly_tree_append_leaf_list(ly_ctx, dns_resolver_container_node, NULL, "search", value);
+}
+
+int system_ly_tree_create_dns_resolver_server(const struct ly_ctx *ly_ctx, struct lyd_node *dns_resolver_container_node, struct lyd_node **server_list_node, const char *name)
+{
+	return srpc_ly_tree_create_list(ly_ctx, dns_resolver_container_node, server_list_node, "server", "name", name);
+}
+
+int system_ly_tree_create_dns_resolver_server_address(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *address)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, server_list_node, NULL, "address", address);
+}
+
+int system_ly_tree_create_dns_resolver_server_port(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *port)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, server_list_node, NULL, "address", port);
+}
+
 int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, parent_node, system_state_container_node, SYSTEM_STATE_YANG_PATH);
