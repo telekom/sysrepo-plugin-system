@@ -1,5 +1,6 @@
 #include "startup.h"
 #include "common.h"
+#include "dns_resolver.h"
 #include "ly_tree.h"
 
 #include <sysrepo.h>
@@ -7,6 +8,8 @@
 #include <errno.h>
 
 #include <srpc.h>
+
+#include <utlist.h>
 
 // helpers
 
@@ -184,6 +187,41 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	struct lyd_node *dns_resolver_container_node = NULL;
+	system_dns_search_element_t *search_head = NULL, *search_iter_el = NULL;
+	system_dns_server_element_t *servers_head = NULL, *servers_iter_el = NULL;
+
+	// setup dns-resolver container
+	error = system_ly_tree_create_dns_resolver(ly_ctx, parent_node, &dns_resolver_container_node);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_dns_resolver() error (%d)", error);
+		goto error_out;
+	}
+
+	// load values
+
+	error = system_dns_resolver_load_search_values(&search_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_search_values() error (%d)", error);
+		goto error_out;
+	}
+
+	error = system_dns_resolver_load_server_values(&servers_head);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_server_values() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	// free values
+	system_dns_resolver_free_search_values(&search_head);
+	system_dns_resolver_free_server_values(&servers_head);
+
 	return error;
 }
 

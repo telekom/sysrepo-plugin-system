@@ -174,6 +174,19 @@ finish:
 	return error;
 }
 
+void system_dns_resolver_free_search_values(system_dns_search_element_t **head)
+{
+	system_dns_search_element_t *iter_el = NULL, *tmp_el = NULL;
+	LL_FOREACH_SAFE(*head, iter_el, tmp_el)
+	{
+		LL_DELETE(*head, iter_el);
+		if (iter_el->search.domain) {
+			free((void *) iter_el->search.domain);
+		}
+		free(iter_el);
+	}
+}
+
 int system_dns_resolver_create_dns_search(const char *value)
 {
 	int error = 0;
@@ -215,6 +228,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_search_values(&search_head);
+
 	return error;
 }
 
@@ -263,6 +278,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_search_values(&search_head);
+
 	return error;
 }
 
@@ -310,6 +327,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_search_values(&search_head);
+
 	return error;
 }
 
@@ -551,6 +570,24 @@ finish:
 	return error;
 }
 
+void system_dns_resolver_free_server_values(system_dns_server_element_t **head)
+{
+	system_dns_server_element_t *iter_el = NULL, *tmp_el = NULL;
+	LL_FOREACH_SAFE(*head, iter_el, tmp_el)
+	{
+		LL_DELETE(*head, iter_el);
+		if (iter_el->server.name) {
+			free((void *) iter_el->server.name);
+		}
+#ifndef SYSTEMD
+		if (iter_el->server.address.value) {
+			free((void *) iter_el->server.address.value);
+		}
+#endif
+		free(iter_el);
+	}
+}
+
 int system_dns_resolver_create_dns_server_address(const char *value)
 {
 	int error = 0;
@@ -596,6 +633,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_server_values(&servers_head);
+
 	return error;
 }
 
@@ -646,6 +685,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_server_values(&servers_head);
+
 	return error;
 }
 
@@ -692,6 +733,8 @@ error_out:
 	error = -1;
 
 out:
+	system_dns_resolver_free_server_values(&servers_head);
+
 	return error;
 }
 
