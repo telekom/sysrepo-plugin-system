@@ -13,6 +13,7 @@
 #include <libyang/tree_data.h>
 
 // bridging
+#include "srpc/common.h"
 #include "srpc/types.h"
 #include "startup.h"
 #include "subscription/change.h"
@@ -21,12 +22,11 @@
 
 #include <srpc.h>
 
-// check if the datastore which the session uses is empty (startup or running)
-static bool system_check_empty_datastore(sr_session_ctx_t *session);
-
 int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 {
 	int error = 0;
+
+	bool empty_startup = false;
 
 	// sysrepo
 	sr_session_ctx_t *startup_session = NULL;
@@ -136,7 +136,13 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	ctx->startup_session = startup_session;
 
-	if (system_check_empty_datastore(startup_session)) {
+	error = srpc_check_empty_datastore(startup_session, SYSTEM_HOSTNAME_YANG_PATH, &empty_startup);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed checking datastore contents: %d", error);
+		goto error_out;
+	}
+
+	if (empty_startup) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datasore is empty");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Loading initial system data");
 		error = system_startup_load_data(ctx, startup_session);
@@ -235,26 +241,4 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 	}
 
 	FREE_SAFE(ctx);
-}
-
-static bool system_check_empty_datastore(sr_session_ctx_t *session)
-{
-	int error = SR_ERR_OK;
-	bool is_empty = true;
-	sr_val_t *values = NULL;
-	size_t value_cnt = 0;
-
-	error = sr_get_items(session, SYSTEM_HOSTNAME_YANG_PATH, 0, SR_OPER_DEFAULT, &values, &value_cnt);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_items() error (%d): %s", error, sr_strerror(error));
-		goto out;
-	}
-
-	if (value_cnt > 0) {
-		sr_free_values(values, value_cnt);
-		is_empty = false;
-	}
-
-out:
-	return is_empty;
 }
