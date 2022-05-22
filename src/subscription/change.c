@@ -4,6 +4,7 @@
 
 // submodules - helpers
 #include "change/dns_resolver.h"
+#include "srpc/types.h"
 #include "sysrepo_types.h"
 #include "utils/memory.h"
 
@@ -13,18 +14,18 @@
 #include <errno.h>
 #include <pwd.h>
 
-// helpers //
+#include <srpc.h>
 
-typedef int (*system_change_cb)(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+// helpers //
 
 static int system_set_timezone_name(const char *value);
 static int system_delete_timezone_name(void);
-static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, system_change_cb cb);
+static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb);
 
 // dns-resolver/server callbacks:
-static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 
 ////
 
@@ -734,7 +735,7 @@ out:
 	return error;
 }
 
-static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, system_change_cb cb)
+static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb)
 {
 	int error = 0;
 
@@ -770,7 +771,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 	const char *node_name = NULL;
@@ -786,7 +787,7 @@ static int system_change_dns_server_name(system_ctx_t *ctx, sr_session_ctx_t *se
 	return error;
 }
 
-static int system_change_dns_server_address(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 
@@ -837,7 +838,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_port(system_ctx_t *ctx, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 
