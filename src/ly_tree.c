@@ -51,6 +51,41 @@ int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_
 	return srpc_ly_tree_create_leaf(ly_ctx, clock_container_node, NULL, "timezone-name", timezone_name);
 }
 
+int system_ly_tree_create_ntp_enabled(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *enabled)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, ntp_container_node, NULL, "enabled", enabled);
+}
+
+int system_ly_tree_create_ntp_server(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, struct lyd_node **server_list_node, const char *name)
+{
+	return srpc_ly_tree_create_list(ly_ctx, ntp_container_node, server_list_node, "server", "name", name);
+}
+
+int system_ly_tree_create_ntp_server_address(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *address)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, server_list_node, NULL, "udp/address", address);
+}
+
+int system_ly_tree_create_ntp_server_port(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *port)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, server_list_node, NULL, "udp/port", port);
+}
+
+int system_ly_tree_create_ntp_association_type(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *association_type)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, ntp_container_node, NULL, "association-type", association_type);
+}
+
+int system_ly_tree_create_ntp_iburst(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *iburst)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, ntp_container_node, NULL, "iburst", iburst);
+}
+
+int system_ly_tree_create_ntp_prefer(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *prefer)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, ntp_container_node, NULL, "prefer", prefer);
+}
+
 int system_ly_tree_append_dns_resolver_search(const struct ly_ctx *ly_ctx, struct lyd_node *dns_resolver_container_node, const char *value)
 {
 	return srpc_ly_tree_append_leaf_list(ly_ctx, dns_resolver_container_node, NULL, "search", value);

@@ -16,6 +16,15 @@ int system_ly_tree_create_contact(const struct ly_ctx *ly_ctx, struct lyd_node *
 int system_ly_tree_create_location(const struct ly_ctx *ly_ctx, struct lyd_node *system_container_node, const char *location);
 int system_ly_tree_create_timezone_name(const struct ly_ctx *ly_ctx, struct lyd_node *clock_container_node, const char *timezone_name);
 
+// ntp
+int system_ly_tree_create_ntp_enabled(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *enabled);
+int system_ly_tree_create_ntp_server(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, struct lyd_node **server_list_node, const char *name);
+int system_ly_tree_create_ntp_server_address(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *address);
+int system_ly_tree_create_ntp_server_port(const struct ly_ctx *ly_ctx, struct lyd_node *server_list_node, const char *port);
+int system_ly_tree_create_ntp_association_type(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *association_type);
+int system_ly_tree_create_ntp_iburst(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *iburst);
+int system_ly_tree_create_ntp_prefer(const struct ly_ctx *ly_ctx, struct lyd_node *ntp_container_node, const char *prefer);
+
 // dns-resolver
 int system_ly_tree_append_dns_resolver_search(const struct ly_ctx *ly_ctx, struct lyd_node *dns_resolver_container_node, const char *value);
 int system_ly_tree_create_dns_resolver_server(const struct ly_ctx *ly_ctx, struct lyd_node *dns_resolver_container_node, struct lyd_node **server_list_node, const char *name);
