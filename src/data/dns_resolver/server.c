@@ -10,6 +10,10 @@ int system_dns_server_set_name(system_dns_server_t *server, const char *name)
 {
 	int error = 0;
 
+	if (server->name) {
+		free((void *) server->name);
+	}
+
 	server->name = xstrdup(name);
 
 	return error;
@@ -21,6 +25,9 @@ int system_dns_server_set_address(system_dns_server_t *server, system_ip_address
 #ifdef SYSTEMD
 	server->address = address;
 #else
+	if (server->address.value) {
+		free((void *) server->address.value);
+	}
 	server->address.value = xstrdup(address.value);
 #endif
 

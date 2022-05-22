@@ -4,6 +4,7 @@
 
 // data
 #include "data/ip_address.h"
+#include "data/dns_resolver/server/list.h"
 
 #include <systemd/sd-bus.h>
 #include <sysrepo.h>
@@ -25,7 +26,6 @@ int system_dns_resolver_load_server_values(system_dns_server_element_t **head)
 	size_t tmp_length = 0;
 
 	system_dns_server_t tmp_server = {0};
-	system_dns_server_element_t *new_el = NULL;
 
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
@@ -94,18 +94,11 @@ int system_dns_resolver_load_server_values(system_dns_server_element_t **head)
 			goto invalid;
 		}
 
-		// create new node
-		new_el = (system_dns_server_element_t *) malloc(sizeof(system_dns_server_element_t));
-		if (!new_el) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "malloc() failed for new_el");
+		error = system_dns_server_list_add(head, tmp_server);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_add() error (%d)", error);
 			goto invalid;
 		}
-
-		// set server value
-		new_el->server = tmp_server;
-
-		// append to the list
-		LL_APPEND(*head, new_el);
 	}
 
 	goto finish;
@@ -249,29 +242,12 @@ finish:
 	return error;
 }
 
-void system_dns_resolver_free_server_values(system_dns_server_element_t **head)
-{
-	system_dns_server_element_t *iter_el = NULL, *tmp_el = NULL;
-	LL_FOREACH_SAFE(*head, iter_el, tmp_el)
-	{
-		LL_DELETE(*head, iter_el);
-		if (iter_el->server.name) {
-			free((void *) iter_el->server.name);
-		}
-#ifndef SYSTEMD
-		if (iter_el->server.address.value) {
-			free((void *) iter_el->server.address.value);
-		}
-#endif
-		free(iter_el);
-	}
-}
-
 int system_dns_resolver_create_dns_server_address(const char *value)
 {
 	int error = 0;
 	system_dns_server_element_t *servers_head = NULL;
-	system_dns_server_element_t *new_server_el = NULL;
+
+	system_dns_server_t new_server = {0};
 
 	error = system_dns_resolver_load_server_values(&servers_head);
 	if (error) {
@@ -279,25 +255,19 @@ int system_dns_resolver_create_dns_server_address(const char *value)
 		goto error_out;
 	}
 
-	// create new element
-	new_server_el = (system_dns_server_element_t *) malloc(sizeof(system_dns_server_element_t));
-	if (!new_server_el) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "malloc() for new_server_el failed");
-		goto error_out;
-	}
-
-	// init properties to 0
-	new_server_el->server = (system_dns_server_t){0};
-
 	// set IP address + family
-	error = system_ip_address_from_str(&new_server_el->server.address, value);
+	error = system_ip_address_from_str(&new_server.address, value);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ip_address_from_str() failed (%d)", error);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ip_address_from_str() failed (%d) for address %s", error, value);
 		goto error_out;
 	}
 
 	// append element to the list
-	LL_APPEND(servers_head, new_server_el);
+	error = system_dns_server_list_add(&servers_head, new_server);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_add() failed (%d)", error);
+		goto error_out;
+	}
 
 	// set search values to the system
 	error = system_dns_resolver_store_server_values(servers_head);
@@ -312,7 +282,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_server_values(&servers_head);
+	system_dns_server_list_free(&servers_head);
 
 	return error;
 }
@@ -322,7 +292,7 @@ int system_dns_resolver_modify_dns_server_address(const char *prev_value, const 
 	int error = 0;
 	system_dns_server_element_t *servers_head = NULL;
 	system_dns_server_element_t *found_el = NULL;
-	system_dns_server_element_t to_remove_el = {0};
+	system_dns_server_element_t to_modify_el = {0};
 
 	error = system_dns_resolver_load_server_values(&servers_head);
 	if (error) {
@@ -330,13 +300,13 @@ int system_dns_resolver_modify_dns_server_address(const char *prev_value, const 
 		goto error_out;
 	}
 
-	error = system_ip_address_from_str(&to_remove_el.server.address, prev_value);
+	error = system_ip_address_from_str(&to_modify_el.server.address, prev_value);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ip_address_from_str() failed (%d)", error);
 		goto error_out;
 	}
 
-	LL_SEARCH(servers_head, found_el, &to_remove_el, system_server_comparator);
+	LL_SEARCH(servers_head, found_el, &to_modify_el, system_server_comparator);
 
 	if (found_el) {
 		// change the address value of the server
@@ -364,7 +334,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_server_values(&servers_head);
+	system_dns_server_list_free(&servers_head);
 
 	return error;
 }
@@ -412,7 +382,7 @@ error_out:
 	error = -1;
 
 out:
-	system_dns_resolver_free_server_values(&servers_head);
+	system_dns_server_list_free(&servers_head);
 
 	return error;
 }

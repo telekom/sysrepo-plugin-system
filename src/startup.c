@@ -279,7 +279,7 @@ error_out:
 out:
 	// free values
 	system_dns_search_list_free(&search_head);
-	system_dns_resolver_free_server_values(&servers_head);
+	system_dns_server_list_free(&servers_head);
 
 	return error;
 }
