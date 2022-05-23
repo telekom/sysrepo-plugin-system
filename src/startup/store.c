@@ -1,5 +1,6 @@
 #include "store.h"
 #include "common.h"
+#include "libyang/printer_data.h"
 #include "ly_tree.h"
 
 // API for getting system data
@@ -19,6 +20,10 @@
 #include <errno.h>
 
 #include <sysrepo.h>
+#include <libyang/libyang.h>
+#include <libyang/tree.h>
+#include <libyang/tree_schema.h>
+#include <libyang/tree_data.h>
 
 #include <srpc.h>
 
@@ -58,7 +63,7 @@ int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		const srpc_startup_store_t *store = &store_values[i];
 
 		error = store->cb(ctx, subtree->tree);
-		if (error) {
+		if (error != 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
 			goto error_out;
 		}
@@ -81,7 +86,21 @@ static int system_startup_store_hostname(void *priv, const struct lyd_node *syst
 {
 	int error = 0;
 
-	return error;
+	struct lyd_node *hostname_node = srpc_ly_tree_get_child_leaf(system_container_node, "hostname");
+
+	if (hostname_node) {
+		const char *hostname = lyd_get_value(hostname_node);
+
+		SRPLG_LOG_INF(PLUGIN_NAME, "hostname value: %s", hostname);
+
+		error = sethostname(hostname, strlen(hostname));
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname() failed (%d)", error);
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 static int system_startup_store_contact(void *priv, const struct lyd_node *system_container_node)
