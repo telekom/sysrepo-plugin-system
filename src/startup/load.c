@@ -1,4 +1,4 @@
-#include "startup.h"
+#include "load.h"
 #include "common.h"
 #include "ly_tree.h"
 
@@ -11,16 +11,18 @@
 #include "data/ip_address.h"
 #include "data/dns_resolver/search/list.h"
 #include "data/dns_resolver/server/list.h"
+#include "srpc/ly_tree.h"
+#include "srpc/types.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
 #include <errno.h>
 
+#include <sysrepo.h>
+
 #include <srpc.h>
 
 #include <utlist.h>
-
-// helpers
 
 static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
@@ -30,8 +32,6 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
-////
-
 int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
 	int error = 0;
@@ -40,14 +40,35 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 	struct lyd_node *system_container_node = NULL;
 	sr_conn_ctx_t *conn_ctx = NULL;
 
-	srpc_startup_load_cb system_container_callbacks[] = {
-		system_startup_load_hostname,
-		system_startup_load_contact,
-		system_startup_load_location,
-		system_startup_load_timezone_name,
-		system_startup_load_ntp,
-		system_startup_load_dns_resolver,
-		system_startup_load_authentication,
+	srpc_startup_load_t load_values[] = {
+		{
+			"hostname",
+			system_startup_load_hostname,
+		},
+		{
+			"contact",
+			system_startup_load_contact,
+		},
+		{
+			"location",
+			system_startup_load_location,
+		},
+		{
+			"timezone-name",
+			system_startup_load_timezone_name,
+		},
+		{
+			"ntp",
+			system_startup_load_ntp,
+		},
+		{
+			"dns-resolver",
+			system_startup_load_dns_resolver,
+		},
+		{
+			"authentication",
+			system_startup_load_authentication,
+		},
 	};
 
 	conn_ctx = sr_session_get_connection(session);
@@ -59,12 +80,12 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 
 	// load system container info
 	error = system_ly_tree_create_system(ly_ctx, &system_container_node);
-	for (size_t i = 0; i < ARRAY_SIZE(system_container_callbacks); i++) {
-		srpc_startup_load_cb cb = system_container_callbacks[i];
+	for (size_t i = 0; i < ARRAY_SIZE(load_values); i++) {
+		const srpc_startup_load_t *load = &load_values[i];
 
-		error = cb((void *) ctx, session, ly_ctx, system_container_node);
+		error = load->cb((void *) ctx, session, ly_ctx, system_container_node);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback failed");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Node creation callback failed for value %s", load->name);
 			goto error_out;
 		}
 	}
@@ -91,12 +112,6 @@ out:
 		lyd_free_tree(system_container_node);
 	}
 	sr_release_context(conn_ctx);
-	return error;
-}
-
-int system_startup_apply_data(system_ctx_t *ctx, sr_session_ctx_t *session)
-{
-	int error = 0;
 	return error;
 }
 

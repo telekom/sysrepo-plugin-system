@@ -12,10 +12,14 @@
 // libyang
 #include <libyang/tree_data.h>
 
-// bridging
 #include "srpc/common.h"
 #include "srpc/types.h"
-#include "startup.h"
+
+// startup
+#include "startup/load.h"
+#include "startup/store.h"
+
+// subs
 #include "subscription/change.h"
 #include "subscription/operational.h"
 #include "subscription/rpc.h"
@@ -158,11 +162,11 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			goto error_out;
 		}
 	} else {
-		// make sure the data from startup DS is applied to the system
+		// make sure the data from startup DS is stored in the system
 		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datasore contains data");
-		SRPLG_LOG_INF(PLUGIN_NAME, "Applying startup datastore data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
 
-		error = system_startup_apply_data(ctx, startup_session);
+		error = system_startup_store_data(ctx, startup_session);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;

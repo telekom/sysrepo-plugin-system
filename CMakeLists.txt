@@ -15,8 +15,11 @@ include_directories(
 set(SOURCES
     src/system.c
     src/ly_tree.c
-    src/startup.c
     src/utils/memory.c
+
+    # startup
+    src/startup/load.c
+    src/startup/store.c
 
     # subs
     src/subscription/change.c
