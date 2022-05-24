@@ -1,5 +1,6 @@
 #include "load.h"
 #include "common.h"
+#include "context.h"
 #include "ly_tree.h"
 
 // API for getting system data
@@ -13,6 +14,9 @@
 #include "data/dns_resolver/server/list.h"
 #include "srpc/ly_tree.h"
 #include "srpc/types.h"
+
+// system load API
+#include "system/api/load.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
@@ -120,9 +124,11 @@ static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, c
 	int error = 0;
 	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
 
-	error = gethostname(hostname_buffer, sizeof(hostname_buffer));
+	system_ctx_t *ctx = (system_ctx_t *) priv;
+
+	error = system_load_hostname(ctx, hostname_buffer);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "gethostname() error: %s", strerror(errno));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_load_hostname() error (%d)", error);
 		goto error_out;
 	}
 

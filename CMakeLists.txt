@@ -12,7 +12,9 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/deps/uthash/include
 )
 
-set(SOURCES
+set(
+    SOURCES
+    
     src/system.c
     src/ly_tree.c
     src/utils/memory.c
@@ -41,6 +43,11 @@ set(SOURCES
 
     src/data/ntp/server.c
     src/data/ntp/server/array.c
+
+    # system API
+    src/system/api/load.c
+    src/system/api/store.c
+    src/system/api/change.c
 )
 
 if (NOT PLUGIN)
