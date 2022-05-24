@@ -300,7 +300,7 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 		goto error_out;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "loading users");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Loading users from the system");
 
 	// init array first
 	system_local_user_array_init(&users);
@@ -312,7 +312,7 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 		goto error_out;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "saving users");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saving users to the datastore");
 
 	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
 		// list item
