@@ -15,4 +15,8 @@ int system_change_location_create(system_ctx_t *ctx, const char *value);
 int system_change_location_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
 int system_change_location_delete(system_ctx_t *ctx);
 
+int system_change_timezone_name_create(system_ctx_t *ctx, const char *value);
+int system_change_timezone_name_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
+int system_change_timezone_name_delete(system_ctx_t *ctx);
+
 #endif // SYSTEM_API_CHANGE_H
