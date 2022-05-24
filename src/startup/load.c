@@ -4,19 +4,13 @@
 #include "ly_tree.h"
 
 // API for getting system data
-#include "api/dns_resolver/search.h"
-#include "api/dns_resolver/server.h"
-#include "api/ntp/server.h"
+#include "system/api/load.h"
+#include "system/dns_resolver/api/load.h"
 
 // data manipulation
-#include "data/ip_address.h"
-#include "data/dns_resolver/search/list.h"
-#include "data/dns_resolver/server/list.h"
-#include "srpc/ly_tree.h"
-#include "srpc/types.h"
-
-// system load API
-#include "system/api/load.h"
+#include "system/data/ip_address.h"
+#include "system/dns_resolver/data/search/list.h"
+#include "system/dns_resolver/data/server/list.h"
 
 #include <sysrepo.h>
 #include <unistd.h>
@@ -199,6 +193,7 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *dns_resolver_container_node = NULL, *server_list_node = NULL;
 	system_dns_search_element_t *search_head = NULL, *search_iter_el = NULL;
 	system_dns_server_element_t *servers_head = NULL, *servers_iter_el = NULL;
@@ -214,13 +209,13 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 
 	// load values
 
-	error = system_dns_resolver_load_search_values(&search_head);
+	error = system_dns_resolver_load_search(ctx, &search_head);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_search_values() error (%d)", error);
 		goto error_out;
 	}
 
-	error = system_dns_resolver_load_server_values(&servers_head);
+	error = system_dns_resolver_load_server(ctx, &servers_head);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_server_values() error (%d)", error);
 		goto error_out;

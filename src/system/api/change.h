@@ -1,5 +1,5 @@
-#ifndef SYSTEM_API_CHANGE_H
-#define SYSTEM_API_CHANGE_H
+#ifndef SYSTEM_PLUGIN_API_CHANGE_H
+#define SYSTEM_PLUGIN_API_CHANGE_H
 
 #include "context.h"
 
@@ -19,4 +19,4 @@ int system_change_timezone_name_create(system_ctx_t *ctx, const char *value);
 int system_change_timezone_name_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
 int system_change_timezone_name_delete(system_ctx_t *ctx);
 
-#endif // SYSTEM_API_CHANGE_H
+#endif // SYSTEM_PLUGIN_API_CHANGE_H

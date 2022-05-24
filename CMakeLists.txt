@@ -28,26 +28,22 @@ set(
     src/subscription/operational.c
     src/subscription/rpc.c
 
-    # API
-    src/api/dns_resolver/server.c
-    src/api/dns_resolver/search.c
-    src/api/ntp/server.c
-
     # data
-    src/data/dns_resolver/search.c
-    src/data/dns_resolver/search/list.c
-    src/data/dns_resolver/server.c
-    src/data/dns_resolver/server/list.c
-
-    src/data/ip_address.c
-
-    src/data/ntp/server.c
-    src/data/ntp/server/array.c
+    src/system/data/ip_address.c
+    src/system/dns_resolver/data/search.c
+    src/system/dns_resolver/data/search/list.c
+    src/system/dns_resolver/data/server.c
+    src/system/dns_resolver/data/server/list.c
+    src/system/ntp/data/server.c
+    src/system/ntp/data/server/array.c
 
     # system API
     src/system/api/load.c
     src/system/api/store.c
     src/system/api/change.c
+    src/system/dns_resolver/api/load.c
+    src/system/dns_resolver/api/store.c
+    src/system/dns_resolver/api/change.c
 )
 
 if (NOT PLUGIN)

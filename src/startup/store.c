@@ -4,19 +4,13 @@
 #include "ly_tree.h"
 
 // API for getting system data
-#include "api/dns_resolver/search.h"
-#include "api/dns_resolver/server.h"
-#include "api/ntp/server.h"
+#include "system/api/store.h"
+#include "system/dns_resolver/api/store.h"
 
 // data manipulation
-#include "data/ip_address.h"
-#include "data/dns_resolver/search/list.h"
-#include "data/dns_resolver/server/list.h"
-#include "srpc/ly_tree.h"
-#include "srpc/types.h"
-
-// system store API
-#include "system/api/store.h"
+#include "system/data/ip_address.h"
+#include "system/dns_resolver/data/search/list.h"
+#include "system/dns_resolver/data/server/list.h"
 
 #include <sysrepo.h>
 #include <unistd.h>

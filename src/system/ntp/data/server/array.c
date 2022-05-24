@@ -1,7 +1,7 @@
 #include "array.h"
 #include "types.h"
 #include "common.h"
-#include "data/ntp/server.h"
+#include "system/ntp/data/server.h"
 
 static void system_ntp_server_copy_fn(void *dst, const void *src);
 static void system_ntp_server_dtor_fn(void *elt);
