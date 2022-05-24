@@ -36,6 +36,10 @@ set(
     src/system/dns_resolver/data/server/list.c
     src/system/ntp/data/server.c
     src/system/ntp/data/server/array.c
+    src/system/authentication/data/authorized_key.c
+    src/system/authentication/data/authorized_key/array.c
+    src/system/authentication/data/local_user.c
+    src/system/authentication/data/local_user/array.c
 
     # system API
     src/system/api/load.c
