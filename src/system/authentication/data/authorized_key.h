@@ -9,4 +9,6 @@ int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char
 int system_authorized_key_set_data(system_authorized_key_t *key, const char *data);
 void system_authorized_key_free(system_authorized_key_t *key);
 
+int system_authorized_key_cmp_fn(const void *e1, const void *e2);
+
 #endif // SYSTEM_PLUGIN_AUTHENTICATION_DATA_AUTHORIZED_KEY_H

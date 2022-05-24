@@ -6,6 +6,7 @@
 // API for getting system data
 #include "system/api/load.h"
 #include "system/authentication/api/load.h"
+#include "system/authentication/data/authorized_key/array.h"
 #include "system/authentication/data/local_user/array.h"
 #include "system/dns_resolver/api/load.h"
 
@@ -321,7 +322,20 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 		goto error_out;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Saving users to the datastore");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Loading user authorized keys");
+
+	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
+		// init array for each user
+		system_authorized_key_array_init(&user_iter->keys);
+
+		error = system_authentication_load_user_authorized_key(ctx, user_iter->name, &user_iter->keys);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user_authorized_key() error (%d)", error);
+			goto error_out;
+		}
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saving users and their keys to the datastore");
 
 	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
 		// list item

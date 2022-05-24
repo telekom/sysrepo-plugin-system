@@ -16,7 +16,7 @@ int system_authorized_key_set_name(system_authorized_key_t *key, const char *nam
 
 	key->name = xstrdup(name);
 
-	return key->name != NULL;
+	return key->name == NULL;
 }
 
 int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char *algorithm)
@@ -28,7 +28,7 @@ int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char
 
 	key->algorithm = xstrdup(algorithm);
 
-	return key->algorithm != NULL;
+	return key->algorithm == NULL;
 }
 
 int system_authorized_key_set_data(system_authorized_key_t *key, const char *data)
@@ -40,7 +40,7 @@ int system_authorized_key_set_data(system_authorized_key_t *key, const char *dat
 
 	key->data = xstrdup(data);
 
-	return key->data != NULL;
+	return key->data == NULL;
 }
 
 void system_authorized_key_free(system_authorized_key_t *key)
@@ -58,4 +58,12 @@ void system_authorized_key_free(system_authorized_key_t *key)
 	}
 
 	system_authorized_key_init(key);
+}
+
+int system_authorized_key_cmp_fn(const void *e1, const void *e2)
+{
+	system_authorized_key_t *k1 = (system_authorized_key_t *) e1;
+	system_authorized_key_t *k2 = (system_authorized_key_t *) e2;
+
+	return strcmp(k1->name, k2->name);
 }
