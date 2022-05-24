@@ -10,12 +10,36 @@ int system_store_hostname(system_ctx_t *ctx, const char *hostname)
 {
 	int error = 0;
 
+#ifdef AUGYANG
+	int augeas = 0;
+#endif
+
 	const size_t len = strlen(hostname);
 
 	error = sethostname(hostname, len);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname() failed");
 		return -1;
+	}
+
+#ifdef AUGYANG
+	SRPLG_LOG_INF(PLUGIN_NAME, "Setting /etc/hostname value using augeas datastore plugin");
+	error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", hostname, NULL, 0);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str() error (%d): %s", error, sr_strerror(error));
+	} else {
+		SRPLG_LOG_INF(PLUGIN_NAME, "/etc/hostname set");
+		augeas = 1;
+	}
+#endif
+
+	if (augeas) {
+		SRPLG_LOG_INF(PLUGIN_NAME, "Applying /etc/hostname changes");
+		error = sr_apply_changes(ctx->startup_session, 0);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
+			return -1;
+		}
 	}
 
 	return 0;

@@ -102,15 +102,8 @@ int system_change_timezone_name_create(system_ctx_t *ctx, const char *value)
 
 int system_change_timezone_name_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
 {
-	int error = 0;
-
-	error = system_store_timezone_name(ctx, new_value);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() error (%d)", error);
-		return -1;
-	}
-
-	return 0;
+	(void) old_value;
+	return system_change_timezone_name_create(ctx, new_value);
 }
 
 int system_change_timezone_name_delete(system_ctx_t *ctx)

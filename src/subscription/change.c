@@ -1,6 +1,7 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
+#include "system/api/change.h"
 #include "utils/memory.h"
 
 // API for setting system data
@@ -14,18 +15,10 @@
 
 #include <srpc.h>
 
-// helpers //
-
-static int system_set_timezone_name(const char *value);
-static int system_delete_timezone_name(void);
 static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb);
-
-// dns-resolver/server callbacks:
 static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 static int system_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 static int system_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-
-////
 
 int system_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
@@ -102,10 +95,6 @@ int system_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, 
 	// libyang
 	const struct lyd_node *node = NULL;
 
-#ifdef AUGYANG
-	int augeas_changes = 0;
-#endif
-
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
@@ -137,53 +126,24 @@ int system_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, 
 				case SR_OP_CREATED:
 				case SR_OP_MODIFIED:
 					// edit hostname
-					error = sethostname(node_value, strnlen(node_value, HOST_NAME_MAX));
+					error = system_change_hostname_create(ctx, node_value);
 					if (error != 0) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname() error (%d): %s", error, strerror(errno));
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_create() error (%d)", error);
 						goto error_out;
 					}
-#ifdef AUGYANG
-					SRPLG_LOG_DBG(PLUGIN_NAME, "Setting /etc/hostname value using augeas datastore plugin");
-					error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", node_value, NULL, 0);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str() error (%d): %s", error, sr_strerror(error));
-					} else {
-						SRPLG_LOG_DBG(PLUGIN_NAME, "/etc/hostname set");
-						augeas_changes = 1;
-					}
-#endif
 					break;
 				case SR_OP_DELETED:
 					// remove hostname
-					error = sethostname("none", strnlen("none", HOST_NAME_MAX));
+					error = system_change_hostname_delete(ctx);
 					if (error != 0) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "sethostname() error: %s", strerror(errno));
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_delete() error (%d)", error);
+						goto error_out;
 					}
-
-#ifdef AUGYANG
-					SRPLG_LOG_DBG(PLUGIN_NAME, "Removing /etc/hostname value - setting to \"none\"");
-					error = sr_set_item_str(ctx->startup_session, "/hostname:hostname[config-file=\'/etc/hostname\']/hostname", "none", NULL, 0);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "sr_set_item_str() error (%d): %s", error, sr_strerror(error));
-					} else {
-						SRPLG_LOG_DBG(PLUGIN_NAME, "/etc/hostname deleted");
-						augeas_changes = 1;
-					}
-#endif
 					break;
 				case SR_OP_MOVED:
 					// N/A
 					break;
 			}
-		}
-	}
-
-	if (augeas_changes) {
-		SRPLG_LOG_DBG(PLUGIN_NAME, "Applying /etc/hostname changes");
-		error = sr_apply_changes(ctx->startup_session, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
 		}
 	}
 
@@ -300,16 +260,16 @@ int system_change_timezone_name(sr_session_ctx_t *session, uint32_t subscription
 			switch (operation) {
 				case SR_OP_CREATED:
 				case SR_OP_MODIFIED:
-					error = system_set_timezone_name(node_value);
+					error = system_change_timezone_name_create(ctx, node_value);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_set_timezone_name() failed (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_create() failed (%d)", error);
 						goto error_out;
 					}
 					break;
 				case SR_OP_DELETED:
-					error = system_delete_timezone_name();
+					error = system_change_timezone_name_delete(ctx);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_delete_timezone_name() failed (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_delete() failed (%d)", error);
 						goto error_out;
 					}
 					break;
@@ -671,71 +631,6 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
 	return SR_ERR_CALLBACK_FAILED;
-}
-
-static int system_set_timezone_name(const char *value)
-{
-	int error = 0;
-	char path_buffer[PATH_MAX] = {0};
-
-	error = snprintf(path_buffer, sizeof(path_buffer), "%s/%s", SYSTEM_TIMEZONE_DIR, value);
-	if (error < 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
-		goto error_out;
-	}
-
-	error = access(path_buffer, F_OK);
-	if (error != 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "access() failed (%d)", error);
-		goto error_out;
-	}
-
-	if (access(SYSTEM_LOCALTIME_FILE, F_OK) == 0) {
-		error = unlink(SYSTEM_LOCALTIME_FILE);
-		if (error != 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "unlink() failed (%d)", error);
-			goto error_out;
-		}
-	}
-
-	error = symlink(path_buffer, SYSTEM_LOCALTIME_FILE);
-	if (error != 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "symlink() failed (%d)", error);
-		goto error_out;
-	}
-
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
-	return error;
-}
-
-static int system_delete_timezone_name(void)
-{
-	int error = 0;
-
-	error = access(SYSTEM_LOCALTIME_FILE, F_OK);
-	if (error != 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "/etc/localtime doesn't exist");
-		goto error_out;
-	}
-
-	error = unlink(SYSTEM_LOCALTIME_FILE);
-	if (error != 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unlink() failed (%d)", error);
-		goto error_out;
-	}
-
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
-	return error;
 }
 
 static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb)
