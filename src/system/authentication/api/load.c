@@ -118,8 +118,6 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 				goto error_out;
 			}
 
-			SRPLG_LOG_INF(PLUGIN_NAME, "Loading file %s", path_buffer);
-
 			// open file
 			pub_file = fopen(path_buffer, "r");
 			if (!pub_file) {
@@ -147,8 +145,6 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_data() error (%d)", error);
 				goto error_out;
 			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "user: %s, key: %s, alg: %s, data: %s", user, tmp_key.name, tmp_key.algorithm, tmp_key.data);
 
 			// add to the array
 			error = system_authorized_key_array_add(arr, tmp_key);
