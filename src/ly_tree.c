@@ -106,6 +106,16 @@ int system_ly_tree_create_dns_resolver_server_port(const struct ly_ctx *ly_ctx, 
 	return srpc_ly_tree_create_leaf(ly_ctx, server_list_node, NULL, "udp-and-tcp/port", port);
 }
 
+int system_ly_tree_create_authentication_user(const struct ly_ctx *ly_ctx, struct lyd_node *authentication_container_node, struct lyd_node **user_list_node, const char *name)
+{
+	return srpc_ly_tree_create_list(ly_ctx, authentication_container_node, user_list_node, "user", "name", name);
+}
+
+int system_ly_tree_create_authentication_user_password(const struct ly_ctx *ly_ctx, struct lyd_node *user_list_node, const char *password)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, user_list_node, NULL, "password", password);
+}
+
 int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, parent_node, system_state_container_node, SYSTEM_STATE_YANG_PATH);
