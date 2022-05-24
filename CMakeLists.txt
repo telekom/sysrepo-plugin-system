@@ -48,6 +48,7 @@ set(
     src/system/dns_resolver/api/load.c
     src/system/dns_resolver/api/store.c
     src/system/dns_resolver/api/change.c
+    src/system/authentication/api/load.c
 )
 
 if (NOT PLUGIN)

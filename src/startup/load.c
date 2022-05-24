@@ -5,6 +5,7 @@
 
 // API for getting system data
 #include "system/api/load.h"
+#include "system/authentication/api/load.h"
 #include "system/dns_resolver/api/load.h"
 
 // data manipulation
@@ -283,5 +284,30 @@ out:
 static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
+	struct lyd_node *authentication_container_node = NULL;
+	UT_array *users = NULL;
+
+	// create authentication container
+	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication() error (%d)", error);
+		goto error_out;
+	}
+
+	// load user list
+	error = system_authentication_load_user(ctx, &users);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+
 	return error;
 }
