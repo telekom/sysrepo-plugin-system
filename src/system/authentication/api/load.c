@@ -1,5 +1,7 @@
 #include "load.h"
+#include "sysrepo.h"
 #include "types.h"
+#include "common.h"
 
 #include "system/authentication/data/local_user/array.h"
 #include "system/authentication/data/local_user.h"
@@ -28,10 +30,15 @@ int system_authentication_load_user(system_ctx_t *ctx, UT_array **arr)
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, "/home", sizeof("/home") - 1) == 0) || (pwd->pw_uid == 0)) {
 			tmp_user.name = pwd->pw_name;
 
+			SRPLG_LOG_INF(PLUGIN_NAME, "loading user %s", tmp_user.name);
+
 			error = system_local_user_array_add(arr, tmp_user);
 			if (error != 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "unable to add user %s", tmp_user.name);
 				goto error_out;
 			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "loaded user %s", tmp_user.name);
 		}
 	}
 

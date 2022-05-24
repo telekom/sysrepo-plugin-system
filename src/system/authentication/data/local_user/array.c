@@ -49,11 +49,15 @@ static void system_local_user_copy_fn(void *dst, const void *src)
 	system_local_user_init(d);
 
 	system_local_user_set_name(d, s->name);
-	system_local_user_set_password(d, s->password);
+	if (s->password) {
+		system_local_user_set_password(d, s->password);
+	}
 	system_local_user_set_nologin(d, s->nologin);
 
-	while ((key = utarray_next(s->keys, key)) != NULL) {
-		utarray_push_back(d->keys, key);
+	if (s->keys) {
+		while ((key = utarray_next(s->keys, key)) != NULL) {
+			utarray_push_back(d->keys, key);
+		}
 	}
 }
 

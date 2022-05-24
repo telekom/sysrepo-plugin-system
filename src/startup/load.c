@@ -6,6 +6,7 @@
 // API for getting system data
 #include "system/api/load.h"
 #include "system/authentication/api/load.h"
+#include "system/authentication/data/local_user/array.h"
 #include "system/dns_resolver/api/load.h"
 
 // data manipulation
@@ -286,7 +287,11 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *authentication_container_node = NULL;
+	struct lyd_node *user_list_node = NULL;
 	UT_array *users = NULL;
+	system_local_user_t *user_iter = NULL;
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "creating authentication");
 
 	// create authentication container
 	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
@@ -295,11 +300,36 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 		goto error_out;
 	}
 
+	SRPLG_LOG_INF(PLUGIN_NAME, "loading users");
+
+	// init array first
+	system_local_user_array_init(&users);
+
 	// load user list
 	error = system_authentication_load_user(ctx, &users);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
 		goto error_out;
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "saving users");
+
+	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
+		// list item
+		error = system_ly_tree_create_authentication_user(ly_ctx, authentication_container_node, &user_list_node, user_iter->name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user() error (%d) for %s", error, user_iter->name);
+			goto error_out;
+		}
+
+		// password
+		if (user_iter->password) {
+			error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->password);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->password);
+				goto error_out;
+			}
+		}
 	}
 
 	goto out;
@@ -308,6 +338,7 @@ error_out:
 	error = -1;
 
 out:
+	system_local_user_array_free(&users);
 
 	return error;
 }
