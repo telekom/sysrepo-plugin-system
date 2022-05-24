@@ -37,13 +37,15 @@ int system_dns_resolver_store_search(system_ctx_t *ctx, system_dns_search_elemen
 	}
 
 	// set ifindex to the first value in the list
-	r = sd_bus_message_append(msg, "i", SYSTEMD_IFINDEX);
+	r = sd_bus_message_append(msg, "i", 0);
 	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_message_append() error");
 		goto invalid;
 	}
 
 	r = sd_bus_message_open_container(msg, 'a', "(sb)");
 	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_message_open_container() error");
 		goto invalid;
 	}
 
@@ -51,17 +53,20 @@ int system_dns_resolver_store_search(system_ctx_t *ctx, system_dns_search_elemen
 	{
 		r = sd_bus_message_append(msg, "(sb)", search_iter_el->search.domain, search_iter_el->search.search);
 		if (r < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_message_append() error");
 			goto invalid;
 		}
 	}
 
 	r = sd_bus_message_close_container(msg);
 	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_message_close_container() error");
 		goto invalid;
 	}
 
 	r = sd_bus_call(bus, msg, 0, &sdb_err, &reply);
 	if (r < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_call() error");
 		goto invalid;
 	}
 
