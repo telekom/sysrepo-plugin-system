@@ -149,14 +149,12 @@ out:
 static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
 static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
@@ -195,14 +193,12 @@ out:
 static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *dns_resolver_container_node = NULL, *server_list_node = NULL;
 	system_dns_search_element_t *search_head = NULL, *search_iter_el = NULL;
 	system_dns_server_element_t *servers_head = NULL, *servers_iter_el = NULL;
@@ -292,6 +288,5 @@ out:
 static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }

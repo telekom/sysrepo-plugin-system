@@ -35,6 +35,7 @@
 static int system_startup_store_hostname(void *priv, const struct lyd_node *system_container_node);
 static int system_startup_store_contact(void *priv, const struct lyd_node *system_container_node);
 static int system_startup_store_location(void *priv, const struct lyd_node *system_container_node);
+static int system_startup_store_timezone_name(void *priv, const struct lyd_node *system_container_node);
 
 int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
@@ -59,6 +60,10 @@ int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		{
 			"location",
 			system_startup_store_location,
+		},
+		{
+			"timezone-name",
+			system_startup_store_timezone_name,
 		},
 	};
 
@@ -88,7 +93,6 @@ out:
 static int system_startup_store_hostname(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
-
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 
 	struct lyd_node *hostname_node = srpc_ly_tree_get_child_leaf(system_container_node, "hostname");
@@ -111,7 +115,6 @@ static int system_startup_store_hostname(void *priv, const struct lyd_node *syst
 static int system_startup_store_contact(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
-
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 
 	struct lyd_node *contact_node = srpc_ly_tree_get_child_leaf(system_container_node, "contact");
@@ -134,7 +137,6 @@ static int system_startup_store_contact(void *priv, const struct lyd_node *syste
 static int system_startup_store_location(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
-
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 
 	struct lyd_node *location_node = srpc_ly_tree_get_child_leaf(system_container_node, "location");
@@ -148,6 +150,32 @@ static int system_startup_store_location(void *priv, const struct lyd_node *syst
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_location() failed (%d)", error);
 			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static int system_startup_store_timezone_name(void *priv, const struct lyd_node *system_container_node)
+{
+	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
+	struct lyd_node *clock_container_node = NULL, *timezone_name_node = NULL;
+
+	clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
+
+	if (clock_container_node) {
+		timezone_name_node = srpc_ly_tree_get_child_leaf(system_container_node, "timezone-name");
+		if (timezone_name_node) {
+			const char *timezone_name = lyd_get_value(timezone_name_node);
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "timezone_name value: %s", timezone_name);
+
+			error = system_store_timezone_name(ctx, timezone_name);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() failed (%d)", error);
+				return -1;
+			}
 		}
 	}
 
