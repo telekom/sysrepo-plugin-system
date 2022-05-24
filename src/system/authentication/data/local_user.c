@@ -48,3 +48,11 @@ void system_local_user_free(system_local_user_t *user)
 		free(user->password);
 	}
 }
+
+int system_local_user_cmp_fn(const void *e1, const void *e2)
+{
+	system_local_user_t *u1 = (system_local_user_t *) e1;
+	system_local_user_t *u2 = (system_local_user_t *) e2;
+
+	return strcmp(u1->name, u2->name);
+}

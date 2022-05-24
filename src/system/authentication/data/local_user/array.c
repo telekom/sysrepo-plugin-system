@@ -20,6 +20,20 @@ void system_local_user_array_init(UT_array **users)
 	utarray_reserve(*users, SYSTEM_LOCAL_USERS_MAX_COUNT);
 }
 
+int system_local_user_array_add(UT_array **users, system_local_user_t user)
+{
+	int error = 0;
+
+	if (utarray_len(*users) >= SYSTEM_LOCAL_USERS_MAX_COUNT) {
+		return -1;
+	}
+
+	utarray_push_back(*users, &user);
+	utarray_sort(*users, system_local_user_cmp_fn);
+
+	return error;
+}
+
 void system_local_user_array_free(UT_array **users)
 {
 	utarray_free(*users);

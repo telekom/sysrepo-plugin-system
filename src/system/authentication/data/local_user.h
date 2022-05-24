@@ -9,4 +9,6 @@ int system_local_user_set_password(system_local_user_t *user, const char *passwo
 int system_local_user_set_nologin(system_local_user_t *user, const int nologin);
 void system_local_user_free(system_local_user_t *user);
 
+int system_local_user_cmp_fn(const void *e1, const void *e2);
+
 #endif // SYSTEM_PLUGIN_AUTHENTICATION_DATA_LOCAL_USER_H
