@@ -37,7 +37,7 @@ int system_dns_resolver_store_search(system_ctx_t *ctx, system_dns_search_elemen
 	}
 
 	// set ifindex to the first value in the list
-	r = sd_bus_message_append(msg, "i", 0);
+	r = sd_bus_message_append(msg, "i", SYSTEMD_IFINDEX);
 	if (r < 0) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sd_bus_message_append() error");
 		goto invalid;
