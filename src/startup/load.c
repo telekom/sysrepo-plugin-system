@@ -299,9 +299,10 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *authentication_container_node = NULL;
-	struct lyd_node *user_list_node = NULL;
+	struct lyd_node *user_list_node = NULL, *authorized_key_list_node = NULL;
 	UT_array *users = NULL;
 	system_local_user_t *user_iter = NULL;
+	system_authorized_key_t *key_iter = NULL;
 
 	// create authentication container
 	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
@@ -351,6 +352,37 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->password);
 				goto error_out;
+			}
+		}
+
+		// authorized-key
+		if (utarray_len(user_iter->keys) > 0) {
+			key_iter = NULL;
+			while ((key_iter = utarray_next(user_iter->keys, key_iter)) != NULL) {
+				// list item
+				error = system_ly_tree_create_authentication_user_authorized_key(ly_ctx, user_list_node, &authorized_key_list_node, key_iter->name);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key() error (%d) for %s", error, key_iter->name);
+					goto error_out;
+				}
+
+				// algorithm
+				if (key_iter->algorithm) {
+					error = system_ly_tree_create_authentication_user_authorized_key_algorithm(ly_ctx, authorized_key_list_node, key_iter->algorithm);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_algorithm() error (%d) for %s", error, key_iter->algorithm);
+						goto error_out;
+					}
+				}
+
+				// key-data
+				if (key_iter->data) {
+					error = system_ly_tree_create_authentication_user_authorized_key_data(ly_ctx, authorized_key_list_node, key_iter->data);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_data() error (%d) for %s", error, key_iter->data);
+						goto error_out;
+					}
+				}
 			}
 		}
 	}

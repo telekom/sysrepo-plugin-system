@@ -34,6 +34,9 @@ int system_ly_tree_create_dns_resolver_server_port(const struct ly_ctx *ly_ctx, 
 // authentication
 int system_ly_tree_create_authentication_user(const struct ly_ctx *ly_ctx, struct lyd_node *authentication_container_node, struct lyd_node **user_list_node, const char *name);
 int system_ly_tree_create_authentication_user_password(const struct ly_ctx *ly_ctx, struct lyd_node *user_list_node, const char *password);
+int system_ly_tree_create_authentication_user_authorized_key(const struct ly_ctx *ly_ctx, struct lyd_node *user_list_node, struct lyd_node **authorized_key_list_node, const char *name);
+int system_ly_tree_create_authentication_user_authorized_key_algorithm(const struct ly_ctx *ly_ctx, struct lyd_node *authorized_key_list_node, const char *algorithm);
+int system_ly_tree_create_authentication_user_authorized_key_data(const struct ly_ctx *ly_ctx, struct lyd_node *authorized_key_list_node, const char *data);
 
 // operational
 int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node);

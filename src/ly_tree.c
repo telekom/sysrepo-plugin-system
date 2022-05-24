@@ -116,6 +116,21 @@ int system_ly_tree_create_authentication_user_password(const struct ly_ctx *ly_c
 	return srpc_ly_tree_create_leaf(ly_ctx, user_list_node, NULL, "password", password);
 }
 
+int system_ly_tree_create_authentication_user_authorized_key(const struct ly_ctx *ly_ctx, struct lyd_node *user_list_node, struct lyd_node **authorized_key_list_node, const char *name)
+{
+	return srpc_ly_tree_create_list(ly_ctx, user_list_node, authorized_key_list_node, "authorized-key", "name", name);
+}
+
+int system_ly_tree_create_authentication_user_authorized_key_algorithm(const struct ly_ctx *ly_ctx, struct lyd_node *authorized_key_list_node, const char *algorithm)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, authorized_key_list_node, NULL, "algorithm", algorithm);
+}
+
+int system_ly_tree_create_authentication_user_authorized_key_data(const struct ly_ctx *ly_ctx, struct lyd_node *authorized_key_list_node, const char *data)
+{
+	return srpc_ly_tree_create_leaf(ly_ctx, authorized_key_list_node, NULL, "key-data", data);
+}
+
 int system_ly_tree_create_system_state(const struct ly_ctx *ly_ctx, struct lyd_node *parent_node, struct lyd_node **system_state_container_node)
 {
 	return srpc_ly_tree_create_container(ly_ctx, parent_node, system_state_container_node, SYSTEM_STATE_YANG_PATH);
