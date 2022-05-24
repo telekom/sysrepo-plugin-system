@@ -71,7 +71,6 @@ struct system_ntp_server_element_s {
 struct system_local_user_s {
 	char *name;
 	char *password;
-	int nologin;
 	UT_array *keys;
 };
 

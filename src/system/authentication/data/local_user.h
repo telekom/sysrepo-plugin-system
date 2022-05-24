@@ -6,7 +6,6 @@
 void system_local_user_init(system_local_user_t *user);
 int system_local_user_set_name(system_local_user_t *user, const char *name);
 int system_local_user_set_password(system_local_user_t *user, const char *password);
-int system_local_user_set_nologin(system_local_user_t *user, const int nologin);
 void system_local_user_free(system_local_user_t *user);
 
 int system_local_user_cmp_fn(const void *e1, const void *e2);

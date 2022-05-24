@@ -32,12 +32,6 @@ int system_local_user_set_password(system_local_user_t *user, const char *passwo
 	return user->password != NULL;
 }
 
-int system_local_user_set_nologin(system_local_user_t *user, const int nologin)
-{
-	user->nologin = nologin;
-	return 0;
-}
-
 void system_local_user_free(system_local_user_t *user)
 {
 	if (user->name) {

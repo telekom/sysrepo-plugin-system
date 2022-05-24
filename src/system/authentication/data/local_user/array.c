@@ -52,7 +52,6 @@ static void system_local_user_copy_fn(void *dst, const void *src)
 	if (s->password) {
 		system_local_user_set_password(d, s->password);
 	}
-	system_local_user_set_nologin(d, s->nologin);
 
 	if (s->keys) {
 		while ((key = utarray_next(s->keys, key)) != NULL) {
