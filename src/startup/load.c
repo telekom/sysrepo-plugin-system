@@ -122,9 +122,8 @@ out:
 static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
-
 	system_ctx_t *ctx = (system_ctx_t *) priv;
+	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
 
 	error = system_load_hostname(ctx, hostname_buffer);
 	if (error) {
@@ -150,42 +149,25 @@ out:
 static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
 static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
 static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
-	char timezone_name_buffer[PATH_MAX] = {0};
-	char timezone_path_buffer[PATH_MAX] = {0};
+	system_ctx_t *ctx = (system_ctx_t *) priv;
+	char timezone_name_buffer[SYSTEM_TIMEZONE_NAME_LENGTH_MAX] = {0};
 	struct lyd_node *clock_container_node = NULL;
 
-	ssize_t len = 0;
-	size_t start = 0;
-
-	len = readlink(SYSTEM_LOCALTIME_FILE, timezone_path_buffer, sizeof(timezone_path_buffer) - 1);
-	if (len == -1) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "readlink() error");
-		goto error_out;
-	}
-
-	// terminate path
-	timezone_path_buffer[len] = 0;
-
-	// assert start is equal to the timezone dir path
-	if (strncmp(timezone_path_buffer, SYSTEM_TIMEZONE_DIR, sizeof(SYSTEM_TIMEZONE_DIR) - 1) != 0) {
-		goto error_out;
-	}
-
-	// fetch the rest of the path into timezone_name_buffer
-	start = sizeof(SYSTEM_TIMEZONE_DIR);
-	strcpy(timezone_name_buffer, &timezone_path_buffer[start]);
+	error = system_load_timezone_name(ctx, timezone_name_buffer);
 
 	// setup clock container
 	error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
@@ -213,12 +195,14 @@ out:
 static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
 
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *dns_resolver_container_node = NULL, *server_list_node = NULL;
 	system_dns_search_element_t *search_head = NULL, *search_iter_el = NULL;
 	system_dns_server_element_t *servers_head = NULL, *servers_iter_el = NULL;
@@ -308,5 +292,6 @@ out:
 static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+	system_ctx_t *ctx = (system_ctx_t *) priv;
 	return error;
 }
