@@ -209,6 +209,8 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 		goto error_out;
 	}
 
+	SRPLG_LOG_INF(PLUGIN_NAME, "Loading DNS search values from the system");
+
 	// load values
 
 	error = system_dns_resolver_load_search(ctx, &search_head);
@@ -217,11 +219,15 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 		goto error_out;
 	}
 
+	SRPLG_LOG_INF(PLUGIN_NAME, "Loading DNS server values from the system");
+
 	error = system_dns_resolver_load_server(ctx, &servers_head);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_server_values() error (%d)", error);
 		goto error_out;
 	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saving search values to the datastore");
 
 	LL_FOREACH(search_head, search_iter_el)
 	{
@@ -231,6 +237,9 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 			goto error_out;
 		}
 	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saved search values to the datastore");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saving server values to the datastore");
 
 	LL_FOREACH(servers_head, servers_iter_el)
 	{
@@ -269,6 +278,8 @@ static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *sessio
 		}
 	}
 
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saved server values to the datastore");
+
 	goto out;
 
 error_out:
@@ -290,8 +301,6 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	struct lyd_node *user_list_node = NULL;
 	UT_array *users = NULL;
 	system_local_user_t *user_iter = NULL;
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "creating authentication");
 
 	// create authentication container
 	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
@@ -331,6 +340,8 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 			}
 		}
 	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Saved users to the datastore");
 
 	goto out;
 
