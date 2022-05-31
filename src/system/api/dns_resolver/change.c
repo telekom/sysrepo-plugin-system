@@ -5,10 +5,10 @@
 #include "common.h"
 
 // data
-#include "system/dns_resolver/data/server/list.h"
-#include "system/dns_resolver/data/search/list.h"
-#include "system/dns_resolver/data/search.h"
-#include "system/dns_resolver/data/server.h"
+#include "system/data/dns_resolver/server/list.h"
+#include "system/data/dns_resolver/search/list.h"
+#include "system/data/dns_resolver/search.h"
+#include "system/data/dns_resolver/server.h"
 #include "system/data/ip_address.h"
 
 #include <sysrepo.h>

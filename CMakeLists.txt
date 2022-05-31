@@ -30,26 +30,26 @@ set(
 
     # data
     src/system/data/ip_address.c
-    src/system/dns_resolver/data/search.c
-    src/system/dns_resolver/data/search/list.c
-    src/system/dns_resolver/data/server.c
-    src/system/dns_resolver/data/server/list.c
-    src/system/ntp/data/server.c
-    src/system/ntp/data/server/array.c
-    src/system/authentication/data/authorized_key.c
-    src/system/authentication/data/authorized_key/array.c
-    src/system/authentication/data/local_user.c
-    src/system/authentication/data/local_user/array.c
+    src/system/data/dns_resolver/search.c
+    src/system/data/dns_resolver/search/list.c
+    src/system/data/dns_resolver/server.c
+    src/system/data/dns_resolver/server/list.c
+    src/system/data/ntp/server.c
+    src/system/data/ntp/server/array.c
+    src/system/data/authentication/authorized_key.c
+    src/system/data/authentication/authorized_key/array.c
+    src/system/data/authentication/local_user.c
+    src/system/data/authentication/local_user/array.c
 
     # system API
     src/system/api/load.c
     src/system/api/store.c
     src/system/api/change.c
-    src/system/dns_resolver/api/load.c
-    src/system/dns_resolver/api/store.c
-    src/system/dns_resolver/api/change.c
-    src/system/authentication/api/load.c
-    src/system/authentication/api/store.c
+    src/system/api/dns_resolver/load.c
+    src/system/api/dns_resolver/store.c
+    src/system/api/dns_resolver/change.c
+    src/system/api/authentication/load.c
+    src/system/api/authentication/store.c
 )
 
 if (NOT PLUGIN)

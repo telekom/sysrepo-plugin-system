@@ -5,15 +5,15 @@
 
 // API for getting system data
 #include "system/api/load.h"
-#include "system/authentication/api/load.h"
-#include "system/authentication/data/authorized_key/array.h"
-#include "system/authentication/data/local_user/array.h"
-#include "system/dns_resolver/api/load.h"
+#include "system/api/authentication/load.h"
+#include "system/api/dns_resolver/load.h"
 
 // data manipulation
+#include "system/data/authentication/authorized_key/array.h"
+#include "system/data/authentication/local_user/array.h"
 #include "system/data/ip_address.h"
-#include "system/dns_resolver/data/search/list.h"
-#include "system/dns_resolver/data/server/list.h"
+#include "system/data/dns_resolver/search/list.h"
+#include "system/data/dns_resolver/server/list.h"
 
 #include <sysrepo.h>
 #include <unistd.h>

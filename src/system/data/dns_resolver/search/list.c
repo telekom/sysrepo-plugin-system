@@ -1,7 +1,7 @@
 #include "list.h"
 #include "types.h"
 #include "utils/memory.h"
-#include "system/dns_resolver/data/search.h"
+#include "system/data/dns_resolver/search.h"
 
 #include <utlist.h>
 

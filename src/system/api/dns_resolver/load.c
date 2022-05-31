@@ -2,8 +2,8 @@
 #include "common.h"
 
 // data
-#include "system/dns_resolver/data/server/list.h"
-#include "system/dns_resolver/data/search/list.h"
+#include "system/data/dns_resolver/server/list.h"
+#include "system/data/dns_resolver/search/list.h"
 
 #include <systemd/sd-bus.h>
 

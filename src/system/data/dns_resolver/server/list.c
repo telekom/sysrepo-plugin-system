@@ -1,6 +1,5 @@
 #include "list.h"
-#include "system/dns_resolver/data/server.h"
-#include "utils/memory.h"
+#include "system/data/dns_resolver/server.h"
 
 #include <utlist.h>
 

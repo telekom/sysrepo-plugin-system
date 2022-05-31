@@ -1,5 +1,5 @@
-#ifndef SYSTEM_PLUGIN_AUTHENTICATION_DATA_AUTHORIZED_KEY_H
-#define SYSTEM_PLUGIN_AUTHENTICATION_DATA_AUTHORIZED_KEY_H
+#ifndef SYSTEM_PLUGIN_DATA_AUTHENTICATION_AUTHORIZED_KEY_H
+#define SYSTEM_PLUGIN_DATA_AUTHENTICATION_AUTHORIZED_KEY_H
 
 #include "types.h"
 
@@ -11,4 +11,4 @@ void system_authorized_key_free(system_authorized_key_t *key);
 
 int system_authorized_key_cmp_fn(const void *e1, const void *e2);
 
-#endif // SYSTEM_PLUGIN_AUTHENTICATION_DATA_AUTHORIZED_KEY_H
+#endif // SYSTEM_PLUGIN_DATA_AUTHENTICATION_AUTHORIZED_KEY_H

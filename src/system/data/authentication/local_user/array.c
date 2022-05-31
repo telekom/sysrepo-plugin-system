@@ -1,5 +1,5 @@
 #include "array.h"
-#include "system/authentication/data/local_user.h"
+#include "system/data/authentication/local_user.h"
 #include "common.h"
 
 static void system_local_user_copy_fn(void *dst, const void *src);

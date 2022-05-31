@@ -1,5 +1,5 @@
-#ifndef SYSTEM_PLUGIN_AUTHENTICATION_DATA_LOCAL_USER_H
-#define SYSTEM_PLUGIN_AUTHENTICATION_DATA_LOCAL_USER_H
+#ifndef SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_H
+#define SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_H
 
 #include "types.h"
 
@@ -10,4 +10,4 @@ void system_local_user_free(system_local_user_t *user);
 
 int system_local_user_cmp_fn(const void *e1, const void *e2);
 
-#endif // SYSTEM_PLUGIN_AUTHENTICATION_DATA_LOCAL_USER_H
+#endif // SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_H

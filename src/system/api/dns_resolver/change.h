@@ -1,5 +1,5 @@
-#ifndef SYSTEM_PLUGIN_DNS_RESOLVER_API_CHANGE_H
-#define SYSTEM_PLUGIN_DNS_RESOLVER_API_CHANGE_H
+#ifndef SYSTEM_PLUGIN_API_DNS_RESOLVER_CHANGE_H
+#define SYSTEM_PLUGIN_API_DNS_RESOLVER_CHANGE_H
 
 #include "context.h"
 
@@ -11,4 +11,4 @@ int system_dns_resolver_change_server_create(system_ctx_t *ctx, const char *valu
 int system_dns_resolver_change_server_modify(system_ctx_t *ctx, const char *prev_value, const char *new_value);
 int system_dns_resolver_change_server_delete(system_ctx_t *ctx, const char *value);
 
-#endif // SYSTEM_PLUGIN_DNS_RESOLVER_API_CHANGE_H
+#endif // SYSTEM_PLUGIN_API_DNS_RESOLVER_CHANGE_H

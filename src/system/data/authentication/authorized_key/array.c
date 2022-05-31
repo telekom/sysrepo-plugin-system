@@ -1,5 +1,5 @@
 #include "array.h"
-#include "system/authentication/data/authorized_key.h"
+#include "system/data/authentication/authorized_key.h"
 #include "common.h"
 
 static void system_authorized_key_copy_fn(void *dst, const void *src);

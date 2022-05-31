@@ -1,11 +1,12 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
-#include "system/api/change.h"
 #include "utils/memory.h"
 
 // API for setting system data
-#include "system/dns_resolver/api/change.h"
+#include "system/api/dns_resolver/change.h"
+#include "system/api/change.h"
+#include "system/api/authentication/change.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>

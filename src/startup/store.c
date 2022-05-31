@@ -5,14 +5,14 @@
 
 // API for getting system data
 #include "system/api/store.h"
-#include "system/dns_resolver/api/store.h"
+#include "system/api/dns_resolver/store.h"
 
 // data manipulation
 #include "system/data/ip_address.h"
-#include "system/dns_resolver/data/search.h"
-#include "system/dns_resolver/data/search/list.h"
-#include "system/dns_resolver/data/server.h"
-#include "system/dns_resolver/data/server/list.h"
+#include "system/data/dns_resolver/search.h"
+#include "system/data/dns_resolver/search/list.h"
+#include "system/data/dns_resolver/server.h"
+#include "system/data/dns_resolver/server/list.h"
 #include "types.h"
 
 #include <sysrepo.h>
@@ -35,6 +35,7 @@ static int system_startup_store_contact(void *priv, const struct lyd_node *syste
 static int system_startup_store_location(void *priv, const struct lyd_node *system_container_node);
 static int system_startup_store_timezone_name(void *priv, const struct lyd_node *system_container_node);
 static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *system_container_node);
+static int system_startup_store_authentication(void *priv, const struct lyd_node *system_container_node);
 
 int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
@@ -67,6 +68,10 @@ int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		{
 			"dns-resolver",
 			system_startup_store_dns_resolver,
+		},
+		{
+			"authentication",
+			system_startup_store_authentication,
 		},
 	};
 
@@ -355,6 +360,22 @@ out:
 	// free allocated lists
 	system_dns_search_list_free(&search_head);
 	system_dns_server_list_free(&servers_head);
+
+	return error;
+}
+
+static int system_startup_store_authentication(void *priv, const struct lyd_node *system_container_node)
+{
+	int error = 0;
+
+	system_ctx_t *ctx = (system_ctx_t *) priv;
+	struct lyd_node *authentication_container_node = NULL;
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
+
+	authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "dns-resolver");
+	if (authentication_container_node) {
+	}
 
 	return error;
 }

@@ -3,10 +3,10 @@
 #include "types.h"
 #include "common.h"
 
-#include "system/authentication/data/authorized_key/array.h"
-#include "system/authentication/data/authorized_key.h"
-#include "system/authentication/data/local_user/array.h"
-#include "system/authentication/data/local_user.h"
+#include "system/data/authentication/authorized_key/array.h"
+#include "system/data/authentication/authorized_key.h"
+#include "system/data/authentication/local_user/array.h"
+#include "system/data/authentication/local_user.h"
 
 #include <unistd.h>
 #include <pwd.h>
