@@ -46,9 +46,11 @@ set(
     src/system/api/store.c
     src/system/api/change.c
     src/system/api/dns_resolver/load.c
+    src/system/api/dns_resolver/check.c
     src/system/api/dns_resolver/store.c
     src/system/api/dns_resolver/change.c
     src/system/api/authentication/load.c
+    src/system/api/authentication/check.c
     src/system/api/authentication/store.c
 )
 
