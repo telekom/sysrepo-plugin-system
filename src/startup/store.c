@@ -5,6 +5,7 @@
 
 // API for getting system data
 #include "srpc/types.h"
+#include "system/api/check.h"
 #include "system/api/store.h"
 #include "system/api/dns_resolver/store.h"
 #include "system/api/dns_resolver/check.h"
@@ -105,21 +106,51 @@ static int system_startup_store_hostname(void *priv, const struct lyd_node *syst
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
+	srpc_check_status_t check_status = srpc_check_status_none;
 
 	struct lyd_node *hostname_node = srpc_ly_tree_get_child_leaf(system_container_node, "hostname");
 
 	if (hostname_node) {
 		const char *hostname = lyd_get_value(hostname_node);
 
-		SRPLG_LOG_INF(PLUGIN_NAME, "hostname value: %s", hostname);
+		SRPLG_LOG_INF(PLUGIN_NAME, "Checking system hostname value");
+		check_status = system_check_hostname(ctx, hostname);
 
-		error = system_store_hostname(ctx, hostname);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_hostname() failed (%d)", error);
-			return -1;
+		switch (check_status) {
+			case srpc_check_status_none:
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system hostname value");
+				goto error_out;
+				break;
+			case srpc_check_status_error:
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system hostname value");
+				goto error_out;
+				break;
+			case srpc_check_status_non_existant:
+				SRPLG_LOG_INF(PLUGIN_NAME, "Storing hostname value %s", hostname);
+
+				error = system_store_hostname(ctx, hostname);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_hostname() failed (%d)", error);
+					return -1;
+				}
+				break;
+			case srpc_check_status_equal:
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Startup hostname value is already applied on the system");
+				break;
+			case srpc_check_status_partial:
+				// should not be returned - treat as error
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system hostname value");
+				goto error_out;
+				break;
 		}
 	}
 
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return 0;
 }
 
@@ -171,6 +202,8 @@ static int system_startup_store_timezone_name(void *priv, const struct lyd_node 
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
+	srpc_check_status_t check_status = srpc_check_status_none;
+
 	struct lyd_node *clock_container_node = NULL, *timezone_name_node = NULL;
 
 	clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
@@ -180,16 +213,45 @@ static int system_startup_store_timezone_name(void *priv, const struct lyd_node 
 		if (timezone_name_node) {
 			const char *timezone_name = lyd_get_value(timezone_name_node);
 
-			SRPLG_LOG_INF(PLUGIN_NAME, "timezone_name value: %s", timezone_name);
+			SRPLG_LOG_INF(PLUGIN_NAME, "Checking system timezone-name value");
+			check_status = system_check_timezone_name(ctx, timezone_name);
 
-			error = system_store_timezone_name(ctx, timezone_name);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() failed (%d)", error);
-				return -1;
+			switch (check_status) {
+				case srpc_check_status_none:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+					goto error_out;
+					break;
+				case srpc_check_status_error:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+					goto error_out;
+					break;
+				case srpc_check_status_non_existant:
+					SRPLG_LOG_INF(PLUGIN_NAME, "Storing timezone-name value %s", timezone_name);
+
+					error = system_store_timezone_name(ctx, timezone_name);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() failed (%d)", error);
+						return -1;
+					}
+					break;
+				case srpc_check_status_equal:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Startup timezone-name value is already applied on the system");
+					break;
+				case srpc_check_status_partial:
+					// should not be returned - treat as error
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+					goto error_out;
+					break;
 			}
 		}
 	}
 
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return 0;
 }
 
