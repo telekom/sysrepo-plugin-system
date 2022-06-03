@@ -132,6 +132,7 @@ You may obtain a copy of the License by reviewing the file [LICENSE](./LICENSE) 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the [LICENSE](./LICENSE) for the specific language governing permissions and limitations under the License.
 
 ## Refactor TODO
+- [ ] fix change iter API usage - replace with SRPC library change_tree
 - [ ] add check API for authentication and DNS resolver
 - [ ] finish store API for authentication
 - [ ] reorganize code
