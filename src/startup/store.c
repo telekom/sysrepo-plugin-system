@@ -4,8 +4,11 @@
 #include "ly_tree.h"
 
 // API for getting system data
+#include "srpc/types.h"
 #include "system/api/store.h"
 #include "system/api/dns_resolver/store.h"
+#include "system/api/dns_resolver/check.h"
+#include "system/api/authentication/store.h"
 
 // data manipulation
 #include "system/data/ip_address.h"
@@ -206,6 +209,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 	system_dns_server_t tmp_server = {0};
 	system_dns_search_t tmp_search = {0};
 	system_ip_address_t tmp_ip = {0};
+	srpc_check_status_t search_check_status = srpc_check_status_none, server_check_status = srpc_check_status_none;
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading dns-resolver startup data");
 
@@ -254,16 +258,40 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 				search_leaf_list_node = srpc_ly_tree_get_leaf_list_next(search_leaf_list_node);
 			}
 
-			SRPLG_LOG_INF(PLUGIN_NAME, "Storing DNS search values from the datastore to the system");
+			SRPLG_LOG_INF(PLUGIN_NAME, "Checking DNS search values on the system");
+			search_check_status = system_dns_resolver_check_search(ctx, search_head);
+			SRPLG_LOG_INF(PLUGIN_NAME, "Recieved check status = %d", search_check_status);
 
-			// apply search values to the system
-			error = system_dns_resolver_store_search(ctx, search_head);
-			if (error) {
-				SRPLG_LOG_INF(PLUGIN_NAME, "system_dns_resolver_store_search() error (%d)", error);
-				goto error_out;
+			switch (search_check_status) {
+				case srpc_check_status_none:
+					// should not be recieved - treat same as an error
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking DNS search system values");
+					goto error_out;
+					break;
+				case srpc_check_status_error:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking DNS search system values");
+					goto error_out;
+					break;
+				case srpc_check_status_non_existant:
+					// values don't exist - apply them to the system
+					SRPLG_LOG_INF(PLUGIN_NAME, "Storing DNS search values from the datastore to the system");
+
+					// apply search values to the system
+					error = system_dns_resolver_store_search(ctx, search_head);
+					if (error) {
+						SRPLG_LOG_INF(PLUGIN_NAME, "system_dns_resolver_store_search() error (%d)", error);
+						goto error_out;
+					}
+
+					SRPLG_LOG_INF(PLUGIN_NAME, "Stored DNS search values from the datastore to the system");
+					break;
+				case srpc_check_status_equal:
+					// values exist - don't do anything
+					break;
+				case srpc_check_status_partial:
+					// TODO: create an union between startup and system values and apply that list to the system
+					break;
 			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Stored DNS search values from the datastore to the system");
 		}
 
 		if (server_list_node) {
@@ -334,16 +362,40 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 				server_list_node = srpc_ly_tree_get_list_next(server_list_node);
 			}
 
-			SRPLG_LOG_INF(PLUGIN_NAME, "Storing DNS server values from the datastore to the system");
+			SRPLG_LOG_INF(PLUGIN_NAME, "Checking DNS server values on the system");
+			server_check_status = system_dns_resolver_check_server(ctx, servers_head);
+			SRPLG_LOG_INF(PLUGIN_NAME, "Recieved check status = %d", server_check_status);
 
-			// gathered all servers - store them to the system
-			error = system_dns_resolver_store_server(ctx, servers_head);
-			if (error) {
-				SRPLG_LOG_INF(PLUGIN_NAME, "system_dns_resolver_store_server() error (%d)", error);
-				goto error_out;
+			switch (server_check_status) {
+				case srpc_check_status_none:
+					// should not be recieved - treat same as an error
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking DNS server system values");
+					goto error_out;
+					break;
+				case srpc_check_status_error:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking DNS server system values");
+					goto error_out;
+					break;
+				case srpc_check_status_non_existant:
+					SRPLG_LOG_INF(PLUGIN_NAME, "Storing DNS server values from the datastore to the system");
+
+					// gathered all servers - store them to the system
+					error = system_dns_resolver_store_server(ctx, servers_head);
+					if (error) {
+						SRPLG_LOG_INF(PLUGIN_NAME, "system_dns_resolver_store_server() error (%d)", error);
+						goto error_out;
+					}
+
+					SRPLG_LOG_INF(PLUGIN_NAME, "Stored DNS server values from the datastore to the system");
+					break;
+				case srpc_check_status_equal:
+					// don't do anything
+					SRPLG_LOG_INF(PLUGIN_NAME, "DNS server values already exist on the system - no need to apply anyhing");
+					break;
+				case srpc_check_status_partial:
+					// TODO: implement
+					break;
 			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Stored DNS server values from the datastore to the system");
 		}
 	}
 
