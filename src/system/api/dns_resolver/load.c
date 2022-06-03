@@ -4,6 +4,8 @@
 // data
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/dns_resolver/search/list.h"
+#include "system/data/ip_address.h"
+#include "utils/memory.h"
 
 #include <systemd/sd-bus.h>
 
@@ -105,6 +107,8 @@ int system_dns_resolver_load_server(system_ctx_t *ctx, system_dns_server_element
 	int tmp_ifindex = 0;
 	size_t tmp_length = 0;
 
+	char ip_buffer[46] = {0};
+
 	system_dns_server_t tmp_server = {0};
 
 	r = sd_bus_open_system(&bus);
@@ -173,6 +177,16 @@ int system_dns_resolver_load_server(system_ctx_t *ctx, system_dns_server_element
 		if (r < 0) {
 			goto invalid;
 		}
+
+		// setup name to be equal to the address -> convert IP to string
+		error = system_ip_address_to_str(&tmp_server.address, ip_buffer, sizeof(ip_buffer));
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ip_address_to_str() error (%d)", error);
+			goto invalid;
+		}
+
+		// copy to the current server name
+		tmp_server.name = xstrdup(ip_buffer);
 
 		error = system_dns_server_list_add(head, tmp_server);
 		if (error) {

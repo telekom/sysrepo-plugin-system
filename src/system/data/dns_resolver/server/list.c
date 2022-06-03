@@ -25,6 +25,14 @@ int system_dns_server_list_add(system_dns_server_element_t **head, system_dns_se
 	return 0;
 }
 
+int system_dns_server_element_cmp_fn(void *e1, void *e2)
+{
+	system_dns_server_element_t *s1 = (system_dns_server_element_t *) e1;
+	system_dns_server_element_t *s2 = (system_dns_server_element_t *) e2;
+
+	return strcmp(s1->server.name, s2->server.name);
+}
+
 void system_dns_server_list_free(system_dns_server_element_t **head)
 {
 	system_dns_server_element_t *iter_el = NULL, *tmp_el = NULL;
