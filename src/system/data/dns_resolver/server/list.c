@@ -16,8 +16,11 @@ int system_dns_server_list_add(system_dns_server_element_t **head, system_dns_se
 		return -1;
 	}
 
-	// set given value
-	new_el->server = server;
+	// copy value
+	system_dns_server_init(&new_el->server);
+	system_dns_server_set_name(&new_el->server, server.name);
+	system_dns_server_set_address(&new_el->server, server.address);
+	system_dns_server_set_port(&new_el->server, server.port);
 
 	// add to list
 	LL_APPEND(*head, new_el);

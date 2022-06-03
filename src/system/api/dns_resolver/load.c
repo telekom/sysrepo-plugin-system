@@ -2,6 +2,7 @@
 #include "common.h"
 
 // data
+#include "system/data/dns_resolver/server.h"
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/ip_address.h"
@@ -193,6 +194,9 @@ int system_dns_resolver_load_server(system_ctx_t *ctx, system_dns_server_element
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_add() error (%d)", error);
 			goto invalid;
 		}
+
+		// free temp server
+		system_dns_server_free(&tmp_server);
 	}
 
 	goto finish;

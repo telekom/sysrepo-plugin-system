@@ -209,7 +209,7 @@ static int system_startup_store_timezone_name(void *priv, const struct lyd_node 
 	clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
 
 	if (clock_container_node) {
-		timezone_name_node = srpc_ly_tree_get_child_leaf(system_container_node, "timezone-name");
+		timezone_name_node = srpc_ly_tree_get_child_leaf(clock_container_node, "timezone-name");
 		if (timezone_name_node) {
 			const char *timezone_name = lyd_get_value(timezone_name_node);
 
@@ -273,7 +273,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 	system_ip_address_t tmp_ip = {0};
 	srpc_check_status_t search_check_status = srpc_check_status_none, server_check_status = srpc_check_status_none;
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Loading dns-resolver startup data");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Storing dns-resolver startup data");
 
 	dns_resolver_container_node = srpc_ly_tree_get_child_container(system_container_node, "dns-resolver");
 	if (dns_resolver_container_node) {
@@ -366,6 +366,9 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 
 				const char *name = lyd_get_value(server_name_leaf_node);
 				SRPLG_LOG_INF(PLUGIN_NAME, "Adding DNS server %s", name);
+
+				// set name
+				system_dns_server_set_name(&tmp_server, name);
 
 				if (!udp_and_tcp_container_node) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_get_child_container() failed for udp-and-tcp");
