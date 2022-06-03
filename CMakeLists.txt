@@ -43,6 +43,7 @@ set(
 
     # system API
     src/system/api/load.c
+    src/system/api/check.c
     src/system/api/store.c
     src/system/api/change.c
     src/system/api/dns_resolver/load.c
