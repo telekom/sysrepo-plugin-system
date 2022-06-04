@@ -50,55 +50,55 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	srpc_module_change_t module_changes[] = {
 		{
 			SYSTEM_CONTACT_YANG_PATH,
-			system_change_contact,
+			system_subscription_change_contact,
 		},
 		{
 			SYSTEM_HOSTNAME_YANG_PATH,
-			system_change_hostname,
+			system_subscription_change_hostname,
 		},
 		{
 			SYSTEM_LOCATION_YANG_PATH,
-			system_change_location,
+			system_subscription_change_location,
 		},
 		{
 			SYSTEM_TIMEZONE_NAME_YANG_PATH,
-			system_change_timezone_name,
+			system_subscription_change_timezone_name,
 		},
 		{
 			SYSTEM_TIMEZONE_UTC_OFFSET_YANG_PATH,
-			system_change_timezone_utc_offset,
+			system_subscription_change_timezone_utc_offset,
 		},
 		{
 			SYSTEM_NTP_ENABLED_YANG_PATH,
-			system_change_ntp_enabled,
+			system_subscription_change_ntp_enabled,
 		},
 		{
 			SYSTEM_NTP_SERVER_YANG_PATH,
-			system_change_ntp_server,
+			system_subscription_change_ntp_server,
 		},
 		{
 			SYSTEM_DNS_RESOLVER_SEARCH_YANG_PATH,
-			system_change_dns_resolver_search,
+			system_subscription_change_dns_resolver_search,
 		},
 		{
 			SYSTEM_DNS_RESOLVER_SERVER_YANG_PATH,
-			system_change_dns_resolver_server,
+			system_subscription_change_dns_resolver_server,
 		},
 		{
 			SYSTEM_DNS_RESOLVER_TIMEOUT_YANG_PATH,
-			system_change_dns_resolver_timeout,
+			system_subscription_change_dns_resolver_timeout,
 		},
 		{
 			SYSTEM_DNS_RESOLVER_ATTEMPTS_YANG_PATH,
-			system_change_dns_resolver_attempts,
+			system_subscription_change_dns_resolver_attempts,
 		},
 		{
 			SYSTEM_AUTHENTICATION_USER_AUTHENTICATION_ORDER_YANG_PATH,
-			system_change_authentication_user_authentication_order,
+			system_subscription_change_authentication_user_authentication_order,
 		},
 		{
 			SYSTEM_AUTHENTICATION_USER_YANG_PATH,
-			system_change_authentication_user,
+			system_subscription_change_authentication_user,
 		},
 	};
 
@@ -106,16 +106,16 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	srpc_rpc_t rpcs[] = {
 		{
 			SYSTEM_SET_CURRENT_DATETIME_RPC_YANG_PATH,
-			system_rpc_set_current_datetime,
+			system_subscription_rpc_set_current_datetime,
 		},
 		{
 			SYSTEM_RESTART_RPC_YANG_PATH,
-			system_rpc_restart,
+			system_subscription_rpc_restart,
 		},
 
 		{
 			SYSTEM_SHUTDOWN_RPC_YANG_PATH,
-			system_rpc_shutdown,
+			system_subscription_rpc_shutdown,
 		},
 	};
 
@@ -123,11 +123,11 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	srpc_operational_t oper[] = {
 		{
 			SYSTEM_STATE_PLATFORM_YANG_PATH "/*",
-			system_operational_platform,
+			system_subscription_operational_platform,
 		},
 		{
 			SYSTEM_STATE_CLOCK_YANG_PATH "/*",
-			system_operational_clock,
+			system_subscription_operational_clock,
 		},
 	};
 

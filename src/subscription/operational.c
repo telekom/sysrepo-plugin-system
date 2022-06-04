@@ -31,7 +31,7 @@ static int system_get_clock_info(struct system_clock *clock);
 
 ////
 
-int system_operational_platform(sr_session_ctx_t *session, uint32_t sub_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
+int system_subscription_operational_platform(sr_session_ctx_t *session, uint32_t sub_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
 {
 	int error = SR_ERR_OK;
 	struct system_platform platform = {0};
@@ -90,7 +90,7 @@ out:
 	return error;
 }
 
-int system_operational_clock(sr_session_ctx_t *session, uint32_t sub_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
+int system_subscription_operational_clock(sr_session_ctx_t *session, uint32_t sub_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
 {
 	int error = SR_ERR_OK;
 	struct system_clock clock = {0};

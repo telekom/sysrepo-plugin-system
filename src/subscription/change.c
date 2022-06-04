@@ -17,11 +17,11 @@
 #include <srpc.h>
 
 static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb);
-static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_subscription_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_subscription_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+static int system_subscription_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
 
-int system_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -79,7 +79,7 @@ out:
 	return error;
 }
 
-int system_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -157,7 +157,7 @@ out:
 	return error;
 }
 
-int system_change_location(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -214,7 +214,7 @@ out:
 	return error;
 }
 
-int system_change_timezone_name(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -288,7 +288,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -342,7 +342,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_ntp_enabled(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -366,7 +366,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_ntp_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -390,7 +390,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 
@@ -473,7 +473,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 
@@ -497,7 +497,7 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_name);
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_name);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for name failed: %d", error);
 			goto error_out;
@@ -509,7 +509,7 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_address);
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_address);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
 			goto error_out;
@@ -521,7 +521,7 @@ int system_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscr
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_change_dns_server_port);
+		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_port);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
 			goto error_out;
@@ -535,7 +535,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_dns_resolver_timeout(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -560,7 +560,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_dns_resolver_attempts(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_dns_resolver_attempts(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -586,7 +586,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_authentication_user_authentication_order(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_authentication_user_authentication_order(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -610,7 +610,7 @@ out:
 	return SR_ERR_CALLBACK_FAILED;
 }
 
-int system_change_authentication_user(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
+int system_subscription_change_authentication_user(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
@@ -670,7 +670,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_subscription_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 	const char *node_name = NULL;
@@ -686,7 +686,7 @@ static int system_change_dns_server_name(void *priv, sr_session_ctx_t *session, 
 	return error;
 }
 
-static int system_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_subscription_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -738,7 +738,7 @@ out:
 	return error;
 }
 
-static int system_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
+static int system_subscription_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
 {
 	int error = 0;
 
