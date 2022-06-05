@@ -238,6 +238,9 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 	// libyang
 	const struct lyd_node *node = NULL;
 
+	// srpc change tree
+	srpc_change_node_t *timezone_name_node = NULL;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
@@ -265,24 +268,27 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
-			switch (operation) {
-				case SR_OP_CREATED:
-				case SR_OP_MODIFIED:
-					error = system_change_timezone_name_create(ctx, node_value);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_create() failed (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_DELETED:
-					error = system_change_timezone_name_delete(ctx);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_delete() failed (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_MOVED:
-					break;
+			// create hostname node
+			timezone_name_node = srpc_change_node_new("timezone-name");
+			if (!timezone_name_node) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_new() failed");
+				goto error_out;
+			}
+
+			// values
+			error = srpc_change_node_set_value(timezone_name_node, node_value, prev_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_set_value() error (%d)", error);
+				goto error_out;
+			}
+
+			// operation
+			srpc_change_node_set_operation(timezone_name_node, operation);
+
+			error = system_change_timezone_name(ctx, timezone_name_node);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name() error (%d)", error);
+				goto error_out;
 			}
 		}
 	}
@@ -291,7 +297,11 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
+	if (timezone_name_node) {
+		srpc_change_node_free(timezone_name_node);
+	}
 	return error;
 }
 
