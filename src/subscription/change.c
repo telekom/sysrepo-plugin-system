@@ -1,6 +1,7 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
+#include "srpc/change_tree.h"
 #include "utils/memory.h"
 
 // API for setting system data
@@ -96,6 +97,9 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 	// libyang
 	const struct lyd_node *node = NULL;
 
+	// srpc change tree
+	srpc_change_node_t *hostname_node = NULL;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
@@ -123,27 +127,27 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
 			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
 
-			switch (operation) {
-				case SR_OP_CREATED:
-				case SR_OP_MODIFIED:
-					// edit hostname
-					error = system_change_hostname_create(ctx, node_value);
-					if (error != 0) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_create() error (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_DELETED:
-					// remove hostname
-					error = system_change_hostname_delete(ctx);
-					if (error != 0) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_delete() error (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_MOVED:
-					// N/A
-					break;
+			// create hostname node
+			hostname_node = srpc_change_node_new("hostname");
+			if (!hostname_node) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_new() failed");
+				goto error_out;
+			}
+
+			// values
+			error = srpc_change_node_set_value(hostname_node, node_value, prev_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_set_value() error (%d)", error);
+				goto error_out;
+			}
+
+			// operation
+			srpc_change_node_set_operation(hostname_node, operation);
+
+			error = system_change_hostname(ctx, hostname_node);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname() error (%d)", error);
+				goto error_out;
 			}
 		}
 	}
@@ -154,6 +158,9 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
+	if (hostname_node) {
+		srpc_change_node_free(hostname_node);
+	}
 	return error;
 }
 
@@ -285,7 +292,7 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -470,7 +477,7 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -532,7 +539,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)

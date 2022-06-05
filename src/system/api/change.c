@@ -1,12 +1,78 @@
 #include "change.h"
 #include "load.h"
 #include "store.h"
+#include "sysrepo_types.h"
 
 #include <unistd.h>
 
 #include <sysrepo.h>
+#include <srpc.h>
 
-int system_change_hostname_create(system_ctx_t *ctx, const char *value)
+#include <assert.h>
+
+static int system_change_hostname_create(system_ctx_t *ctx, const char *value);
+static int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
+static int system_change_hostname_delete(system_ctx_t *ctx);
+
+int system_change_contact(system_ctx_t *ctx, srpc_change_node_t *change_node)
+{
+	int error = 0;
+	return error;
+}
+
+int system_change_hostname(system_ctx_t *ctx, srpc_change_node_t *change_node)
+{
+	int error = 0;
+
+	// make sure we're getting the right node
+	assert(strcmp(srpc_change_node_get_name(change_node), "hostname") == 0);
+
+	// modify system value based on the operation on the tree node
+	switch (srpc_change_node_get_operation(change_node)) {
+		case SR_OP_CREATED:
+		case SR_OP_MODIFIED:
+			// edit hostname
+			error = system_change_hostname_create(ctx, srpc_change_node_get_current_value(change_node));
+			if (error != 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_create() error (%d)", error);
+				goto error_out;
+			}
+			break;
+		case SR_OP_DELETED:
+			// remove hostname
+			error = system_change_hostname_delete(ctx);
+			if (error != 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_delete() error (%d)", error);
+				goto error_out;
+			}
+			break;
+		case SR_OP_MOVED:
+			// N/A
+			break;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
+int system_change_location(system_ctx_t *ctx, srpc_change_node_t *change_node)
+{
+	int error = 0;
+	return error;
+}
+
+int system_change_timezone_name(system_ctx_t *ctx, srpc_change_node_t *change_node)
+{
+	int error = 0;
+	return error;
+}
+
+static int system_change_hostname_create(system_ctx_t *ctx, const char *value)
 {
 	int error = 0;
 
@@ -19,7 +85,7 @@ int system_change_hostname_create(system_ctx_t *ctx, const char *value)
 	return 0;
 }
 
-int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
+static int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
 {
 	int error = 0;
 
@@ -32,7 +98,7 @@ int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, cons
 	return 0;
 }
 
-int system_change_hostname_delete(system_ctx_t *ctx)
+static int system_change_hostname_delete(system_ctx_t *ctx)
 {
 	int error = 0;
 
