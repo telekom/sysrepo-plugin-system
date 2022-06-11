@@ -28,6 +28,36 @@ int system_dns_search_list_add(system_dns_search_element_t **head, system_dns_se
 	return 0;
 }
 
+system_dns_search_element_t *system_dns_search_list_find(system_dns_search_element_t *head, const char *domain)
+{
+	system_dns_search_element_t *found = NULL;
+	system_dns_search_element_t el = {
+		.search = {
+			.domain = domain,
+		},
+	};
+
+	LL_SEARCH(head, found, &el, system_dns_search_element_cmp_fn);
+
+	return found;
+}
+
+int system_dns_search_list_remove(system_dns_search_element_t **head, const char *domain)
+{
+	system_dns_search_element_t *found = system_dns_search_list_find(*head, domain);
+
+	if (!found) {
+		return -1;
+	}
+
+	// remove and free found element
+	LL_DELETE(*head, found);
+	system_dns_search_free(&found->search);
+	free(found);
+
+	return 0;
+}
+
 int system_dns_search_element_cmp_fn(void *e1, void *e2)
 {
 	system_dns_search_element_t *s1 = (system_dns_search_element_t *) e1;

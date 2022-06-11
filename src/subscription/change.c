@@ -1,43 +1,44 @@
 #include "change.h"
 #include "common.h"
 #include "context.h"
-#include "srpc/change_tree.h"
+#include "libyang/printer_data.h"
+#include "ly_tree.h"
+#include "srpc/common.h"
+#include "srpc/ly_tree.h"
+#include "sysrepo_types.h"
+#include "system/data/dns_resolver/search/list.h"
+#include "system/data/dns_resolver/server/list.h"
+#include "types.h"
 #include "utils/memory.h"
 
-// API for setting system data
+// Load API
+#include "system/api/load.h"
+#include "system/api/dns_resolver/load.h"
+
+// Change API
 #include "system/api/dns_resolver/change.h"
 #include "system/api/change.h"
 #include "system/api/authentication/change.h"
+
+// Store API
+#include "system/api/store.h"
+#include "system/api/dns_resolver/store.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
 #include <assert.h>
 #include <errno.h>
 #include <pwd.h>
+#include <linux/limits.h>
 
 #include <srpc.h>
 
-static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb);
-static int system_subscription_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_subscription_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
-static int system_subscription_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation);
+#include <utlist.h>
 
 int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
-
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
@@ -49,25 +50,10 @@ int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subsc
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_contact);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
-		}
-
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
-
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "contact") == 0);
-
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-			// don't do anything - keep location stored in the datastore, no need to apply anywhere for now
-			// TODO: discuss
 		}
 	}
 
@@ -85,21 +71,6 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
-
-	// srpc change tree
-	srpc_change_node_t *hostname_node = NULL;
-
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
@@ -110,45 +81,10 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_hostname);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
-		}
-
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
-
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "hostname") == 0);
-
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-			// create hostname node
-			hostname_node = srpc_change_node_new("hostname");
-			if (!hostname_node) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_new() failed");
-				goto error_out;
-			}
-
-			// values
-			error = srpc_change_node_set_value(hostname_node, node_value, prev_value);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_set_value() error (%d)", error);
-				goto error_out;
-			}
-
-			// operation
-			srpc_change_node_set_operation(hostname_node, operation);
-
-			error = system_change_hostname(ctx, hostname_node);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname() error (%d)", error);
-				goto error_out;
-			}
 		}
 	}
 
@@ -158,9 +94,6 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	if (hostname_node) {
-		srpc_change_node_free(hostname_node);
-	}
 	return error;
 }
 
@@ -168,18 +101,6 @@ int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subs
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
-
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
@@ -191,24 +112,10 @@ int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_location);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
-		}
-
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
-
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "location") == 0);
-
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-			// don't do anything - keep location stored in the datastore, no need to apply anywhere
 		}
 	}
 
@@ -226,21 +133,6 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
-
-	// srpc change tree
-	srpc_change_node_t *timezone_name_node = NULL;
-
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
@@ -251,45 +143,10 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
-		}
-
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
-
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "timezone-name") == 0);
-
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-			// create hostname node
-			timezone_name_node = srpc_change_node_new("timezone-name");
-			if (!timezone_name_node) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_new() failed");
-				goto error_out;
-			}
-
-			// values
-			error = srpc_change_node_set_value(timezone_name_node, node_value, prev_value);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_change_node_set_value() error (%d)", error);
-				goto error_out;
-			}
-
-			// operation
-			srpc_change_node_set_operation(timezone_name_node, operation);
-
-			error = system_change_timezone_name(ctx, timezone_name_node);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name() error (%d)", error);
-				goto error_out;
-			}
 		}
 	}
 
@@ -299,9 +156,6 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	if (timezone_name_node) {
-		srpc_change_node_free(timezone_name_node);
-	}
 	return error;
 }
 
@@ -309,18 +163,6 @@ int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, ui
 {
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
-
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -332,29 +174,14 @@ int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, ui
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
-
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
-
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "timezone-utc-offset") == 0);
-
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-		}
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
 
 	goto out;
 
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -379,6 +206,7 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -403,6 +231,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -410,18 +239,7 @@ out:
 int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
-
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	// libyang
-	const struct lyd_node *node = NULL;
+	system_dns_search_element_t *iter = NULL;
 
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
@@ -429,55 +247,45 @@ int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, ui
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
+		SRPLG_LOG_INF(PLUGIN_NAME, "Done processing changes - storing data into startup");
 		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = sr_get_changes_iter(session, xpath, &changes_iterator);
-		if (error != SR_ERR_OK) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
+		// make sure the last change search values were free'd and set to NULL
+		assert(ctx->temp_search_head == NULL);
+
+		// load all system DNS search domains first
+		error = system_dns_resolver_load_search(ctx, &ctx->temp_search_head);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_search() error (%d)", error);
 			goto error_out;
 		}
 
-		while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-			// fetch node info
-			node_name = LYD_NAME(node);
-			node_value = lyd_get_value(node);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Search domains before changes:");
+		LL_FOREACH(ctx->temp_search_head, iter)
+		{
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->search.domain);
+		}
 
-			// make sure we're reading the right node
-			assert(strcmp(node_name, "search") == 0);
+		error = srpc_iterate_changes(ctx, session, xpath, system_dns_resolver_change_search);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+			goto error_out;
+		}
 
-			// SRPLG_LOG_DBG(PLUGIN_NAME, "Node Path: %s", change_path);
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Search domains after changes:");
+		LL_FOREACH(ctx->temp_search_head, iter)
+		{
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->search.domain);
+		}
 
-			switch (operation) {
-				case SR_OP_CREATED:
-					error = system_dns_resolver_change_search_create(ctx, node_value);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_search_create() error (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_MODIFIED:
-					// find current one and replace it
-					error = system_dns_resolver_change_search_modify(ctx, prev_value, node_value);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_search_modify() error (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_DELETED:
-					error = system_dns_resolver_change_search_delete(ctx, node_value);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_search_delete() error (%d)", error);
-						goto error_out;
-					}
-					break;
-				case SR_OP_MOVED:
-					break;
-			}
+		error = system_dns_resolver_store_search(ctx, ctx->temp_search_head);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_store_search() error (%d)", error);
+			goto error_out;
 		}
 	}
 
@@ -487,6 +295,9 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
+
+	system_dns_search_list_free(&ctx->temp_search_head);
+
 	return error;
 }
 
@@ -496,6 +307,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 
 	char xpath_buffer[PATH_MAX] = {0};
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
+	system_dns_server_element_t *iter = NULL;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -508,39 +320,70 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		// make sure the last change servers were free'd and set to NULL
+		assert(ctx->temp_server_head == NULL);
+
+		// load all system DNS servers first
+		error = system_dns_resolver_load_server(ctx, &ctx->temp_server_head);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_load_server() error (%d)", error);
+			goto error_out;
+		}
+
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers before changes:");
+		LL_FOREACH(ctx->temp_server_head, iter)
+		{
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->server.name);
+		}
+
+		// process changes and use store API to store the configured list
+
 		// name change
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_name);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for name failed: %d", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
 			goto error_out;
 		}
 
 		// address change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//address", xpath);
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp-and-tcp/address", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_address);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_address);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for address failed: %d", error);
 			goto error_out;
 		}
 
 		// port change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//port", xpath);
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp-and-tcp/port", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = system_apply_dns_server_change(ctx, session, xpath_buffer, system_subscription_change_dns_server_port);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_port);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_apply_dns_server_change() for address failed: %d", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+			goto error_out;
+		}
+
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers after changes:");
+		LL_FOREACH(ctx->temp_server_head, iter)
+		{
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->server.name);
+		}
+
+		// store generated data
+		error = system_dns_resolver_store_server(ctx, ctx->temp_server_head);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_store_server() error (%d)", error);
 			goto error_out;
 		}
 	}
@@ -548,7 +391,11 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
+
+	system_dns_server_list_free(&ctx->temp_server_head);
+
 	return error;
 }
 
@@ -573,6 +420,7 @@ int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, u
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -599,6 +447,7 @@ int system_subscription_change_dns_resolver_attempts(sr_session_ctx_t *session, 
 
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -623,6 +472,7 @@ int system_subscription_change_authentication_user_authentication_order(sr_sessi
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
 }
@@ -647,129 +497,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 	goto out;
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+
 out:
 	return SR_ERR_CALLBACK_FAILED;
-}
-
-static int system_apply_dns_server_change(system_ctx_t *ctx, sr_session_ctx_t *session, const char *xpath, srpc_change_cb cb)
-{
-	int error = 0;
-
-	// sysrepo
-	sr_change_iter_t *changes_iterator = NULL;
-	sr_change_oper_t operation = SR_OP_CREATED;
-	const char *prev_value = NULL, *prev_list = NULL;
-	int prev_default;
-
-	// libyang
-	const struct lyd_node *node = NULL;
-
-	error = sr_get_changes_iter(session, xpath, &changes_iterator);
-	if (error != SR_ERR_OK) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_changes_iter() failed (%d): %s", error, sr_strerror(error));
-		goto error_out;
-	}
-
-	while (sr_get_change_tree_next(session, changes_iterator, &operation, &node, &prev_value, &prev_list, &prev_default) == SR_ERR_OK) {
-		error = cb(ctx, session, prev_value, node, operation);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "callback failed for xpath %s", xpath);
-			goto error_out;
-		}
-	}
-
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
-	return error;
-}
-
-static int system_subscription_change_dns_server_name(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
-{
-	int error = 0;
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	node_name = LYD_NAME(node);
-	node_value = lyd_get_value(node);
-
-	assert(strcmp(node_name, "name") == 0);
-
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-	return error;
-}
-
-static int system_subscription_change_dns_server_address(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
-{
-	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	node_name = LYD_NAME(node);
-	node_value = lyd_get_value(node);
-
-	assert(strcmp(node_name, "address") == 0);
-
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-	switch (operation) {
-		case SR_OP_CREATED:
-			error = system_dns_resolver_change_server_create(ctx, node_value);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_server_create() error (%d)", error);
-				goto error_out;
-			}
-			break;
-		case SR_OP_MODIFIED:
-			error = system_dns_resolver_change_server_modify(ctx, prev_value, node_value);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_server_modify() error (%d)", error);
-				goto error_out;
-			}
-			break;
-		case SR_OP_DELETED:
-			// delete from the system based on the address value
-			error = system_dns_resolver_change_server_delete(ctx, node_value);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_resolver_change_server_delete() error (%d)", error);
-				goto error_out;
-			}
-			break;
-		case SR_OP_MOVED:
-			break;
-	}
-
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
-
-	return error;
-}
-
-static int system_subscription_change_dns_server_port(void *priv, sr_session_ctx_t *session, const char *prev_value, const struct lyd_node *node, sr_change_oper_t operation)
-{
-	int error = 0;
-
-	const char *node_name = NULL;
-	const char *node_value = NULL;
-
-	node_name = LYD_NAME(node);
-	node_value = lyd_get_value(node);
-
-	assert(strcmp(node_name, "port") == 0);
-
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Value: %s; Operation: %d", node_name, node_value, operation);
-
-	// unsupported for now
-
-	return error;
 }

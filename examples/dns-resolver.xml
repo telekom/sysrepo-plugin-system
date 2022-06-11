@@ -1,0 +1,12 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <dns-resolver>
+		<search>example.com</search>
+
+		<server>
+		    <name>1.1.1.1</name>
+		    <udp-and-tcp>
+			    <address>1.1.1.1</address>
+		    </udp-and-tcp>
+	    </server>
+    </dns-resolver>
+</system>

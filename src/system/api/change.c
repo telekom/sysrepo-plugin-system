@@ -1,7 +1,6 @@
 #include "change.h"
 #include "load.h"
 #include "store.h"
-#include "sysrepo_types.h"
 
 #include <unistd.h>
 
@@ -10,13 +9,13 @@
 
 #include <assert.h>
 
-static int system_change_hostname_create(system_ctx_t *ctx, const char *value);
-static int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
-static int system_change_hostname_delete(system_ctx_t *ctx);
-
 static int system_change_contact_create(system_ctx_t *ctx, const char *value);
 static int system_change_contact_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
 static int system_change_contact_delete(system_ctx_t *ctx);
+
+static int system_change_hostname_create(system_ctx_t *ctx, const char *value);
+static int system_change_hostname_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
+static int system_change_hostname_delete(system_ctx_t *ctx);
 
 static int system_change_location_create(system_ctx_t *ctx, const char *value);
 static int system_change_location_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
@@ -26,102 +25,177 @@ static int system_change_timezone_name_create(system_ctx_t *ctx, const char *val
 static int system_change_timezone_name_modify(system_ctx_t *ctx, const char *old_value, const char *new_value);
 static int system_change_timezone_name_delete(system_ctx_t *ctx);
 
-int system_change_contact(system_ctx_t *ctx, const srpc_change_node_t *change_node)
+int system_change_contact(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+
+	assert(strcmp(node_name, "contact") == 0);
+
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
+		case SR_OP_CREATED:
+			error = system_change_contact_create(priv, node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_contact_create() error (%d)", error);
+				return -1;
+			}
+			break;
+		case SR_OP_MODIFIED:
+			error = system_change_contact_modify(priv, change_ctx->previous_value, node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_contact_modify() error (%d)", error);
+				return -2;
+			}
+			break;
+		case SR_OP_DELETED:
+			error = system_change_contact_delete(priv);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_contact_delete() error (%d)", error);
+				return -3;
+			}
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
+
 	return error;
 }
 
-int system_change_hostname(system_ctx_t *ctx, const srpc_change_node_t *change_node)
+int system_change_hostname(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
 
-	// make sure we're getting the right node
-	assert(strcmp(srpc_change_node_get_name(change_node), "hostname") == 0);
+	assert(strcmp(node_name, "hostname") == 0);
 
-	// modify system value based on the operation on the tree node
-	switch (srpc_change_node_get_operation(change_node)) {
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
-			error = system_change_hostname_create(ctx, srpc_change_node_get_current_value(change_node));
-			if (error != 0) {
+			error = system_change_hostname_create(priv, node_value);
+			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_create() error (%d)", error);
-				goto error_out;
+				return -1;
 			}
 			break;
 		case SR_OP_MODIFIED:
-			error = system_change_hostname_modify(ctx, srpc_change_node_get_previous_value(change_node), srpc_change_node_get_current_value(change_node));
-			if (error != 0) {
+			error = system_change_hostname_modify(priv, change_ctx->previous_value, node_value);
+			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_modify() error (%d)", error);
-				goto error_out;
+				return -2;
 			}
 			break;
 		case SR_OP_DELETED:
-			// remove hostname
-			error = system_change_hostname_delete(ctx);
-			if (error != 0) {
+			error = system_change_hostname_delete(priv);
+			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_hostname_delete() error (%d)", error);
-				goto error_out;
+				return -3;
 			}
 			break;
 		case SR_OP_MOVED:
-			// N/A
 			break;
 	}
 
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
 	return error;
 }
 
-int system_change_location(system_ctx_t *ctx, const srpc_change_node_t *change_node)
+int system_change_location(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
-	return error;
-}
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
 
-int system_change_timezone_name(system_ctx_t *ctx, const srpc_change_node_t *change_node)
-{
-	int error = 0;
+	assert(strcmp(node_name, "location") == 0);
 
-	// make sure we're getting the right node
-	assert(strcmp(srpc_change_node_get_name(change_node), "timezone-name") == 0);
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
-	switch (srpc_change_node_get_operation(change_node)) {
+	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
-			error = system_change_timezone_name_create(ctx, srpc_change_node_get_current_value(change_node));
+			error = system_change_location_create(priv, node_value);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_create() failed (%d)", error);
-				goto error_out;
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_location_create() error (%d)", error);
+				return -1;
 			}
 			break;
 		case SR_OP_MODIFIED:
-			error = system_change_timezone_name_modify(ctx, srpc_change_node_get_previous_value(change_node), srpc_change_node_get_current_value(change_node));
+			error = system_change_location_modify(priv, change_ctx->previous_value, node_value);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_modify() failed (%d)", error);
-				goto error_out;
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_location_modify() error (%d)", error);
+				return -2;
 			}
 			break;
 		case SR_OP_DELETED:
-			error = system_change_timezone_name_delete(ctx);
+			error = system_change_location_delete(priv);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_delete() failed (%d)", error);
-				goto error_out;
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_location_delete() error (%d)", error);
+				return -3;
 			}
 			break;
 		case SR_OP_MOVED:
 			break;
 	}
 
-	goto out;
+	return error;
+}
 
-error_out:
-	error = -1;
+int system_change_timezone_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+	int error = 0;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
 
-out:
+	assert(strcmp(node_name, "timezone-name") == 0);
+
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
+		case SR_OP_CREATED:
+			error = system_change_timezone_name_create(priv, node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_create() error (%d)", error);
+				return -1;
+			}
+			break;
+		case SR_OP_MODIFIED:
+			error = system_change_timezone_name_modify(priv, change_ctx->previous_value, node_value);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_modify() error (%d)", error);
+				return -2;
+			}
+			break;
+		case SR_OP_DELETED:
+			error = system_change_timezone_name_delete(priv);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_change_timezone_name_delete() error (%d)", error);
+				return -3;
+			}
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
+
+	return error;
+}
+
+static int system_change_contact_create(system_ctx_t *ctx, const char *value)
+{
+	int error = 0;
+	return error;
+}
+
+static int system_change_contact_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
+{
+	int error = 0;
+	return error;
+}
+
+static int system_change_contact_delete(system_ctx_t *ctx)
+{
+	int error = 0;
 	return error;
 }
 
@@ -157,45 +231,21 @@ static int system_change_hostname_delete(system_ctx_t *ctx)
 	return 0;
 }
 
-static int system_change_contact_create(system_ctx_t *ctx, const char *value)
-{
-	int error = 0;
-
-	return error;
-}
-
-static int system_change_contact_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
-{
-	int error = 0;
-
-	return error;
-}
-
-static int system_change_contact_delete(system_ctx_t *ctx)
-{
-	int error = 0;
-
-	return error;
-}
-
 static int system_change_location_create(system_ctx_t *ctx, const char *value)
 {
 	int error = 0;
-
 	return error;
 }
 
 static int system_change_location_modify(system_ctx_t *ctx, const char *old_value, const char *new_value)
 {
 	int error = 0;
-
 	return error;
 }
 
 static int system_change_location_delete(system_ctx_t *ctx)
 {
 	int error = 0;
-
 	return error;
 }
 

@@ -3,12 +3,12 @@
 
 #include "context.h"
 
-int system_dns_resolver_change_search_create(system_ctx_t *ctx, const char *value);
-int system_dns_resolver_change_search_modify(system_ctx_t *ctx, const char *prev_value, const char *new_value);
-int system_dns_resolver_change_search_delete(system_ctx_t *ctx, const char *value);
+#include <srpc.h>
 
-int system_dns_resolver_change_server_create(system_ctx_t *ctx, const char *value);
-int system_dns_resolver_change_server_modify(system_ctx_t *ctx, const char *prev_value, const char *new_value);
-int system_dns_resolver_change_server_delete(system_ctx_t *ctx, const char *value);
+int system_dns_resolver_change_search(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
+
+int system_dns_resolver_change_server_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
+int system_dns_resolver_change_server_address(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
+int system_dns_resolver_change_server_port(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 
 #endif // SYSTEM_PLUGIN_API_DNS_RESOLVER_CHANGE_H

@@ -1,5 +1,6 @@
 #include "list.h"
 #include "system/data/dns_resolver/server.h"
+#include "types.h"
 
 #include <utlist.h>
 
@@ -24,6 +25,36 @@ int system_dns_server_list_add(system_dns_server_element_t **head, system_dns_se
 
 	// add to list
 	LL_APPEND(*head, new_el);
+
+	return 0;
+}
+
+system_dns_server_element_t *system_dns_server_list_find(system_dns_server_element_t *head, const char *name)
+{
+	system_dns_server_element_t *found = NULL;
+	system_dns_server_element_t el = {
+		.server = {
+			.name = name,
+		},
+	};
+
+	LL_SEARCH(head, found, &el, system_dns_server_element_cmp_fn);
+
+	return found;
+}
+
+int system_dns_server_list_remove(system_dns_server_element_t **head, const char *name)
+{
+	system_dns_server_element_t *found = system_dns_server_list_find(*head, name);
+
+	if (!found) {
+		return -1;
+	}
+
+	// remove and free found element
+	LL_DELETE(*head, found);
+	system_dns_server_free(&found->server);
+	free(found);
 
 	return 0;
 }
