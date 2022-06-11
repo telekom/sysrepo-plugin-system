@@ -4,6 +4,7 @@
 #include "ly_tree.h"
 
 // API for getting system data
+#include "srpc/ly_tree.h"
 #include "system/api/load.h"
 #include "system/api/authentication/load.h"
 #include "system/api/dns_resolver/load.h"
@@ -91,6 +92,10 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
+// enable or disable storing into startup - use when testing load functionality for now
+#define SYSTEM_PLUGIN_LOAD_STARTUP
+
+#ifdef SYSTEM_PLUGIN_LOAD_STARTUP
 	error = sr_edit_batch(session, system_container_node, "merge");
 	if (error != SR_ERR_OK) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_edit_batch() error (%d): %s", error, sr_strerror(error));
@@ -102,6 +107,7 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
+#endif
 
 	goto out;
 
@@ -190,6 +196,114 @@ out:
 static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
+
+	system_ctx_t *ctx = priv;
+	sr_data_t *subtree = NULL;
+
+	// ietf-system nodes
+	struct lyd_node *ntp_container_node = NULL, *server_list_node = NULL;
+
+	// ntp config nodes
+	struct lyd_node *config_entry_node = NULL, *server_node = NULL, *peer_node = NULL, *pool_node = NULL, *chosen_node = NULL, *word_node = NULL;
+	// NTP server options (iburst and prefer)
+	struct lyd_node *options_entry_node = NULL, *iburst_node = NULL, *prefer_node = NULL;
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
+
+	error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp() error (%d)", error);
+		goto error_out;
+	}
+
+	// get ntp config startup data
+	error = sr_get_subtree(ctx->startup_session, "/ntp:ntp[config-file=\'/etc/ntp.conf\']", 0, &subtree);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_subtree() error (%d): %s", error, sr_strerror(error));
+		goto error_out;
+	}
+
+	config_entry_node = srpc_ly_tree_get_child_list(subtree->tree, "config-entries");
+
+	while (config_entry_node) {
+		// entry can be either server, pool or peer
+		server_node = srpc_ly_tree_get_child_container(config_entry_node, "server");
+		pool_node = srpc_ly_tree_get_child_container(config_entry_node, "pool");
+		peer_node = srpc_ly_tree_get_child_container(config_entry_node, "peer");
+
+		if (server_node || pool_node || peer_node) {
+
+			if (server_node) {
+				chosen_node = server_node;
+			} else if (pool_node) {
+				chosen_node = pool_node;
+			} else if (peer_node) {
+				chosen_node = peer_node;
+			}
+
+			word_node = srpc_ly_tree_get_child_leaf(chosen_node, "word");
+
+			assert(word_node != NULL);
+
+			error = system_ly_tree_create_ntp_server(ly_ctx, ntp_container_node, &server_list_node, lyd_get_value(word_node));
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server() error (%d)", error);
+				goto error_out;
+			}
+
+			error = system_ly_tree_create_ntp_server_address(ly_ctx, server_list_node, lyd_get_value(word_node));
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_address() error (%d)", error);
+				goto error_out;
+			}
+
+			error = system_ly_tree_create_ntp_server_association_type(ly_ctx, server_list_node, LYD_NAME(chosen_node));
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_association_type() error (%d)", error);
+				goto error_out;
+			}
+
+			options_entry_node = srpc_ly_tree_get_child_list(chosen_node, "config-entries");
+			if (options_entry_node) {
+				// iterate options and apply to the server node
+				while (options_entry_node) {
+					iburst_node = srpc_ly_tree_get_child_leaf(options_entry_node, "iburst");
+					prefer_node = srpc_ly_tree_get_child_leaf(options_entry_node, "prefer");
+
+					// iburst
+					if (iburst_node) {
+						error = system_ly_tree_create_ntp_server_iburst(ly_ctx, server_list_node, "true");
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_iburst() error (%d)", error);
+							goto error_out;
+						}
+					}
+
+					// prefer
+					if (prefer_node) {
+						error = system_ly_tree_create_ntp_server_prefer(ly_ctx, server_list_node, "true");
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_prefer() error (%d)", error);
+							goto error_out;
+						}
+					}
+					options_entry_node = srpc_ly_tree_get_list_next(options_entry_node);
+				}
+			}
+		}
+		config_entry_node = srpc_ly_tree_get_list_next(config_entry_node);
+	}
+
+	lyd_print_file(stdout, ntp_container_node, LYD_XML, 0);
+
+	goto out;
+error_out:
+	error = -1;
+
+out:
+	if (subtree) {
+		sr_release_data(subtree);
+	}
 	return error;
 }
 
