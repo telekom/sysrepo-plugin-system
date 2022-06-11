@@ -92,8 +92,8 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-// enable or disable storing into startup - use when testing load functionality for now
-#define SYSTEM_PLUGIN_LOAD_STARTUP
+	// enable or disable storing into startup - use when testing load functionality for now
+	// #define SYSTEM_PLUGIN_LOAD_STARTUP
 
 #ifdef SYSTEM_PLUGIN_LOAD_STARTUP
 	error = sr_edit_batch(session, system_container_node, "merge");
@@ -205,6 +205,7 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 
 	// ntp config nodes
 	struct lyd_node *config_entry_node = NULL, *server_node = NULL, *peer_node = NULL, *pool_node = NULL, *chosen_node = NULL, *word_node = NULL;
+
 	// NTP server options (iburst and prefer)
 	struct lyd_node *options_entry_node = NULL, *iburst_node = NULL, *prefer_node = NULL;
 
@@ -223,8 +224,8 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 		goto error_out;
 	}
 
+	// iterate config file data and apply to startup DS
 	config_entry_node = srpc_ly_tree_get_child_list(subtree->tree, "config-entries");
-
 	while (config_entry_node) {
 		// entry can be either server, pool or peer
 		server_node = srpc_ly_tree_get_child_container(config_entry_node, "server");
@@ -293,8 +294,6 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 		}
 		config_entry_node = srpc_ly_tree_get_list_next(config_entry_node);
 	}
-
-	lyd_print_file(stdout, ntp_container_node, LYD_XML, 0);
 
 	goto out;
 error_out:
