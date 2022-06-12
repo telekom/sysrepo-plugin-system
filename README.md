@@ -133,7 +133,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 ## Refactor TODO
 - [x] replace old NTP functionality with augyang
-- [ ] replace current NTP loading from config to datastore with config -> data -> datastore
+- [x] replace current NTP loading from config to datastore with config -> data -> datastore
+- [ ] fix NTP server port invalid value issue
 - [ ] finish authentication change, store and check APIs
 - [ ] replace used resolv.conf parser with augyang
 - [ ] add check API for authentication and DNS resolver
