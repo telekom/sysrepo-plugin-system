@@ -35,7 +35,7 @@ set(
     src/system/data/dns_resolver/server.c
     src/system/data/dns_resolver/server/list.c
     src/system/data/ntp/server.c
-    src/system/data/ntp/server/array.c
+    src/system/data/ntp/server/list.c
     src/system/data/authentication/authorized_key.c
     src/system/data/authentication/authorized_key/array.c
     src/system/data/authentication/local_user.c

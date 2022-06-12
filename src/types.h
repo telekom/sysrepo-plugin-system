@@ -5,6 +5,8 @@
 
 // DNS
 
+typedef struct system_ntp_server_s system_ntp_server_t;
+typedef struct system_ntp_server_element_s system_ntp_server_element_t;
 typedef struct system_dns_search_s system_dns_search_t;
 typedef struct system_dns_search_element_s system_dns_search_element_t;
 typedef struct system_dns_server_s system_dns_server_t;
@@ -28,6 +30,20 @@ struct system_ip_address_s {
 #endif
 };
 
+struct system_ntp_server_s {
+	const char *name;
+	const char *address;
+	int port;
+	const char *association_type;
+	const char *iburst;
+	const char *prefer;
+};
+
+struct system_ntp_server_element_s {
+	system_ntp_server_t server;
+	struct system_ntp_server_element_s *next;
+};
+
 struct system_dns_search_s {
 	const char *domain;
 	int ifindex;
@@ -48,24 +64,6 @@ struct system_dns_search_element_s {
 struct system_dns_server_element_s {
 	system_dns_server_t server;
 	struct system_dns_server_element_s *next;
-};
-
-// NTP
-typedef struct system_ntp_server_s system_ntp_server_t;
-typedef struct system_ntp_server_element_s system_ntp_server_element_t;
-
-struct system_ntp_server_s {
-	const char *name;
-	const char *address;
-	int port;
-	const char *association_type;
-	const char *iburst;
-	const char *prefer;
-};
-
-struct system_ntp_server_element_s {
-	system_ntp_server_t server;
-	struct system_ntp_server_element_s *next;
 };
 
 struct system_local_user_s {
