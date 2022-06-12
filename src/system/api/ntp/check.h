@@ -6,6 +6,6 @@
 
 #include <srpc.h>
 
-srpc_check_status_t system_ntp_check_server(system_ctx_t *ctx, const system_ntp_server_element_t *head);
+srpc_check_status_t system_ntp_check_server(system_ctx_t *ctx, system_ntp_server_element_t *head);
 
 #endif // SYSTEM_PLUGIN_API_NTP_CHECK_H

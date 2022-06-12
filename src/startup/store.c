@@ -299,7 +299,6 @@ static int system_startup_store_ntp(void *priv, const struct lyd_node *system_co
 				server_prefer_leaf_node = srpc_ly_tree_get_child_leaf(server_list_node, "prefer");
 
 				const char *name = lyd_get_value(server_name_leaf_node);
-				SRPLG_LOG_INF(PLUGIN_NAME, "Adding NTP server %s", name);
 
 				// set name
 				system_ntp_server_set_name(&temp_server, name);
@@ -474,7 +473,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 
 				const char *domain = lyd_get_value(search_leaf_list_node);
 
-				SRPLG_LOG_INF(PLUGIN_NAME, "Adding DNS search value %s", domain);
+				// SRPLG_LOG_INF(PLUGIN_NAME, "Adding DNS search value %s", domain);
 
 				error = system_dns_search_set_domain(&tmp_search, domain);
 				if (error) {
@@ -551,7 +550,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 				udp_and_tcp_container_node = srpc_ly_tree_get_child_container(server_list_node, "udp-and-tcp");
 
 				const char *name = lyd_get_value(server_name_leaf_node);
-				SRPLG_LOG_INF(PLUGIN_NAME, "Adding DNS server %s", name);
+				// SRPLG_LOG_INF(PLUGIN_NAME, "Adding DNS server %s", name);
 
 				// set name
 				system_dns_server_set_name(&tmp_server, name);

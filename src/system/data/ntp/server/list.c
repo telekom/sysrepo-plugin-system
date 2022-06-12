@@ -70,6 +70,14 @@ int system_ntp_server_element_cmp_fn(void *e1, void *e2)
 	return strcmp(s1->server.name, s2->server.name);
 }
 
+int system_ntp_server_element_address_cmp_fn(void *e1, void *e2)
+{
+	system_ntp_server_element_t *s1 = (system_ntp_server_element_t *) e1;
+	system_ntp_server_element_t *s2 = (system_ntp_server_element_t *) e2;
+
+	return strcmp(s1->server.address, s2->server.address);
+}
+
 void system_ntp_server_list_free(system_ntp_server_element_t **head)
 {
 	system_ntp_server_element_t *iter_el = NULL, *tmp_el = NULL;

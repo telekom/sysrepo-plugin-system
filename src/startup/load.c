@@ -94,8 +94,8 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-	// enable or disable storing into startup - use when testing load functionality for now
-	// #define SYSTEM_PLUGIN_LOAD_STARTUP
+// enable or disable storing into startup - use when testing load functionality for now
+#define SYSTEM_PLUGIN_LOAD_STARTUP
 
 #ifdef SYSTEM_PLUGIN_LOAD_STARTUP
 	error = sr_edit_batch(session, system_container_node, "merge");
