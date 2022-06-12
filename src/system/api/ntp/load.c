@@ -6,6 +6,7 @@
 #include "system/data/ntp/server/list.h"
 
 #include <assert.h>
+#include <string.h>
 #include <sysrepo.h>
 #include <srpc.h>
 
@@ -14,7 +15,10 @@ int system_ntp_load_server(system_ctx_t *ctx, system_ntp_server_element_t **head
 	int error = 0;
 
 	sr_data_t *subtree = NULL;
+
+	// temp values
 	system_ntp_server_t temp_server = {0};
+	const char *full_addr = NULL, *address = NULL, *port = NULL, *delimiter = NULL;
 
 	// ntp config nodes
 	struct lyd_node *config_entry_node = NULL, *server_node = NULL, *peer_node = NULL, *pool_node = NULL, *chosen_node = NULL, *word_node = NULL;
@@ -58,10 +62,28 @@ int system_ntp_load_server(system_ctx_t *ctx, system_ntp_server_element_t **head
 				goto error_out;
 			}
 
-			error = system_ntp_server_set_address(&temp_server, lyd_get_value(word_node));
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_server_set_address() error (%d)", error);
-				goto error_out;
+			full_addr = lyd_get_value(word_node);
+			if ((delimiter = strchr(full_addr, ':')) != NULL) {
+				// address contains a port - split and use both
+				port = delimiter + 1;
+				address = strndup(full_addr, (size_t) (delimiter - full_addr));
+				error = system_ntp_server_set_address(&temp_server, address);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_server_set_address() error (%d)", error);
+					goto error_out;
+				}
+				error = system_ntp_server_set_port(&temp_server, port);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_server_set_port() error (%d)", error);
+					goto error_out;
+				}
+				free((char *) address);
+			} else {
+				error = system_ntp_server_set_address(&temp_server, full_addr);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_server_set_address() error (%d)", error);
+					goto error_out;
+				}
 			}
 
 			error = system_ntp_server_set_association_type(&temp_server, LYD_NAME(chosen_node));

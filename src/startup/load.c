@@ -94,8 +94,8 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-// enable or disable storing into startup - use when testing load functionality for now
-#define SYSTEM_PLUGIN_LOAD_STARTUP
+	// enable or disable storing into startup - use when testing load functionality for now
+	// #define SYSTEM_PLUGIN_LOAD_STARTUP
 
 #ifdef SYSTEM_PLUGIN_LOAD_STARTUP
 	error = sr_edit_batch(session, system_container_node, "merge");
@@ -232,12 +232,16 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 			goto error_out;
 		}
 
+		SRPLG_LOG_INF(PLUGIN_NAME, "Setting address %s", ntp_server_iter->server.address);
+
 		// address
 		error = system_ly_tree_create_ntp_server_address(ly_ctx, server_list_node, ntp_server_iter->server.address);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_address() error (%d)", error);
 			goto error_out;
 		}
+
+		SRPLG_LOG_INF(PLUGIN_NAME, "Setting port \"%s\"", ntp_server_iter->server.port);
 
 		// port
 		if (ntp_server_iter->server.port) {
