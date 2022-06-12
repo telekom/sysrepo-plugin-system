@@ -37,7 +37,7 @@ system_ntp_server_element_t *system_ntp_server_list_find(system_ntp_server_eleme
 	system_ntp_server_element_t *found = NULL;
 	system_ntp_server_element_t el = {
 		.server = {
-			.name = name,
+			.name = (char *) name,
 		},
 	};
 

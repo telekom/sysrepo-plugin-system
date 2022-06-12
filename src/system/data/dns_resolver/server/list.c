@@ -34,7 +34,7 @@ system_dns_server_element_t *system_dns_server_list_find(system_dns_server_eleme
 	system_dns_server_element_t *found = NULL;
 	system_dns_server_element_t el = {
 		.server = {
-			.name = name,
+			.name = (char *) name,
 		},
 	};
 

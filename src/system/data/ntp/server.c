@@ -10,7 +10,13 @@ int system_ntp_server_set_name(system_ntp_server_t *server, const char *name)
 {
 	int error = 0;
 
-	server->name = xstrdup(name);
+	if (server->name) {
+		free(server->name);
+	}
+
+	if (name) {
+		server->name = xstrdup(name);
+	}
 
 	return error;
 }
@@ -19,16 +25,28 @@ int system_ntp_server_set_address(system_ntp_server_t *server, const char *addre
 {
 	int error = 0;
 
-	server->address = xstrdup(address);
+	if (server->address) {
+		free(server->address);
+	}
+
+	if (address) {
+		server->address = xstrdup(address);
+	}
 
 	return error;
 }
 
-int system_ntp_server_set_port(system_ntp_server_t *server, int port)
+int system_ntp_server_set_port(system_ntp_server_t *server, const char *port)
 {
 	int error = 0;
 
-	server->port = port;
+	if (server->port) {
+		free(server->port);
+	}
+
+	if (port) {
+		server->port = xstrdup(port);
+	}
 
 	return error;
 }
@@ -37,7 +55,13 @@ int system_ntp_server_set_association_type(system_ntp_server_t *server, const ch
 {
 	int error = 0;
 
-	server->association_type = xstrdup(association_type);
+	if (server->association_type) {
+		free(server->association_type);
+	}
+
+	if (association_type) {
+		server->association_type = xstrdup(association_type);
+	}
 
 	return error;
 }
@@ -45,8 +69,13 @@ int system_ntp_server_set_association_type(system_ntp_server_t *server, const ch
 int system_ntp_server_set_iburst(system_ntp_server_t *server, const char *iburst)
 {
 	int error = 0;
+	if (server->iburst) {
+		free(server->iburst);
+	}
 
-	server->iburst = xstrdup(iburst);
+	if (iburst) {
+		server->iburst = xstrdup(iburst);
+	}
 
 	return error;
 }
@@ -55,7 +84,13 @@ int system_ntp_server_set_prefer(system_ntp_server_t *server, const char *prefer
 {
 	int error = 0;
 
-	server->iburst = xstrdup(prefer);
+	if (server->prefer) {
+		free(server->prefer);
+	}
+
+	if (prefer) {
+		server->prefer = xstrdup(prefer);
+	}
 
 	return error;
 }
@@ -63,23 +98,27 @@ int system_ntp_server_set_prefer(system_ntp_server_t *server, const char *prefer
 void system_ntp_server_free(system_ntp_server_t *server)
 {
 	if (server->name) {
-		free((void *) server->name);
+		free(server->name);
 	}
 
 	if (server->address) {
-		free((void *) server->address);
+		free(server->address);
+	}
+
+	if (server->port) {
+		free(server->port);
 	}
 
 	if (server->association_type) {
-		free((void *) server->association_type);
+		free(server->association_type);
 	}
 
 	if (server->iburst) {
-		free((void *) server->iburst);
+		free(server->iburst);
 	}
 
 	if (server->prefer) {
-		free((void *) server->prefer);
+		free(server->prefer);
 	}
 
 	system_ntp_server_init(server);

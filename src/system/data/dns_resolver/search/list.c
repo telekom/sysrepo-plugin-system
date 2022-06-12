@@ -33,7 +33,7 @@ system_dns_search_element_t *system_dns_search_list_find(system_dns_search_eleme
 	system_dns_search_element_t *found = NULL;
 	system_dns_search_element_t el = {
 		.search = {
-			.domain = domain,
+			.domain = (char *) domain,
 		},
 	};
 

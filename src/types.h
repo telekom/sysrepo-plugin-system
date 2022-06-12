@@ -31,12 +31,12 @@ struct system_ip_address_s {
 };
 
 struct system_ntp_server_s {
-	const char *name;
-	const char *address;
-	int port;
-	const char *association_type;
-	const char *iburst;
-	const char *prefer;
+	char *name;
+	char *address;
+	char *port;
+	char *association_type;
+	char *iburst;
+	char *prefer;
 };
 
 struct system_ntp_server_element_s {
@@ -45,13 +45,13 @@ struct system_ntp_server_element_s {
 };
 
 struct system_dns_search_s {
-	const char *domain;
+	char *domain;
 	int ifindex;
 	int search;
 };
 
 struct system_dns_server_s {
-	const char *name;
+	char *name;
 	system_ip_address_t address;
 	int port;
 };
