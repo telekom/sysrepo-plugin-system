@@ -60,7 +60,7 @@ int system_ntp_store_server(system_ctx_t *ctx, system_ntp_server_element_t *head
 			strcmp(iter->server.association_type, "server") == 0 ||
 			strcmp(iter->server.association_type, "pool") == 0 ||
 			strcmp(iter->server.association_type, "peer") == 0);
-		error = srpc_ly_tree_create_container(ly_ctx, config_entry_node, &server_node, "server");
+		error = srpc_ly_tree_create_container(ly_ctx, config_entry_node, &server_node, iter->server.association_type);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_container() error (%d)", error);
 			goto error_out;
