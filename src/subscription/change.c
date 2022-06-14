@@ -247,7 +247,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers before changes:");
 		LL_FOREACH(ctx->temp_ntp_servers, iter)
 		{
-			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->server.name);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
 		}
 
 		// process changes and use store API to store the configured list
@@ -327,8 +327,10 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers after changes:");
 		LL_FOREACH(ctx->temp_ntp_servers, iter)
 		{
-			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->server.name);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
 		}
+
+		// TODO: delete config before setting changes or research for a way to replace whole config file
 
 		// store generated data
 		error = system_ntp_store_server(ctx, ctx->temp_ntp_servers);
@@ -346,7 +348,7 @@ out:
 
 	system_ntp_server_list_free(&ctx->temp_ntp_servers);
 
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)

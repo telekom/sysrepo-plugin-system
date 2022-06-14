@@ -1,6 +1,7 @@
 #include "store.h"
 #include "common.h"
 #include "context.h"
+#include "libyang/printer_data.h"
 #include "srpc/ly_tree.h"
 #include "types.h"
 
@@ -93,44 +94,48 @@ int system_ntp_store_server(system_ctx_t *ctx, system_ntp_server_element_t *head
 		option_id = 1;
 
 		if (iter->server.iburst) {
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Adding iburst options for server %s", iter->server.name);
-			error = snprintf(id_buffer, sizeof(id_buffer), "%lu", option_id);
-			if (error < 0) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
-				goto error_out;
-			}
-			error = srpc_ly_tree_create_list(ly_ctx, server_node, &options_entry_node, "config-entries", "_id", id_buffer);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_list() error (%d)", error);
-				goto error_out;
-			}
+			if (!strcmp(iter->server.iburst, "true")) {
+				SRPLG_LOG_DBG(PLUGIN_NAME, "Adding iburst options for server %s", iter->server.name);
+				error = snprintf(id_buffer, sizeof(id_buffer), "%lu", option_id);
+				if (error < 0) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+					goto error_out;
+				}
+				error = srpc_ly_tree_create_list(ly_ctx, server_node, &options_entry_node, "config-entries", "_id", id_buffer);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_list() error (%d)", error);
+					goto error_out;
+				}
 
-			error = srpc_ly_tree_create_leaf(ly_ctx, options_entry_node, NULL, "iburst", NULL);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_leaf() error (%d)", error);
-				goto error_out;
-			}
+				error = srpc_ly_tree_create_leaf(ly_ctx, options_entry_node, NULL, "iburst", NULL);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_leaf() error (%d)", error);
+					goto error_out;
+				}
 
-			++option_id;
+				++option_id;
+			}
 		}
 
 		if (iter->server.prefer) {
-			SRPLG_LOG_DBG(PLUGIN_NAME, "Adding prefer options for server %s", iter->server.name);
-			error = snprintf(id_buffer, sizeof(id_buffer), "%lu", option_id);
-			if (error < 0) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
-				goto error_out;
-			}
-			error = srpc_ly_tree_create_list(ly_ctx, server_node, &options_entry_node, "config-entries", "_id", id_buffer);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_list() error (%d)", error);
-				goto error_out;
-			}
+			if (!strcmp(iter->server.prefer, "true")) {
+				SRPLG_LOG_DBG(PLUGIN_NAME, "Adding prefer options for server %s", iter->server.name);
+				error = snprintf(id_buffer, sizeof(id_buffer), "%lu", option_id);
+				if (error < 0) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+					goto error_out;
+				}
+				error = srpc_ly_tree_create_list(ly_ctx, server_node, &options_entry_node, "config-entries", "_id", id_buffer);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_list() error (%d)", error);
+					goto error_out;
+				}
 
-			error = srpc_ly_tree_create_leaf(ly_ctx, options_entry_node, NULL, "prefer", NULL);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_leaf() error (%d)", error);
-				goto error_out;
+				error = srpc_ly_tree_create_leaf(ly_ctx, options_entry_node, NULL, "prefer", NULL);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_create_leaf() error (%d)", error);
+					goto error_out;
+				}
 			}
 		}
 
@@ -140,7 +145,9 @@ int system_ntp_store_server(system_ctx_t *ctx, system_ntp_server_element_t *head
 	// apply changes to the config file
 	SRPLG_LOG_INF(PLUGIN_NAME, "Applying created changes to the /etc/ntp.conf config file");
 
-	error = sr_edit_batch(ctx->startup_session, ntp_list_node, "merge");
+	lyd_print_file(stdout, ntp_list_node, LYD_XML, 0);
+
+	error = sr_edit_batch(ctx->startup_session, ntp_list_node, "replace");
 	if (error != SR_ERR_OK) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_edit_batch() error (%d): %s", error, sr_strerror(error));
 		goto error_out;
