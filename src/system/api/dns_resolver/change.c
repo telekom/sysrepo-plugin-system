@@ -44,7 +44,7 @@ int system_dns_resolver_change_search(void *priv, sr_session_ctx_t *session, con
 			}
 
 			// add to the list
-			error = system_dns_search_list_add(&ctx->temp_search_head, temp_search);
+			error = system_dns_search_list_add(&ctx->temp_dns_search, temp_search);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_list_add() error (%d)", error);
 				goto error_out;
@@ -54,7 +54,7 @@ int system_dns_resolver_change_search(void *priv, sr_session_ctx_t *session, con
 			// not supported - cannot modify leaf-list element, it can be only created and deleted
 			break;
 		case SR_OP_DELETED:
-			error = system_dns_search_list_remove(&ctx->temp_search_head, node_value);
+			error = system_dns_search_list_remove(&ctx->temp_dns_search, node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_list_remove() error (%d)", error);
 				goto error_out;
@@ -138,7 +138,7 @@ int system_dns_resolver_change_server_address(void *priv, sr_session_ctx_t *sess
 			}
 
 			// add to the list
-			error = system_dns_server_list_add(&ctx->temp_server_head, temp_server);
+			error = system_dns_server_list_add(&ctx->temp_dns_servers, temp_server);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_add() error (%d)", error);
 				goto error_out;
@@ -146,7 +146,7 @@ int system_dns_resolver_change_server_address(void *priv, sr_session_ctx_t *sess
 			break;
 		case SR_OP_MODIFIED:
 			// get existing and modify
-			found_server_el = system_dns_server_list_find(ctx->temp_server_head, change_ctx->previous_value);
+			found_server_el = system_dns_server_list_find(ctx->temp_dns_servers, change_ctx->previous_value);
 			if (!found_server_el) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_find() error (%d)", error);
 				goto error_out;
@@ -168,7 +168,7 @@ int system_dns_resolver_change_server_address(void *priv, sr_session_ctx_t *sess
 			break;
 		case SR_OP_DELETED:
 			// remove element from the list
-			error = system_dns_server_list_remove(&ctx->temp_server_head, node_value);
+			error = system_dns_server_list_remove(&ctx->temp_dns_servers, node_value);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_server_list_remove() error (%d)", error);
 				goto error_out;
