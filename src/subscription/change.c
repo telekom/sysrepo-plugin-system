@@ -342,7 +342,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 			goto error_out;
 		}
 
-		SRPLG_LOG_INF(PLUGIN_NAME, "Deleted config file data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Deleted /etc/ntp.conf config file data");
 
 		// store generated data
 		error = system_ntp_store_server(ctx, ctx->temp_ntp_servers);
