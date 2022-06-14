@@ -147,7 +147,7 @@ int system_ntp_store_server(system_ctx_t *ctx, system_ntp_server_element_t *head
 
 	lyd_print_file(stdout, ntp_list_node, LYD_XML, 0);
 
-	error = sr_edit_batch(ctx->startup_session, ntp_list_node, "replace");
+	error = sr_edit_batch(ctx->startup_session, ntp_list_node, "merge");
 	if (error != SR_ERR_OK) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_edit_batch() error (%d): %s", error, sr_strerror(error));
 		goto error_out;

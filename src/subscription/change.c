@@ -330,7 +330,19 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
 		}
 
-		// TODO: delete config before setting changes or research for a way to replace whole config file
+		// delete entries before applying changes - faster than searching for each server and changing libyang tree
+		error = sr_delete_item(ctx->startup_session, "/ntp:ntp[config-file=\"/etc/ntp.conf\"]/config-entries", SR_EDIT_DEFAULT);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_delete_item() error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+		error = sr_apply_changes(ctx->startup_session, 0);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
+			goto error_out;
+		}
+
+		SRPLG_LOG_INF(PLUGIN_NAME, "Deleted config file data");
 
 		// store generated data
 		error = system_ntp_store_server(ctx, ctx->temp_ntp_servers);
@@ -348,7 +360,7 @@ out:
 
 	system_ntp_server_list_free(&ctx->temp_ntp_servers);
 
-	return error;
+	return SR_ERR_CALLBACK_FAILED;
 }
 
 int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
