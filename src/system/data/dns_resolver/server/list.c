@@ -2,6 +2,7 @@
 #include "system/data/dns_resolver/server.h"
 #include "types.h"
 
+#include <string.h>
 #include <utlist.h>
 
 void system_dns_server_list_init(system_dns_server_element_t **head)

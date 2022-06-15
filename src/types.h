@@ -1,8 +1,6 @@
 #ifndef SYSTEM_PLUGIN_TYPES_H
 #define SYSTEM_PLUGIN_TYPES_H
 
-#include <utarray.h>
-
 // DNS
 
 typedef struct system_ntp_server_s system_ntp_server_t;

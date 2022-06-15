@@ -1,6 +1,8 @@
 #include "list.h"
 #include "system/data/authentication/local_user.h"
 
+#include <string.h>
+#include <stdlib.h>
 #include <utlist.h>
 
 void system_local_user_list_init(system_local_user_element_t **head)

@@ -1,5 +1,6 @@
 #include "authorized_key.h"
 #include <stdlib.h>
+#include <string.h>
 
 void system_authorized_key_init(system_authorized_key_t *key)
 {

@@ -2,6 +2,7 @@
 #include "system/data/ntp/server.h"
 #include "types.h"
 
+#include <string.h>
 #include <utlist.h>
 
 void system_ntp_server_list_init(system_ntp_server_element_t **head)

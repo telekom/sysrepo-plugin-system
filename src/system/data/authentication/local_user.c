@@ -1,6 +1,8 @@
 #include "local_user.h"
-
 #include "system/data/authentication/authorized_key/list.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 void system_local_user_init(system_local_user_t *user)
 {
