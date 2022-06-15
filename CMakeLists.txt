@@ -40,6 +40,7 @@ set(
     src/system/data/authentication/authorized_key/array.c
     src/system/data/authentication/local_user.c
     src/system/data/authentication/local_user/array.c
+    src/system/data/authentication/local_user/list.c
 
     # system API
     src/system/api/load.c

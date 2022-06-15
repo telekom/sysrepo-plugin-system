@@ -17,7 +17,7 @@ int system_local_user_set_name(system_local_user_t *user, const char *name)
 
 	user->name = xstrdup(name);
 
-	return user->name != NULL;
+	return user->name == NULL;
 }
 
 int system_local_user_set_password(system_local_user_t *user, const char *password)
@@ -29,7 +29,7 @@ int system_local_user_set_password(system_local_user_t *user, const char *passwo
 
 	user->password = xstrdup(password);
 
-	return user->password != NULL;
+	return user->password == NULL;
 }
 
 void system_local_user_free(system_local_user_t *user)

@@ -134,9 +134,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 ## Refactor TODO
 - [x] replace old NTP functionality with augyang
 - [x] replace current NTP loading from config to datastore with config -> data -> datastore
-- [ ] fix NTP server port invalid value issue
+- [x] fix DNS internal loading by name
 - [ ] finish authentication change, store and check APIs
+- [ ] fix NTP server port invalid value issue - YANG issue
 - [ ] replace used resolv.conf parser with augyang
-- [ ] add check API for authentication and DNS resolver
-- [ ] finish store API for authentication
 - [ ] maybe split ly_tree API into multiple files
