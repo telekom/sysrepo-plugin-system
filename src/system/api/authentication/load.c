@@ -3,9 +3,9 @@
 #include "types.h"
 #include "common.h"
 
-#include "system/data/authentication/authorized_key/array.h"
+#include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/authorized_key.h"
-#include "system/data/authentication/local_user/array.h"
+#include "system/data/authentication/local_user/list.h"
 #include "system/data/authentication/local_user.h"
 
 #include <unistd.h>
@@ -18,23 +18,27 @@
 
 static int system_check_file_extension(const char *path, const char *ext);
 
-int system_authentication_load_user(system_ctx_t *ctx, UT_array **arr)
+int system_authentication_load_user(system_ctx_t *ctx, system_local_user_element_t **head)
 {
 	int error = 0;
 
 	struct passwd *pwd = NULL;
 	struct spwd *pwdshd = NULL;
 
-	system_local_user_t tmp_user = {0};
+	system_local_user_t temp_user = {0};
+	system_local_user_element_t *found_el = NULL;
 
 	// adding username
 	while ((pwd = getpwent()) != NULL) {
 		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, "/home", sizeof("/home") - 1) == 0) || (pwd->pw_uid == 0)) {
-			tmp_user.name = pwd->pw_name;
+			system_local_user_init(&temp_user);
 
-			error = system_local_user_array_add(arr, tmp_user);
+			// just set name - no need to copy here
+			temp_user.name = pwd->pw_name;
+
+			error = system_local_user_list_add(head, temp_user);
 			if (error != 0) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_array_add() error (%d) for %s", error, tmp_user.name);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d) for user %s", error, temp_user.name);
 				goto error_out;
 			}
 		}
@@ -42,10 +46,9 @@ int system_authentication_load_user(system_ctx_t *ctx, UT_array **arr)
 
 	// adding password
 	while ((pwdshd = getspent()) != NULL) {
-		tmp_user.name = pwdshd->sp_namp;
+		found_el = system_local_user_list_find(*head, pwdshd->sp_namp);
 
-		system_local_user_t *found = utarray_find(*arr, &tmp_user, system_local_user_cmp_fn);
-		if (found) {
+		if (found_el) {
 			/* A password field which starts with a exclamation mark means that
 			 * the password is locked.
 			 * Majority of root accounts are paswordless and therefore contain
@@ -53,7 +56,11 @@ int system_authentication_load_user(system_ctx_t *ctx, UT_array **arr)
 			 * Set the value to NULL in both cases.
 			 */
 			if (strcmp(pwdshd->sp_pwdp, "!") != 0 && strcmp(pwdshd->sp_pwdp, "*") != 0) {
-				system_local_user_set_password(found, pwdshd->sp_pwdp);
+				error = system_local_user_set_password(&found_el->user, pwdshd->sp_pwdp);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
+					goto error_out;
+				}
 			}
 		}
 	}
@@ -69,7 +76,7 @@ out:
 	return error;
 }
 
-int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char *user, UT_array **arr)
+int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char *user, system_authorized_key_element_t **head)
 {
 	int error = 0;
 	char dir_buffer[PATH_MAX] = {0};
@@ -78,7 +85,7 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 	char data_buffer[16384] = {0};
 	FILE *pub_file = NULL;
 
-	system_authorized_key_t tmp_key = {0};
+	system_authorized_key_t temp_key = {0};
 
 	DIR *dir = NULL;
 	struct dirent *dir_entry = NULL;
@@ -95,7 +102,7 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 
 	// check dir for .ssh key files
 	if ((dir = opendir(dir_buffer)) == NULL) {
-		SRPLG_LOG_INF(PLUGIN_NAME, ".ssh directory doesn't exist for user %s", user);
+		SRPLG_LOG_INF(PLUGIN_NAME, "~/.ssh directory doesn't exist for user %s", user);
 		goto out;
 	} else {
 		while ((dir_entry = readdir(dir)) != NULL) {
@@ -104,8 +111,8 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 			}
 
 			// found new key
-			system_authorized_key_init(&tmp_key);
-			error = system_authorized_key_set_name(&tmp_key, dir_entry->d_name);
+			system_authorized_key_init(&temp_key);
+			error = system_authorized_key_set_name(&temp_key, dir_entry->d_name);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_name() error (%d)", error);
 				goto error_out;
@@ -134,27 +141,27 @@ int system_authentication_load_user_authorized_key(system_ctx_t *ctx, const char
 			}
 
 			// got both - setup key and add it to the array
-			error = system_authorized_key_set_algorithm(&tmp_key, algorithm_buffer);
+			error = system_authorized_key_set_algorithm(&temp_key, algorithm_buffer);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_algorithm() error (%d)", error);
 				goto error_out;
 			}
 
-			error = system_authorized_key_set_data(&tmp_key, data_buffer);
+			error = system_authorized_key_set_data(&temp_key, data_buffer);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_data() error (%d)", error);
 				goto error_out;
 			}
 
-			// add to the array
-			error = system_authorized_key_array_add(arr, tmp_key);
+			// append to list
+			error = system_authorized_key_list_add(head, temp_key);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_array_add() error (%d)", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
 				goto error_out;
 			}
 
 			// free current data
-			system_authorized_key_free(&tmp_key);
+			system_authorized_key_free(&temp_key);
 
 			// close current file
 			fclose(pub_file);
@@ -174,7 +181,7 @@ out:
 	}
 
 	// if interrurpted the key will have allocated data - free
-	system_authorized_key_free(&tmp_key);
+	system_authorized_key_free(&temp_key);
 
 	// close dir iterator
 	closedir(dir);

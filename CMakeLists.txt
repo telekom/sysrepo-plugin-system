@@ -37,10 +37,8 @@ set(
     src/system/data/ntp/server.c
     src/system/data/ntp/server/list.c
     src/system/data/authentication/authorized_key.c
-    src/system/data/authentication/authorized_key/array.c
     src/system/data/authentication/authorized_key/list.c
     src/system/data/authentication/local_user.c
-    src/system/data/authentication/local_user/array.c
     src/system/data/authentication/local_user/list.c
 
     # system API

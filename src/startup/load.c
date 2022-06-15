@@ -11,8 +11,8 @@
 
 // data manipulation
 #include "system/api/ntp/load.h"
-#include "system/data/authentication/authorized_key/array.h"
-#include "system/data/authentication/local_user/array.h"
+#include "system/data/authentication/authorized_key/list.h"
+#include "system/data/authentication/local_user/list.h"
 #include "system/data/ip_address.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
@@ -397,9 +397,11 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *authentication_container_node = NULL;
 	struct lyd_node *user_list_node = NULL, *authorized_key_list_node = NULL;
-	UT_array *users = NULL;
-	system_local_user_t *user_iter = NULL;
-	system_authorized_key_t *key_iter = NULL;
+	// UT_array *users = NULL;
+	// system_local_user_t *user_iter = NULL;
+	// system_authorized_key_t *key_iter = NULL;
+	system_local_user_element_t *user_head = NULL, *user_iter = NULL;
+	system_authorized_key_element_t *key_iter = NULL;
 
 	// create authentication container
 	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
@@ -410,11 +412,11 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading users from the system");
 
-	// init array first
-	system_local_user_array_init(&users);
+	// init list first
+	system_local_user_list_init(&user_head);
 
 	// load user list
-	error = system_authentication_load_user(ctx, &users);
+	error = system_authentication_load_user(ctx, &user_head);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
 		goto error_out;
@@ -422,11 +424,11 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading user authorized keys");
 
-	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
-		// init array for each user
-		system_authorized_key_array_init(&user_iter->keys);
+	LL_FOREACH(user_head, user_iter)
+	{
+		system_authorized_key_list_init(&user_iter->user.key_head);
 
-		error = system_authentication_load_user_authorized_key(ctx, user_iter->name, &user_iter->keys);
+		error = system_authentication_load_user_authorized_key(ctx, user_iter->user.name, &user_iter->user.key_head);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user_authorized_key() error (%d)", error);
 			goto error_out;
@@ -435,48 +437,53 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Saving users and their keys to the datastore");
 
-	while ((user_iter = utarray_next(users, user_iter)) != NULL) {
+	LL_FOREACH(user_head, user_iter)
+	{
 		// list item
-		error = system_ly_tree_create_authentication_user(ly_ctx, authentication_container_node, &user_list_node, user_iter->name);
+		error = system_ly_tree_create_authentication_user(ly_ctx, authentication_container_node, &user_list_node, user_iter->user.name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user() error (%d) for %s", error, user_iter->name);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user() error (%d) for %s", error, user_iter->user.name);
 			goto error_out;
 		}
 
 		// password
-		if (user_iter->password) {
-			error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->password);
+		if (user_iter->user.password) {
+			error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->user.password);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->password);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->user.password);
 				goto error_out;
 			}
 		}
 
 		// authorized-key
-		if (utarray_len(user_iter->keys) > 0) {
+		int count = 0;
+		LL_COUNT(user_iter->user.key_head, key_iter, count);
+
+		if (count > 0) {
 			key_iter = NULL;
-			while ((key_iter = utarray_next(user_iter->keys, key_iter)) != NULL) {
+			LL_FOREACH(user_iter->user.key_head, key_iter)
+			{
 				// list item
-				error = system_ly_tree_create_authentication_user_authorized_key(ly_ctx, user_list_node, &authorized_key_list_node, key_iter->name);
+				error = system_ly_tree_create_authentication_user_authorized_key(ly_ctx, user_list_node, &authorized_key_list_node, key_iter->key.name);
 				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key() error (%d) for %s", error, key_iter->name);
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key() error (%d) for %s", error, key_iter->key.name);
 					goto error_out;
 				}
 
 				// algorithm
-				if (key_iter->algorithm) {
-					error = system_ly_tree_create_authentication_user_authorized_key_algorithm(ly_ctx, authorized_key_list_node, key_iter->algorithm);
+				if (key_iter->key.algorithm) {
+					error = system_ly_tree_create_authentication_user_authorized_key_algorithm(ly_ctx, authorized_key_list_node, key_iter->key.algorithm);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_algorithm() error (%d) for %s", error, key_iter->algorithm);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_algorithm() error (%d) for %s", error, key_iter->key.algorithm);
 						goto error_out;
 					}
 				}
 
 				// key-data
-				if (key_iter->data) {
-					error = system_ly_tree_create_authentication_user_authorized_key_data(ly_ctx, authorized_key_list_node, key_iter->data);
+				if (key_iter->key.data) {
+					error = system_ly_tree_create_authentication_user_authorized_key_data(ly_ctx, authorized_key_list_node, key_iter->key.data);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_data() error (%d) for %s", error, key_iter->data);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_data() error (%d) for %s", error, key_iter->key.data);
 						goto error_out;
 					}
 				}
@@ -492,7 +499,7 @@ error_out:
 	error = -1;
 
 out:
-	system_local_user_array_free(&users);
+	system_local_user_list_free(&user_head);
 
 	return error;
 }

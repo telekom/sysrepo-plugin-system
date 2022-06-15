@@ -71,7 +71,6 @@ struct system_dns_server_element_s {
 struct system_local_user_s {
 	char *name;
 	char *password;
-	UT_array *keys;
 	system_authorized_key_element_t *key_head;
 };
 

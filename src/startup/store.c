@@ -675,7 +675,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
 
-	authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "dns-resolver");
+	authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "authentication");
 	if (authentication_container_node) {
 	}
 

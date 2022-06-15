@@ -1,7 +1,6 @@
 #include "local_user.h"
 
-#include "authorized_key/array.h"
-#include "utils/memory.h"
+#include "system/data/authentication/authorized_key/list.h"
 
 void system_local_user_init(system_local_user_t *user)
 {
@@ -15,7 +14,9 @@ int system_local_user_set_name(system_local_user_t *user, const char *name)
 		user->name = 0;
 	}
 
-	user->name = xstrdup(name);
+	if (name) {
+		user->name = strdup(name);
+	}
 
 	return user->name == NULL;
 }
@@ -27,7 +28,9 @@ int system_local_user_set_password(system_local_user_t *user, const char *passwo
 		user->password = 0;
 	}
 
-	user->password = xstrdup(password);
+	if (password) {
+		user->password = strdup(password);
+	}
 
 	return user->password == NULL;
 }
@@ -40,6 +43,10 @@ void system_local_user_free(system_local_user_t *user)
 
 	if (user->password) {
 		free(user->password);
+	}
+
+	if (user->key_head) {
+		system_authorized_key_list_free(&user->key_head);
 	}
 }
 

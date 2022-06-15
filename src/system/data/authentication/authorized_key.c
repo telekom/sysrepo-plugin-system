@@ -1,5 +1,4 @@
 #include "authorized_key.h"
-#include "utils/memory.h"
 #include <stdlib.h>
 
 void system_authorized_key_init(system_authorized_key_t *key)
@@ -14,7 +13,9 @@ int system_authorized_key_set_name(system_authorized_key_t *key, const char *nam
 		key->name = 0;
 	}
 
-	key->name = xstrdup(name);
+	if (name) {
+		key->name = strdup(name);
+	}
 
 	return key->name == NULL;
 }
@@ -26,7 +27,9 @@ int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char
 		key->algorithm = 0;
 	}
 
-	key->algorithm = xstrdup(algorithm);
+	if (algorithm) {
+		key->algorithm = strdup(algorithm);
+	}
 
 	return key->algorithm == NULL;
 }
@@ -38,7 +41,9 @@ int system_authorized_key_set_data(system_authorized_key_t *key, const char *dat
 		key->data = 0;
 	}
 
-	key->data = xstrdup(data);
+	if (data) {
+		key->data = strdup(data);
+	}
 
 	return key->data == NULL;
 }
