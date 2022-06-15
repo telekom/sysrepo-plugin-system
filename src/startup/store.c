@@ -684,7 +684,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 	struct lyd_node *authorized_key_list_node = NULL, *key_name_leaf_node = NULL, *key_algorithm_leaf_node = NULL, *key_data_leaf_node = NULL;
 
 	// data
-	system_local_user_element_t *user_head = NULL, *found_user_el = NULL;
+	system_local_user_element_t *user_head = NULL, *found_user_el = NULL, *user_iter = NULL;
 	system_local_user_t temp_user = {0};
 	system_authorized_key_t temp_key = {0};
 
@@ -805,17 +805,54 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 			goto error_out;
 			break;
 		case srpc_check_status_non_existant:
-			// users don't exist on the system - store them
 			SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users don\'t exist on the system - starting to store startup local users");
+			error = system_authentication_store_user(ctx, user_head);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case srpc_check_status_equal:
-			// all users exist - nothing to do
 			SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users already exist on the system - no need to store anything");
 			break;
 		case srpc_check_status_partial:
-			// some users exist on the system and some don't
-			// extract users which don't exist and store them to the system
 			break;
+	}
+
+	// after matching startup and system values for users - match key lists for all users
+	SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user authorized key system values");
+	LL_FOREACH(user_head, user_iter)
+	{
+		// check first if any keys exist in startup
+		if (user_iter->user.key_head) {
+			key_check_status = system_authentication_check_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
+			SRPLG_LOG_INF(PLUGIN_NAME, "Recieved authorized-key check status %d for user %s", user_check_status, user_iter->user.name);
+
+			switch (key_check_status) {
+				case srpc_check_status_none:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
+					goto error_out;
+					break;
+				case srpc_check_status_error:
+					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
+					goto error_out;
+					break;
+				case srpc_check_status_non_existant:
+					SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys don\'t exist on the system for user %s - storing authorized keys for user %s", user_iter->user.name, user_iter->user.name);
+					error = system_authentication_store_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user_authorized_key() error (%d) for user %s", error, user_iter->user.name);
+						goto error_out;
+					}
+					break;
+				case srpc_check_status_equal:
+					SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys already exist for local user %s - no need to store anything", user_iter->user.name);
+					break;
+				case srpc_check_status_partial:
+					// TODO
+					break;
+			}
+		}
 	}
 
 	goto out;
