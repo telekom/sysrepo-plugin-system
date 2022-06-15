@@ -2,6 +2,7 @@
 #include "system/data/dns_resolver/search.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <utlist.h>
 
 void system_dns_search_list_init(system_dns_search_element_t **head)

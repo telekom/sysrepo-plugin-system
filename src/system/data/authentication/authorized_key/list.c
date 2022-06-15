@@ -2,6 +2,7 @@
 #include "system/data/authentication/authorized_key.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <utlist.h>
 
 void system_authorized_key_list_init(system_authorized_key_element_t **head)
