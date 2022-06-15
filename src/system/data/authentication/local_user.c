@@ -50,6 +50,8 @@ void system_local_user_free(system_local_user_t *user)
 	if (user->key_head) {
 		system_authorized_key_list_free(&user->key_head);
 	}
+
+	system_local_user_init(user);
 }
 
 int system_local_user_cmp_fn(const void *e1, const void *e2)
