@@ -7,6 +7,7 @@
 #include "srpc/ly_tree.h"
 #include "srpc/types.h"
 #include "system/api/authentication/check.h"
+#include "system/api/authentication/load.h"
 #include "system/api/check.h"
 #include "system/api/ntp/check.h"
 #include "system/api/ntp/store.h"
@@ -685,6 +686,8 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 
 	// data
 	system_local_user_element_t *user_head = NULL, *found_user_el = NULL, *user_iter = NULL;
+	system_local_user_element_t *system_user_head = NULL;
+	system_local_user_element_t *complement_user_head = NULL;
 	system_local_user_t temp_user = {0};
 	system_authorized_key_t temp_key = {0};
 
@@ -816,6 +819,36 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 			SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users already exist on the system - no need to store anything");
 			break;
 		case srpc_check_status_partial:
+			SRPLG_LOG_INF(PLUGIN_NAME, "Some startup local users exist while others don\'t - creating non existant users");
+
+			// load from system
+			// TODO: optimize - the users are already loaded from system in _check()
+			SRPLG_LOG_INF(PLUGIN_NAME, "Loading local users on the system");
+
+			system_local_user_list_init(&system_user_head);
+			error = system_authentication_load_user(ctx, &system_user_head);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
+				goto error_out;
+			}
+
+			// get complement of startup without system
+			complement_user_head = system_local_user_list_complement(user_head, system_user_head);
+			if (!complement_user_head) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_complement() failed");
+				goto error_out;
+			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Storing missing local users from startup to the system");
+
+			// add complement users to system
+			error = system_authentication_store_user(ctx, complement_user_head);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
+				goto error_out;
+			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Missing local users from startup are stored in the system");
 			break;
 	}
 
@@ -866,8 +899,10 @@ out:
 	system_local_user_free(&temp_user);
 	system_authorized_key_free(&temp_key);
 
-	// free full list
+	// free lists
 	system_local_user_list_free(&user_head);
+	system_local_user_list_free(&system_user_head);
+	system_local_user_list_free(&complement_user_head);
 
 	return error;
 }

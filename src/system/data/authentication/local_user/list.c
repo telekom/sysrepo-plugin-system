@@ -43,6 +43,34 @@ system_local_user_element_t *system_local_user_list_find(system_local_user_eleme
 	return found;
 }
 
+system_local_user_element_t *system_local_user_list_complement(system_local_user_element_t *h1, system_local_user_element_t *h2)
+{
+	system_local_user_element_t *new_head = NULL, *iter = NULL, *found = NULL;
+	int error = 0;
+
+	system_local_user_list_init(&new_head);
+
+	// add elements from h1 which are not in h2
+	LL_FOREACH(h1, iter)
+	{
+		found = system_local_user_list_find(h2, iter->user.name);
+		if (!found) {
+			error = system_local_user_list_add(&new_head, iter->user);
+			if (error) {
+				goto error_out;
+			}
+		}
+	}
+
+	goto out;
+
+error_out:
+	system_local_user_list_free(&new_head);
+
+out:
+	return new_head;
+}
+
 int system_local_user_list_remove(system_local_user_element_t **head, const char *name)
 {
 	system_local_user_element_t *found = system_local_user_list_find(*head, name);
