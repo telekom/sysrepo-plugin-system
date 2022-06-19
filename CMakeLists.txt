@@ -14,7 +14,7 @@ include_directories(
 
 set(
     SOURCES
-    
+
     src/system.c
     src/ly_tree.c
     src/utils/memory.c
@@ -59,17 +59,20 @@ set(
     src/system/api/authentication/store.c
 )
 
-if (NOT PLUGIN)
-	set(SOURCES ${SOURCES} src/main.c)
+if(NOT PLUGIN)
+    set(SOURCES ${SOURCES} src/main.c)
 endif()
 
 # get sysrepo version
 find_package(PkgConfig)
-if (PKG_CONFIG_FOUND)
+
+if(PKG_CONFIG_FOUND)
     execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} "--modversion" "sysrepo" OUTPUT_VARIABLE SYSREPO_VERSION)
+
     if(SYSREPO_VERSION)
         # strip new line from string
         string(STRIP ${SYSREPO_VERSION} SYSREPO_VERSION)
+
         if(${SYSREPO_VERSION} VERSION_LESS "1.0.0")
             message(FATAL_ERROR "${PROJECT_NAME} requires at least libsysrepo verision 1.0.0")
         endif()
@@ -90,6 +93,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(SRPC REQUIRED)
+find_package(UMGMT REQUIRED)
 find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
@@ -98,12 +102,14 @@ target_link_libraries(
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SRPC_LIBRARIES}
+    ${UMGMT_LIBRARIES}
 )
 
 include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
     ${SRPC_INCLUDE_DIRS}
+    ${UMGMT_INCLUDE_DIRS}
 )
 
 if(SYSTEMD_FOUND)
@@ -112,9 +118,10 @@ if(SYSTEMD_FOUND)
     else()
         message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
     endif()
+
     add_compile_definitions(SYSTEMD)
     target_link_libraries(${CMAKE_PROJECT_NAME} ${SYSTEMD_LIBRARIES})
-    include_directories(${SYSTEMD_INCLUDE_DIRS})    
+    include_directories(${SYSTEMD_INCLUDE_DIRS})
 endif()
 
 # augyang support
@@ -125,7 +132,7 @@ else(AUGYANG_FOUND)
 endif()
 
 if(ENABLE_BUILD_TESTS)
-	find_package(CMOCKA REQUIRED)
-    include (CTest)
+    find_package(CMOCKA REQUIRED)
+    include(CTest)
     include(tests/Tests.cmake)
 endif()

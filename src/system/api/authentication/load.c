@@ -9,12 +9,14 @@
 #include "system/data/authentication/local_user.h"
 
 #include <unistd.h>
-#include <pwd.h>
-#include <shadow.h>
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
 #include <linux/limits.h>
+
+#include <umgmt.h>
+
+#include <utlist.h>
 
 static int system_check_file_extension(const char *path, const char *ext);
 
@@ -22,45 +24,46 @@ int system_authentication_load_user(system_ctx_t *ctx, system_local_user_element
 {
 	int error = 0;
 
-	struct passwd *pwd = NULL;
-	struct spwd *pwdshd = NULL;
-
 	system_local_user_t temp_user = {0};
-	system_local_user_element_t *found_el = NULL;
+	um_user_db_t *user_db = NULL;
+	const um_user_element_t *user_head = NULL;
+	const um_user_element_t *user_iter = NULL;
 
-	// adding username
-	while ((pwd = getpwent()) != NULL) {
-		if ((pwd->pw_uid >= 1000 && strncmp(pwd->pw_dir, "/home", sizeof("/home") - 1) == 0) || (pwd->pw_uid == 0)) {
+	user_db = um_user_db_new();
+	if (!user_db) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_new() failed");
+		goto error_out;
+	}
+
+	error = um_user_db_load(user_db);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_load() error (%d)", error);
+		goto error_out;
+	}
+
+	user_head = um_user_db_get_user_list_head(user_db);
+
+	LL_FOREACH(user_head, user_iter)
+	{
+		const um_user_t *user = user_iter->user;
+
+		if (um_user_get_uid(user) == 0 || um_user_get_uid(user) >= 1000) {
+			SRPLG_LOG_INF(PLUGIN_NAME, "Found user %s [ %d ]", um_user_get_name(user_iter->user), um_user_get_uid(user_iter->user));
+
+			// add new user
 			system_local_user_init(&temp_user);
 
-			// just set name - no need to copy here
-			temp_user.name = pwd->pw_name;
+			temp_user.name = (char *) um_user_get_name(user);
+			if (um_user_get_password_hash(user) &&
+				strcmp(um_user_get_password_hash(user), "*") &&
+				strcmp(um_user_get_password_hash(user), "!")) {
+				temp_user.password = (char *) um_user_get_password_hash(user);
+			}
 
 			error = system_local_user_list_add(head, temp_user);
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d) for user %s", error, temp_user.name);
 				goto error_out;
-			}
-		}
-	}
-
-	// adding password
-	while ((pwdshd = getspent()) != NULL) {
-		found_el = system_local_user_list_find(*head, pwdshd->sp_namp);
-
-		if (found_el) {
-			/* A password field which starts with a exclamation mark means that
-			 * the password is locked.
-			 * Majority of root accounts are paswordless and therefore contain
-			 * only asterisk in the password field.
-			 * Set the value to NULL in both cases.
-			 */
-			if (strcmp(pwdshd->sp_pwdp, "!") != 0 && strcmp(pwdshd->sp_pwdp, "*") != 0) {
-				error = system_local_user_set_password(&found_el->user, pwdshd->sp_pwdp);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
-					goto error_out;
-				}
 			}
 		}
 	}
@@ -71,7 +74,9 @@ error_out:
 	error = -1;
 
 out:
-	endpwent();
+	if (user_db) {
+		um_user_db_free(user_db);
+	}
 
 	return error;
 }
