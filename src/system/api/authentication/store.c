@@ -1,9 +1,5 @@
 #include "store.h"
 #include "common.h"
-#include "types.h"
-#include "umgmt/types.h"
-#include "umgmt/user.h"
-#include "umgmt/user_db.h"
 
 #include <linux/limits.h>
 #include <stdbool.h>
@@ -243,5 +239,56 @@ out:
 static int system_authentication_user_copy_skel(const char *username)
 {
 	int error = 0;
+	char source_buffer[PATH_MAX] = {0};
+	char destination_buffer[PATH_MAX] = {0};
+	char home_path_buffer[PATH_MAX] = {0};
+	char skel_path_buffer[PATH_MAX] = {0};
+
+	DIR *dir = NULL;
+	struct dirent *dir_entry = NULL;
+
+	if (snprintf(skel_path_buffer, sizeof(skel_path_buffer), "%s", SYSTEM_AUTHENTICATION_SKEL_DIRECTORY) < 0) {
+		goto error_out;
+	}
+
+	if (snprintf(home_path_buffer, sizeof(home_path_buffer), "/home/%s", username) < 0) {
+		goto error_out;
+	}
+
+	if ((dir = opendir(skel_path_buffer)) == NULL) {
+		SRPLG_LOG_INF(PLUGIN_NAME, "Unable to open directory %s", skel_path_buffer);
+		goto error_out;
+	} else {
+		// copy all files from /etc/skel directory to the user home directory
+		while ((dir_entry = readdir(dir)) != NULL) {
+			if (strcmp(dir_entry->d_name, ".") && strcmp(dir_entry->d_name, "..") && dir_entry->d_type != DT_DIR) {
+				if (snprintf(source_buffer, sizeof(source_buffer), "%s/%s", skel_path_buffer, dir_entry->d_name) < 0) {
+					goto error_out;
+				}
+
+				if (snprintf(destination_buffer, sizeof(destination_buffer), "%s/%s", home_path_buffer, dir_entry->d_name) < 0) {
+					goto error_out;
+				}
+
+				error = srpc_copy_file(source_buffer, destination_buffer);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_copy_file() error (%d) for %s --> %s", error, source_buffer, destination_buffer);
+					goto error_out;
+				}
+			}
+		}
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+
+	if (dir) {
+		closedir(dir);
+	}
+
 	return error;
 }
