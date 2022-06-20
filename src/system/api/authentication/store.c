@@ -1,5 +1,6 @@
 #include "store.h"
 #include "common.h"
+#include "umgmt/group.h"
 
 #include <linux/limits.h>
 #include <stdbool.h>
@@ -26,8 +27,10 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 	system_local_user_element_t *iter = NULL;
 	um_db_t *db = NULL;
 	um_user_t *new_user = NULL;
+	um_group_t *new_group = NULL;
 	char home_dir_buffer[PATH_MAX] = {0};
 	bool user_added = false;
+	bool group_added = false;
 
 	db = um_db_new();
 	if (!db) {
@@ -47,6 +50,8 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 	{
 		const char *username = iter->user.name;
 		const char *password = iter->user.password;
+		const uid_t uid = um_db_get_new_uid(db);
+		const gid_t gid = um_db_get_new_gid(db);
 
 		// check if user already exists
 		if (um_db_get_user(db, username)) {
@@ -61,6 +66,14 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 			goto error_out;
 		}
 		user_added = false;
+
+		// create new group
+		new_group = um_group_new();
+		if (!new_group) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_new() failed");
+			goto error_out;
+		}
+		group_added = false;
 
 		// name
 		error = um_user_set_name(new_user, username);
@@ -110,8 +123,8 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 		}
 
 		// uid and gid
-		um_user_set_uid(new_user, um_db_get_new_uid(db));
-		um_user_set_gid(new_user, um_db_get_new_gid(db));
+		um_user_set_uid(new_user, uid);
+		um_user_set_gid(new_user, gid);
 
 		// shadow data
 		um_user_set_last_change(new_user, -1);
@@ -128,9 +141,59 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_add_user() error (%d)", error);
 			goto error_out;
 		}
+
+		// setup user group
+
+		// name
+		error = um_group_set_name(new_group, username);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_set_name() error (%d)", error);
+			goto error_out;
+		}
+
+		// password in passwd
+		error = um_group_set_password(new_group, "x");
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_set_password() error (%d)", error);
+			goto error_out;
+		}
+
+		// password in shadow
+		error = um_group_set_password_hash(new_group, password);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_set_password_hash() error (%d)", error);
+			goto error_out;
+		}
+
+		// gid
+		um_group_set_gid(new_group, gid);
+
+		// for member and admin add the user
+
+		// member
+		error = um_group_add_member(new_group, new_user);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_add_member() error (%d)", error);
+			goto error_out;
+		}
+
+		// admin
+		error = um_group_add_admin(new_group, new_user);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_group_add_admin() error (%d)", error);
+			goto error_out;
+		}
+
+		// add new group to the database
+		error = um_db_add_group(db, new_group);
+		group_added = true;
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_add_group() error (%d)", error);
+			goto error_out;
+		}
 	}
 
-	// store database data after all users have been added
+	// store database data after all users and user groups have been added
 	error = um_db_store(db);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_store() error (%d)", error);
