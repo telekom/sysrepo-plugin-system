@@ -793,9 +793,11 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 		}
 	}
 
+	system_local_user_list_init(&system_user_head);
+
 	// check if all users exist on the system
 	SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user system values");
-	user_check_status = system_authentication_check_user(ctx, user_head);
+	user_check_status = system_authentication_check_user(ctx, user_head, &system_user_head);
 	SRPLG_LOG_INF(PLUGIN_NAME, "Recieved local users check status: %d", user_check_status);
 
 	switch (user_check_status) {
@@ -820,17 +822,6 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 			break;
 		case srpc_check_status_partial:
 			SRPLG_LOG_INF(PLUGIN_NAME, "Some startup local users exist while others don\'t - creating non existant users");
-
-			// load from system
-			// TODO: optimize - the users are already loaded from system in _check()
-			SRPLG_LOG_INF(PLUGIN_NAME, "Loading local users on the system");
-
-			system_local_user_list_init(&system_user_head);
-			error = system_authentication_load_user(ctx, &system_user_head);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
-				goto error_out;
-			}
 
 			// get complement of startup without system
 			complement_user_head = system_local_user_list_complement(user_head, system_user_head);

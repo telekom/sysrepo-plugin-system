@@ -49,7 +49,7 @@ int system_authentication_load_user(system_ctx_t *ctx, system_local_user_element
 		const um_user_t *user = user_iter->user;
 
 		if (um_user_get_uid(user) == 0 || (um_user_get_uid(user) >= 1000 && um_user_get_uid(user) < 65534)) {
-			SRPLG_LOG_INF(PLUGIN_NAME, "Found user %s [ %d ]", um_user_get_name(user_iter->user), um_user_get_uid(user_iter->user));
+			SRPLG_LOG_INF(PLUGIN_NAME, "Found user %s [ UID = %d ]", um_user_get_name(user_iter->user), um_user_get_uid(user_iter->user));
 
 			// add new user
 			system_local_user_init(&temp_user);

@@ -7,16 +7,16 @@
 #include <sysrepo.h>
 #include <utlist.h>
 
-srpc_check_status_t system_authentication_check_user(system_ctx_t *ctx, system_local_user_element_t *head)
+srpc_check_status_t system_authentication_check_user(system_ctx_t *ctx, system_local_user_element_t *head, system_local_user_element_t **system_head)
 {
 	int error = 0;
 	srpc_check_status_t status = srpc_check_status_none;
 	size_t contains_count = 0;
 	size_t list_elements_count = 0;
 
-	system_local_user_element_t *system_user_head = NULL, *user_el = NULL, *found_el = NULL;
+	system_local_user_element_t *user_el = NULL, *found_el = NULL;
 
-	error = system_authentication_load_user(ctx, &system_user_head);
+	error = system_authentication_load_user(ctx, system_head);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
 		goto error_out;
@@ -30,7 +30,7 @@ srpc_check_status_t system_authentication_check_user(system_ctx_t *ctx, system_l
 	{
 		found_el = NULL;
 
-		LL_SEARCH(system_user_head, found_el, user_el, system_local_user_element_cmp_fn);
+		LL_SEARCH(*system_head, found_el, user_el, system_local_user_element_cmp_fn);
 
 		if (found_el != NULL) {
 			contains_count++;
@@ -51,8 +51,6 @@ error_out:
 	status = srpc_check_status_error;
 
 out:
-
-	system_local_user_list_free(&system_user_head);
 
 	return status;
 }
