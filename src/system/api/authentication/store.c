@@ -18,27 +18,27 @@
 #include <umgmt.h>
 
 static int system_authentication_user_create_home(const char *username, const uid_t uid, const gid_t gid);
-static int system_authentication_user_copy_skel(const char *username);
+static int system_authentication_user_copy_skel(const char *username, const uid_t uid, const gid_t gid);
 
 int system_authentication_store_user(system_ctx_t *ctx, system_local_user_element_t *head)
 {
-	int error = -1;
+	int error = 0;
 	system_local_user_element_t *iter = NULL;
-	um_user_db_t *user_db = NULL;
+	um_db_t *db = NULL;
 	um_user_t *new_user = NULL;
 	char home_dir_buffer[PATH_MAX] = {0};
 	bool user_added = false;
 
-	user_db = um_user_db_new();
-	if (!user_db) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_new() failed");
+	db = um_db_new();
+	if (!db) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_new() failed");
 		goto error_out;
 	}
 
 	// load users
-	error = um_user_db_load(user_db);
+	error = um_db_load(db);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_load() error (%d)", error);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_load() error (%d)", error);
 		goto error_out;
 	}
 
@@ -49,7 +49,7 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 		const char *password = iter->user.password;
 
 		// check if user already exists
-		if (um_user_db_get_user(user_db, username)) {
+		if (um_db_get_user(db, username)) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "User %s already exists in the database", username);
 			goto error_out;
 		}
@@ -110,8 +110,8 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 		}
 
 		// uid and gid
-		um_user_set_uid(new_user, um_user_db_get_new_uid(user_db));
-		um_user_set_gid(new_user, um_user_db_get_new_gid(user_db));
+		um_user_set_uid(new_user, um_db_get_new_uid(db));
+		um_user_set_gid(new_user, um_db_get_new_gid(db));
 
 		// shadow data
 		um_user_set_last_change(new_user, -1);
@@ -122,18 +122,18 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 		um_user_set_inactive_days(new_user, -1);
 
 		// add new user to the database
-		error = um_user_db_add_user(user_db, new_user);
+		error = um_db_add_user(db, new_user);
 		user_added = true;
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_add_user() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_add_user() error (%d)", error);
 			goto error_out;
 		}
 	}
 
 	// store database data after all users have been added
-	error = um_user_db_store(user_db);
+	error = um_db_store(db);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_store() error (%d)", error);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_store() error (%d)", error);
 		goto error_out;
 	}
 
@@ -141,7 +141,7 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 	LL_FOREACH(head, iter)
 	{
 		const char *username = iter->user.name;
-		const um_user_t *um_user = um_user_db_get_user(user_db, username);
+		const um_user_t *um_user = um_db_get_user(db, username);
 
 		// the user has to be in the database since we've just added him in steps above
 		assert(um_user != NULL);
@@ -158,7 +158,7 @@ int system_authentication_store_user(system_ctx_t *ctx, system_local_user_elemen
 		}
 
 		// copy /etc/skel contents
-		error = system_authentication_user_copy_skel(username);
+		error = system_authentication_user_copy_skel(username, uid, gid);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_user_copy_skel() error (%d)", error);
 			goto error_out;
@@ -175,8 +175,8 @@ out:
 		um_user_free(new_user);
 	}
 
-	if (user_db) {
-		um_user_db_free(user_db);
+	if (db) {
+		um_db_free(db);
 	}
 	return error;
 }
@@ -236,7 +236,7 @@ out:
 	return error;
 }
 
-static int system_authentication_user_copy_skel(const char *username)
+static int system_authentication_user_copy_skel(const char *username, const uid_t uid, const gid_t gid)
 {
 	int error = 0;
 	char source_buffer[PATH_MAX] = {0};
@@ -273,6 +273,13 @@ static int system_authentication_user_copy_skel(const char *username)
 				error = srpc_copy_file(source_buffer, destination_buffer);
 				if (error) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_copy_file() error (%d) for %s --> %s", error, source_buffer, destination_buffer);
+					goto error_out;
+				}
+
+				// file copied - set its owner
+				error = chown(destination_buffer, uid, gid);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "chown() error (%d) for %s", error, destination_buffer);
 					goto error_out;
 				}
 			}

@@ -147,7 +147,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	}
 
 	if (empty_startup) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datasore is empty");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore is empty");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Loading initial system data");
 		error = system_startup_load_data(ctx, startup_session);
 		if (error) {
@@ -163,7 +163,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 	} else {
 		// make sure the data from startup DS is stored in the system
-		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datasore contains data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore contains data");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
 
 		error = system_startup_store_data(ctx, startup_session);

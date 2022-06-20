@@ -81,10 +81,10 @@ int system_startup_store_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 			"timezone-name",
 			system_startup_store_timezone_name,
 		},
-		{
-			"ntp",
-			system_startup_store_ntp,
-		},
+		// {
+		// 	"ntp",
+		// 	system_startup_store_ntp,
+		// },
 		{
 			"dns-resolver",
 			system_startup_store_dns_resolver,

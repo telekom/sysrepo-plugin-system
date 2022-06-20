@@ -7,6 +7,7 @@
 #include "system/data/authentication/authorized_key.h"
 #include "system/data/authentication/local_user/list.h"
 #include "system/data/authentication/local_user.h"
+#include "umgmt/user.h"
 
 #include <unistd.h>
 #include <dirent.h>
@@ -25,29 +26,29 @@ int system_authentication_load_user(system_ctx_t *ctx, system_local_user_element
 	int error = 0;
 
 	system_local_user_t temp_user = {0};
-	um_user_db_t *user_db = NULL;
+	um_db_t *db = NULL;
 	const um_user_element_t *user_head = NULL;
 	const um_user_element_t *user_iter = NULL;
 
-	user_db = um_user_db_new();
-	if (!user_db) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_new() failed");
+	db = um_db_new();
+	if (!db) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_new() failed");
 		goto error_out;
 	}
 
-	error = um_user_db_load(user_db);
+	error = um_db_load(db);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_db_load() error (%d)", error);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_load() error (%d)", error);
 		goto error_out;
 	}
 
-	user_head = um_user_db_get_user_list_head(user_db);
+	user_head = um_db_get_user_list_head(db);
 
 	LL_FOREACH(user_head, user_iter)
 	{
 		const um_user_t *user = user_iter->user;
 
-		if (um_user_get_uid(user) == 0 || um_user_get_uid(user) >= 1000) {
+		if (um_user_get_uid(user) == 0 || (um_user_get_uid(user) >= 1000 && um_user_get_uid(user) < 65534)) {
 			SRPLG_LOG_INF(PLUGIN_NAME, "Found user %s [ %d ]", um_user_get_name(user_iter->user), um_user_get_uid(user_iter->user));
 
 			// add new user
@@ -74,8 +75,8 @@ error_out:
 	error = -1;
 
 out:
-	if (user_db) {
-		um_user_db_free(user_db);
+	if (db) {
+		um_db_free(db);
 	}
 
 	return error;
