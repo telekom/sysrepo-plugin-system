@@ -6,6 +6,7 @@
 #include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "sysrepo_types.h"
+#include "system/api/authentication/load.h"
 #include "system/data/authentication/local_user/list.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
@@ -629,6 +630,13 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		assert(ctx->temp_users.modified == NULL);
 		assert(ctx->temp_users.deleted == NULL);
 
+		// load current users into modifed list so they can also be modified
+		error = system_authentication_load_user(ctx, &ctx->temp_users.modified);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
+			goto error_out;
+		}
+
 		// name change
 		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
 		if (error < 0) {
@@ -662,6 +670,13 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+			goto error_out;
+		}
+
+		// apply all changes regarding created/modified/deleted users
+		error = system_authentication_user_apply_changes(ctx);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_user_apply_changes() error (%d)", error);
 			goto error_out;
 		}
 	}

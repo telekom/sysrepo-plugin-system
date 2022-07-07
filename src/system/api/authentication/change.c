@@ -2,12 +2,41 @@
 #include "common.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
+#include "umgmt/types.h"
 
 #include <assert.h>
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
 
-const char *system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node);
+#include <utlist.h>
+
+static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size);
+
+int system_authentication_user_apply_changes(system_ctx_t *ctx)
+{
+	int error = 0;
+	system_local_user_element_t *iter = NULL;
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Created users:");
+	LL_FOREACH(ctx->temp_users.created, iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", iter->user.name, iter->user.password);
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Modified users:");
+	LL_FOREACH(ctx->temp_users.modified, iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", iter->user.name, iter->user.password);
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Deleted users:");
+	LL_FOREACH(ctx->temp_users.deleted, iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s", iter->user.name);
+	}
+
+	return error;
+}
 
 int system_authentication_change_user_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
@@ -66,26 +95,27 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 	system_ctx_t *ctx = priv;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
-	const char *user_name = NULL;
+	char username_buffer[33] = {0};
 	system_local_user_element_t *found_user = NULL;
-	system_local_user_t user = {0};
 
 	assert(strcmp(node_name, "password") == 0);
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
 	// get username
-	user_name = system_authentication_change_user_extract_name(session, change_ctx->node);
-	if (!user_name) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_change_user_extract_name() failed");
+	error = system_authentication_change_user_extract_name(session, change_ctx->node, username_buffer, sizeof(username_buffer));
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_change_user_extract_name() error (%d)", error);
 		goto error_out;
 	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Recieved user name: %s", username_buffer);
 
 	// got the username - able to continue with operation
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
 			// find user and add password
-			found_user = system_local_user_list_find(ctx->temp_users.created, user_name);
+			found_user = system_local_user_list_find(ctx->temp_users.created, username_buffer);
 			if (!found_user) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
 				goto error_out;
@@ -97,45 +127,32 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 			break;
 		case SR_OP_MODIFIED:
 			// add user with the username and add the password to the modified list
-			found_user = system_local_user_list_find(ctx->temp_users.modified, user_name);
-			if (!found_user) {
-				user.name = (char *) user_name;
-				user.password = (char *) node_value;
-
-				error = system_local_user_list_add(&ctx->temp_users.modified, user);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
-					goto error_out;
-				}
-			} else {
+			found_user = system_local_user_list_find(ctx->temp_users.modified, username_buffer);
+			if (found_user) {
 				error = system_local_user_set_password(&found_user->user, node_value);
 				if (error) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
 					goto error_out;
 				}
+			} else {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed for user %s", username_buffer);
+				goto error_out;
 			}
 			break;
 		case SR_OP_DELETED:
 			// if user not deleted remove his password - modified user
-			found_user = system_local_user_list_find(ctx->temp_users.deleted, user_name);
+			found_user = system_local_user_list_find(ctx->temp_users.deleted, username_buffer);
 			if (!found_user) {
-				user.name = (char *) user_name;
-				user.password = NULL;
-
-				found_user = system_local_user_list_find(ctx->temp_users.modified, user_name);
-				if (!found_user) {
-					// create new modified user without a password
-					error = system_local_user_list_add(&ctx->temp_users.modified, user);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
-						goto error_out;
-					}
-				} else {
+				found_user = system_local_user_list_find(ctx->temp_users.modified, username_buffer);
+				if (found_user) {
 					error = system_local_user_set_password(&found_user->user, NULL);
 					if (error) {
 						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
 						goto error_out;
 					}
+				} else {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed for user %s", username_buffer);
+					goto error_out;
 				}
 			}
 			break;
@@ -176,7 +193,7 @@ int system_authentication_change_user_authorized_key(void *priv, sr_session_ctx_
 	return error;
 }
 
-const char *system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node)
+static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size)
 {
 	int error = 0;
 
@@ -199,11 +216,19 @@ const char *system_authentication_change_user_extract_name(sr_session_ctx_t *ses
 		goto error_out;
 	}
 
+	// store to buffer
+	error = snprintf(name_buffer, buffer_size, "%s", name);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed");
+		goto error_out;
+	}
+
+	error = 0;
 	goto out;
 
 error_out:
-	name = NULL;
+	error = -1;
 
 out:
-	return name;
+	return error;
 }

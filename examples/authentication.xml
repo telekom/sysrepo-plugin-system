@@ -1,7 +1,8 @@
 <system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
     <authentication>
         <user>
-            <name>newuser</name> 
+            <name>newuser</name>
+            <password>$6$JxBnEV8KhWx3Yp5a$aBXr1nlTUNytU2unAnDYKA8zxR2ywGibZM6DAFoq.3Dato.DtHJw/Lu3FacPy34btWZ/Od.l38WZ3lN1TLvey.</password>
         </user>
     </authentication>
 </system>
