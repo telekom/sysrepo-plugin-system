@@ -1,5 +1,6 @@
 #include "change.h"
 #include "common.h"
+#include "system/api/authentication/store.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
 #include "umgmt/types.h"
@@ -35,6 +36,25 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s", iter->user.name);
 	}
 
+	// for created users - use store API
+	error = system_authentication_store_user(ctx, ctx->temp_users.created);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
+		goto error_out;
+	}
+
+	// for modified users - iterate and change passwords
+
+	// for deleted users - delete recursively home directory and remove user from the database
+
+	// after user changes handle authentication changes
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return error;
 }
 
