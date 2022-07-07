@@ -6,10 +6,12 @@
 #include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "sysrepo_types.h"
+#include "system/data/authentication/local_user/list.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/ntp/server/list.h"
 #include "types.h"
+#include "umgmt/db.h"
 #include "utils/memory.h"
 
 // Load API
@@ -607,7 +609,10 @@ out:
 int system_subscription_change_authentication_user(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
+
+	char xpath_buffer[PATH_MAX] = {0};
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
@@ -619,12 +624,65 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		// assert user database is NULL from the last change
+		assert(ctx->temp_users.created == NULL);
+		assert(ctx->temp_users.modified == NULL);
+		assert(ctx->temp_users.deleted == NULL);
+
+		// name change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+			goto error_out;
+		}
+
+		// address change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//password", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for password failed: %d", error);
+			goto error_out;
+		}
+
+		// port change
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//authorized-key", xpath);
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+			goto error_out;
+		}
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+			goto error_out;
+		}
 	}
 
 	goto out;
+
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
+	if (ctx->temp_users.created) {
+		system_local_user_list_free(&ctx->temp_users.created);
+	}
+	if (ctx->temp_users.modified) {
+		system_local_user_list_free(&ctx->temp_users.modified);
+	}
+	if (ctx->temp_users.deleted) {
+		system_local_user_list_free(&ctx->temp_users.deleted);
+	}
+
+	ctx->temp_users.created = ctx->temp_users.modified = ctx->temp_users.deleted = NULL;
+
 	return SR_ERR_CALLBACK_FAILED;
 }

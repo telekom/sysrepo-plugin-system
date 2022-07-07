@@ -57,6 +57,7 @@ set(
     src/system/api/authentication/load.c
     src/system/api/authentication/check.c
     src/system/api/authentication/store.c
+    src/system/api/authentication/change.c
 )
 
 if(NOT PLUGIN)

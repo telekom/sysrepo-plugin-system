@@ -1,0 +1,7 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <authentication>
+        <user>
+            <name>newuser</name> 
+        </user>
+    </authentication>
+</system>
