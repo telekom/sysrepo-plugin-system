@@ -18,6 +18,11 @@ struct system_ctx_s {
 		system_local_user_element_t *created;
 		system_local_user_element_t *modified;
 		system_local_user_element_t *deleted;
+		struct {
+			system_local_user_element_t *created;
+			system_local_user_element_t *modified;
+			system_local_user_element_t *deleted;
+		} keys;
 	} temp_users; ///< Users created/modified/deleted during change callbacks. After changes the user modifications are applied on the system values.
 };
 

@@ -3,19 +3,27 @@
 #include "system/api/authentication/store.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
+#include "umgmt/db.h"
 #include "umgmt/types.h"
+#include "umgmt/user.h"
 
 #include <assert.h>
+#include <linux/limits.h>
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
 
+#include <unistd.h>
 #include <utlist.h>
 
 static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size);
+static int delete_home_directory(const char *username);
 
 int system_authentication_user_apply_changes(system_ctx_t *ctx)
 {
 	int error = 0;
+	um_db_t *user_db = NULL;
+	um_user_t *temp_user = NULL;
+
 	system_local_user_element_t *iter = NULL;
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Created users:");
@@ -44,8 +52,53 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	}
 
 	// for modified users - iterate and change passwords
+	user_db = um_db_new();
+
+	error = um_db_load(user_db);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_load() error (%d)", error);
+		goto error_out;
+	}
+
+	LL_FOREACH(ctx->temp_users.modified, iter)
+	{
+		// get user
+		temp_user = um_db_get_user(user_db, iter->user.name);
+		if (!temp_user) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", iter->user.name);
+			goto error_out;
+		}
+
+		// change user password hash
+		error = um_user_set_password_hash(temp_user, iter->user.password);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
+			goto error_out;
+		}
+	}
 
 	// for deleted users - delete recursively home directory and remove user from the database
+	LL_FOREACH(ctx->temp_users.deleted, iter)
+	{
+		// 1. remove home directory of the user
+		error = delete_home_directory(iter->user.name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "delete_home_directory() error (%d)", error);
+			goto error_out;
+		}
+
+		// 2. remove user and user group from the database
+		error = um_db_delete_user(user_db, iter->user.name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_user() error (%d)", error);
+			goto error_out;
+		}
+		error = um_db_delete_group(user_db, iter->user.name);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_group() error (%d)", error);
+			goto error_out;
+		}
+	}
 
 	// after user changes handle authentication changes
 
@@ -250,5 +303,41 @@ error_out:
 	error = -1;
 
 out:
+	return error;
+}
+
+static int delete_home_directory(const char *username)
+{
+	int error = 0;
+	char home_buffer[PATH_MAX] = {0};
+	char command_buffer[PATH_MAX + 100] = {0};
+
+	error = snprintf(home_buffer, sizeof(home_buffer), "/home/%s", username);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+		goto error_out;
+	}
+
+	error = snprintf(command_buffer, sizeof(command_buffer), "rm -r %s", home_buffer);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+		goto error_out;
+	}
+
+	// rm -r should return 0
+	error = system(command_buffer);
+	if (error != 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system() failed for command \"%s\"", command_buffer);
+		goto error_out;
+	}
+
+	error = 0;
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+
 	return error;
 }
