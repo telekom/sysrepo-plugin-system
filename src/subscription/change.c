@@ -638,7 +638,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		}
 
 		// name change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
@@ -650,7 +650,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		}
 
 		// address change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//password", xpath);
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/password", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
@@ -662,7 +662,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		}
 
 		// port change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//authorized-key", xpath);
+		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key", xpath);
 		if (error < 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;

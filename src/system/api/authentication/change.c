@@ -1,8 +1,10 @@
 #include "change.h"
 #include "common.h"
+#include "libyang/tree_data.h"
 #include "system/api/authentication/store.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
+#include "types.h"
 #include "umgmt/db.h"
 #include "umgmt/types.h"
 #include "umgmt/user.h"
@@ -17,6 +19,9 @@
 
 static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size);
 static int delete_home_directory(const char *username);
+static int system_authentication_authorized_key_change_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
+static int system_authentication_authorized_key_change_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
+static int system_authentication_authorized_key_change_key_data(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 
 int system_authentication_user_apply_changes(system_ctx_t *ctx)
 {
@@ -24,25 +29,60 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	um_db_t *user_db = NULL;
 	um_user_t *temp_user = NULL;
 
-	system_local_user_element_t *iter = NULL;
+	system_local_user_element_t *user_iter = NULL;
+	system_authorized_key_element_t *key_iter = NULL;
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Created users:");
-	LL_FOREACH(ctx->temp_users.created, iter)
+	LL_FOREACH(ctx->temp_users.created, user_iter)
 	{
-		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", iter->user.name, iter->user.password);
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
 	}
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Modified users:");
-	LL_FOREACH(ctx->temp_users.modified, iter)
+	LL_FOREACH(ctx->temp_users.modified, user_iter)
 	{
-		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", iter->user.name, iter->user.password);
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
 	}
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Deleted users:");
-	LL_FOREACH(ctx->temp_users.deleted, iter)
+	LL_FOREACH(ctx->temp_users.deleted, user_iter)
 	{
-		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s", iter->user.name);
+		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s", user_iter->user.name);
 	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Created user keys:");
+	LL_FOREACH(ctx->temp_users.keys.created, user_iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\tKeys for user %s:", user_iter->user.name);
+		LL_FOREACH(user_iter->user.key_head, key_iter)
+		{
+			SRPLG_LOG_INF(PLUGIN_NAME, "\t\t %s : %s : %s", key_iter->key.name, key_iter->key.algorithm, key_iter->key.data);
+		}
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Modified user keys:");
+	LL_FOREACH(ctx->temp_users.keys.modified, user_iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\tKeys for user %s:", user_iter->user.name);
+		LL_FOREACH(user_iter->user.key_head, key_iter)
+		{
+			SRPLG_LOG_INF(PLUGIN_NAME, "\t\t %s : %s : %s", key_iter->key.name, key_iter->key.algorithm, key_iter->key.data);
+		}
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Deleted user keys:");
+	LL_FOREACH(ctx->temp_users.keys.deleted, user_iter)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "\tKeys for user %s:", user_iter->user.name);
+		LL_FOREACH(user_iter->user.key_head, key_iter)
+		{
+			SRPLG_LOG_INF(PLUGIN_NAME, "\t\t %s : %s : %s", key_iter->key.name, key_iter->key.algorithm, key_iter->key.data);
+		}
+	}
+
+	// #define APPLY_CHANGES
+
+#ifdef APPLY_CHANGES
 
 	// for created users - use store API
 	error = system_authentication_store_user(ctx, ctx->temp_users.created);
@@ -101,6 +141,8 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	}
 
 	// after user changes handle authentication changes
+
+#endif
 
 	goto out;
 
@@ -245,23 +287,61 @@ out:
 int system_authentication_change_user_authorized_key(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
+	system_ctx_t *ctx = priv;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
+	char xpath_buffer[PATH_MAX] = {0};
+	char path_buffer[PATH_MAX] = {0};
+
+	const char *node_path = lyd_path(change_ctx->node, LYD_PATH_STD, path_buffer, sizeof(path_buffer));
 
 	assert(strcmp(node_name, "authorized-key") == 0);
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Path: %s", node_path);
 
-	switch (change_ctx->operation) {
-		case SR_OP_CREATED:
-			break;
-		case SR_OP_MODIFIED:
-			break;
-		case SR_OP_DELETED:
-			break;
-		case SR_OP_MOVED:
-			break;
+	// name change
+	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", node_path);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+		goto error_out;
 	}
+	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_name);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+		goto error_out;
+	}
+
+	// algorithm change
+	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/algorithm", node_path);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+		goto error_out;
+	}
+	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_algorithm);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for algorithm failed: %d", error);
+		goto error_out;
+	}
+
+	// key-data change
+	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/key-data", node_path);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+		goto error_out;
+	}
+	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_key_data);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for key-data failed: %d", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 
 	return error;
 }
@@ -338,6 +418,81 @@ error_out:
 	error = -1;
 
 out:
+
+	return error;
+}
+
+static int system_authentication_authorized_key_change_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+	int error = 0;
+	system_ctx_t *ctx = priv;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+
+	assert(strcmp(node_name, "name") == 0);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
+		case SR_OP_CREATED:
+			break;
+		case SR_OP_MODIFIED:
+			break;
+		case SR_OP_DELETED:
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
+
+	return error;
+}
+
+static int system_authentication_authorized_key_change_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+	int error = 0;
+	system_ctx_t *ctx = priv;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+
+	assert(strcmp(node_name, "algorithm") == 0);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
+		case SR_OP_CREATED:
+			break;
+		case SR_OP_MODIFIED:
+			break;
+		case SR_OP_DELETED:
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
+
+	return error;
+}
+
+static int system_authentication_authorized_key_change_key_data(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+	int error = 0;
+	system_ctx_t *ctx = priv;
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+
+	assert(strcmp(node_name, "key-data") == 0);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+
+	switch (change_ctx->operation) {
+		case SR_OP_CREATED:
+			break;
+		case SR_OP_MODIFIED:
+			break;
+		case SR_OP_DELETED:
+			break;
+		case SR_OP_MOVED:
+			break;
+	}
 
 	return error;
 }
