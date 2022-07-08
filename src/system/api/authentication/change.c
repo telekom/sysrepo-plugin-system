@@ -80,7 +80,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		}
 	}
 
-	// #define APPLY_CHANGES
+#define APPLY_CHANGES
 
 #ifdef APPLY_CHANGES
 
@@ -100,17 +100,17 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		goto error_out;
 	}
 
-	LL_FOREACH(ctx->temp_users.modified, iter)
+	LL_FOREACH(ctx->temp_users.modified, user_iter)
 	{
 		// get user
-		temp_user = um_db_get_user(user_db, iter->user.name);
+		temp_user = um_db_get_user(user_db, user_iter->user.name);
 		if (!temp_user) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", iter->user.name);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", user_iter->user.name);
 			goto error_out;
 		}
 
 		// change user password hash
-		error = um_user_set_password_hash(temp_user, iter->user.password);
+		error = um_user_set_password_hash(temp_user, user_iter->user.password);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
 			goto error_out;
@@ -118,24 +118,24 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	}
 
 	// for deleted users - delete recursively home directory and remove user from the database
-	LL_FOREACH(ctx->temp_users.deleted, iter)
+	LL_FOREACH(ctx->temp_users.deleted, user_iter)
 	{
 		// 1. remove home directory of the user
-		error = delete_home_directory(iter->user.name);
+		error = delete_home_directory(user_iter->user.name);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "delete_home_directory() error (%d)", error);
 			goto error_out;
 		}
 
 		// 2. remove user and user group from the database
-		error = um_db_delete_user(user_db, iter->user.name);
+		error = um_db_delete_user(user_db, user_iter->user.name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_user() error (%d) for user %s", error, iter->user.name);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_user() error (%d) for user %s", error, user_iter->user.name);
 			goto error_out;
 		}
-		error = um_db_delete_group(user_db, iter->user.name);
+		error = um_db_delete_group(user_db, user_iter->user.name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_group() error (%d) for user %s", error, iter->user.name);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_group() error (%d) for user %s", error, user_iter->user.name);
 			goto error_out;
 		}
 	}
