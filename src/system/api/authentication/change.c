@@ -90,12 +90,12 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		// 2. remove user and user group from the database
 		error = um_db_delete_user(user_db, iter->user.name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_user() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_user() error (%d) for user %s", error, iter->user.name);
 			goto error_out;
 		}
 		error = um_db_delete_group(user_db, iter->user.name);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_group() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_delete_group() error (%d) for user %s", error, iter->user.name);
 			goto error_out;
 		}
 	}
