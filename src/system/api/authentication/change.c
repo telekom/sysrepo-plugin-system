@@ -298,7 +298,6 @@ int system_authentication_change_user_authorized_key(void *priv, sr_session_ctx_
 	assert(strcmp(node_name, "authorized-key") == 0);
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
-	SRPLG_LOG_INF(PLUGIN_NAME, "Node Path: %s", node_path);
 
 	// name change
 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", node_path);
@@ -444,7 +443,7 @@ static int system_authentication_authorized_key_change_name(void *priv, sr_sessi
 			break;
 	}
 
-	return error;
+	return -1;
 }
 
 static int system_authentication_authorized_key_change_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
@@ -469,7 +468,7 @@ static int system_authentication_authorized_key_change_algorithm(void *priv, sr_
 			break;
 	}
 
-	return error;
+	return -1;
 }
 
 static int system_authentication_authorized_key_change_key_data(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
@@ -494,5 +493,5 @@ static int system_authentication_authorized_key_change_key_data(void *priv, sr_s
 			break;
 	}
 
-	return error;
+	return -1;
 }
