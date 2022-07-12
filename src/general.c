@@ -119,7 +119,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data)
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "subscribing to get oper items");
 
-	error = sr_oper_get_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL, system_state_data_cb, NULL, 1, &subscription);
+	error = sr_oper_get_subscribe(session, BASE_YANG_MODEL, SYSTEM_STATE_YANG_MODEL "/*", system_state_data_cb, NULL, 1, &subscription);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_oper_get_subscribe error (%d): %s", error, sr_strerror(error));
 		goto error_out;

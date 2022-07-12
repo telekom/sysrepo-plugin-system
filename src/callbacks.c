@@ -187,8 +187,6 @@ out:
 int system_state_data_cb(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *path, const char *request_xpath, uint32_t request_id, struct lyd_node **parent, void *private_data)
 {
 	int error = SR_ERR_OK;
-	LY_ERR ly_err = LY_SUCCESS;
-	const struct ly_ctx *ly_ctx = NULL;
 	char *os_name = NULL;
 	char *os_release = NULL;
 	char *os_version = NULL;
@@ -208,54 +206,25 @@ int system_state_data_cb(sr_session_ctx_t *session, uint32_t subscription_id, co
 		goto out;
 	}
 
-	ly_ctx = sr_acquire_context(sr_session_get_connection(session));
-	if (ly_ctx == NULL) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_acquire_context error");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
+	// TODO: replace this with the above call to store_values_to_datastore
+	const struct ly_ctx *ly_ctx = NULL;
+	if (*parent == NULL) {
+		ly_ctx = sr_acquire_context(sr_session_get_connection(session));
+		if (ly_ctx == NULL) {
+			goto out;
+		}
+		lyd_new_path(*parent, ly_ctx, SYSTEM_STATE_YANG_MODEL, NULL, 0, 0);
 	}
 
-	ly_err = lyd_new_path(NULL, ly_ctx, OS_NAME_YANG_PATH, os_name, 0, parent);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
+	lyd_new_path(*parent, NULL, OS_NAME_YANG_PATH, os_name, 0, 0);
+	lyd_new_path(*parent, NULL, OS_RELEASE_YANG_PATH, os_release, 0, 0);
+	lyd_new_path(*parent, NULL, OS_VERSION_YANG_PATH, os_version, 0, 0);
+	lyd_new_path(*parent, NULL, OS_MACHINE_YANG_PATH, machine, 0, 0);
 
-	ly_err = lyd_new_path(*parent, NULL, OS_RELEASE_YANG_PATH, os_release, 0, 0);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
+	lyd_new_path(*parent, NULL, CURR_DATETIME_YANG_PATH, current_datetime, 0, 0);
+	lyd_new_path(*parent, NULL, BOOT_DATETIME_YANG_PATH, boot_datetime, 0, 0);
 
-	ly_err = lyd_new_path(*parent, NULL, OS_VERSION_YANG_PATH, os_version, 0, 0);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
-
-	ly_err = lyd_new_path(*parent, NULL, OS_MACHINE_YANG_PATH, machine, 0, 0);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
-
-	ly_err = lyd_new_path(*parent, NULL, CURR_DATETIME_YANG_PATH, current_datetime, 0, 0);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
-
-	ly_err = lyd_new_path(*parent, NULL, BOOT_DATETIME_YANG_PATH, boot_datetime, 0, 0);
-	if (ly_err != LY_SUCCESS) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "unable to create new node");
-		error = SR_ERR_CALLBACK_FAILED;
-		goto out;
-	}
+	//values = NULL;
 
 out:
 	if (os_name != NULL) {
