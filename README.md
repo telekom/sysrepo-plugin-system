@@ -29,7 +29,8 @@ Besides the usual C development environment, the following additional dependenci
 
 * libyang
 * sysrepo
-* [sysrepo-plugins-common library](https://github.com/mcindrich/sysrepo-plugins-common)
+* [sysrepo-plugins-common library](https://github.com/sartura/sysrepo-plugins-common)
+* [umgmt library](https://github.com/sartura/umgmt)
 
 The following software is additionally required on the target system:
 
