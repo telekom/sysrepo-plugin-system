@@ -31,7 +31,6 @@ int system_store_hostname(system_ctx_t *ctx, const char *hostname)
 		SRPLG_LOG_INF(PLUGIN_NAME, "/etc/hostname set");
 		augeas = 1;
 	}
-#endif
 
 	if (augeas) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Applying /etc/hostname changes");
@@ -41,6 +40,7 @@ int system_store_hostname(system_ctx_t *ctx, const char *hostname)
 			return -1;
 		}
 	}
+#endif
 
 	return 0;
 }
