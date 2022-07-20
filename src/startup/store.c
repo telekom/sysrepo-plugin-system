@@ -785,7 +785,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 
 				// free temp data
 				system_authorized_key_free(&temp_key);
-				authorized_key_list_node = srpc_ly_tree_get_list_next(local_user_list_node);
+				authorized_key_list_node = srpc_ly_tree_get_list_next(authorized_key_list_node);
 			}
 
 			system_local_user_free(&temp_user);
