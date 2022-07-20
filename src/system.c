@@ -131,6 +131,33 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		},
 	};
 
+	// log status of features
+	const char *features[] = {
+		"radius",
+		"authentication",
+		"local-users",
+		"radius-authentication",
+		"ntp",
+		"ntp-udp-port",
+		"timezone-name",
+		"dns-udp-tcp-port",
+	};
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Checking ietf-system YANG module used features");
+
+	for (size_t i = 0; i < ARRAY_SIZE(features); i++) {
+		const char *feature = features[i];
+		bool enabled = false;
+
+		error = srpc_check_feature_status(running_session, "ietf-system", feature, &enabled);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_check_feature_status() error (%d)", error);
+			goto error_out;
+		}
+
+		SRPLG_LOG_INF(PLUGIN_NAME, "ietf-system feature \"%s\" status = %s", feature, enabled ? "enabled" : "disabled");
+	}
+
 	connection = sr_session_get_connection(running_session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
 	if (error) {
