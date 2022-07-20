@@ -1,0 +1,13 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <ntp>
+        <server>
+        <name>1.1.1.1</name>
+        <udp>
+            <address>1.1.1.1</address>
+        </udp>
+        <association-type>pool</association-type>
+        <iburst>true</iburst>
+        <prefer>false</prefer>
+        </server>
+    </ntp>
+</system>

@@ -29,6 +29,8 @@ Besides the usual C development environment, the following additional dependenci
 
 * libyang
 * sysrepo
+* [sysrepo-plugins-common library](https://github.com/sartura/sysrepo-plugins-common)
+* [umgmt library](https://github.com/sartura/umgmt)
 
 The following software is additionally required on the target system:
 
@@ -107,10 +109,10 @@ The full documentation for the Sysrepo system plugin can be found in the [docume
 
 The following channels are available for discussions, feedback, and support requests:
 
-| Type                     | Channel                                                |
-| ------------------------ | ------------------------------------------------------ |
-| **Issues**   | <a href="/../../issues/new/choose" title="General Discussion"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat-square"></a> </a>   |
-| **Other Requests**    | <a href="mailto:opensource@telekom.de" title="Email Open Source Team"><img src="https://img.shields.io/badge/email-Open%20Source%20Team-green?logo=mail.ru&style=flat-square&logoColor=white"></a>   |
+| Type               | Channel                                                                                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Issues**         | <a href="/../../issues/new/choose" title="General Discussion"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat-square"></a> </a>                            |
+| **Other Requests** | <a href="mailto:opensource@telekom.de" title="Email Open Source Team"><img src="https://img.shields.io/badge/email-Open%20Source%20Team-green?logo=mail.ru&style=flat-square&logoColor=white"></a> |
 
 ## How to Contribute
 
