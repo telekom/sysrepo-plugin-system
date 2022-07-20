@@ -29,6 +29,8 @@ Besides the usual C development environment, the following additional dependenci
 
 * libyang
 * sysrepo
+* [sysrepo-plugins-common library](https://github.com/sartura/sysrepo-plugins-common)
+* [umgmt library](https://github.com/sartura/umgmt)
 
 The following software is additionally required on the target system:
 
@@ -41,6 +43,8 @@ First clone the repository:
 
 ```
 $ git clone https://github.com/telekom/sysrepo-plugin-system
+$ git submodule init
+$ git submodule update
 ```
 
 Next, create a build directory and generate the build recipes using CMake:
@@ -57,6 +61,7 @@ $ mkdir build
 $ cd build
 $ cmake -DSYSTEMD_IFINDEX=1 ..
 ```
+note: SYSTEMD_IFINDEX cmake flag is the index of the interface you wish to configure DNS on (to get a list of indexes for all interfaces, use: `ip link`)
 
 The default configuration builds the plugin as a stand-alone foreground application. To build the plugin as a shared object file for use with `sysrepo-plugind`, run the following instead:
 
@@ -73,8 +78,17 @@ $ make -j$(nproc) install
 The plugin requires the `iana-crypt-hash` and `ietf-system` YANG modules to be loaded into the Sysrepo datastore. This can be achieved by invoking the following commands:
 
 ```
-$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang 
-$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang     
+$ sysrepoctl -i ../yang/iana-crypt-hash@2014-08-06.yang
+$ sysrepoctl -i ../yang/ietf-system@2014-08-06.yang
+```
+
+The plugin also requires some features from `ietf-system` YANG module to be enabled. This can be achieved by invoking the following commands:
+
+```
+$ sysrepoctl --change ietf-system --enable-feature timezone-name
+$ sysrepoctl --change ietf-system --enable-feature ntp
+$ sysrepoctl --change ietf-system --enable-feature authentication
+$ sysrepoctl --change ietf-system --enable-feature local-users
 ```
 
 ## Code of Conduct
@@ -83,7 +97,7 @@ This project has adopted the [Contributor Covenant](https://www.contributor-cove
 
 ## Working Language
 
-We decided to apply _English_ as the primary project language.  
+We decided to apply _English_ as the primary project language.
 
 Consequently, all content will be made available primarily in English. We also ask all interested people to use English as language to create issues, in their code (comments, documentation etc.) and when you send requests to us. The application itself and all end-user facing content will be made available in other languages as needed.
 
@@ -95,10 +109,10 @@ The full documentation for the Sysrepo system plugin can be found in the [docume
 
 The following channels are available for discussions, feedback, and support requests:
 
-| Type                     | Channel                                                |
-| ------------------------ | ------------------------------------------------------ |
-| **Issues**   | <a href="/../../issues/new/choose" title="General Discussion"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat-square"></a> </a>   |
-| **Other Requests**    | <a href="mailto:opensource@telekom.de" title="Email Open Source Team"><img src="https://img.shields.io/badge/email-Open%20Source%20Team-green?logo=mail.ru&style=flat-square&logoColor=white"></a>   |
+| Type               | Channel                                                                                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Issues**         | <a href="/../../issues/new/choose" title="General Discussion"><img src="https://img.shields.io/github/issues/telekom/sysrepo-plugin-system?style=flat-square"></a> </a>                            |
+| **Other Requests** | <a href="mailto:opensource@telekom.de" title="Email Open Source Team"><img src="https://img.shields.io/badge/email-Open%20Source%20Team-green?logo=mail.ru&style=flat-square&logoColor=white"></a> |
 
 ## How to Contribute
 
