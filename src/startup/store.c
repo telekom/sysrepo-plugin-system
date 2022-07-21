@@ -4,6 +4,7 @@
 #include "ly_tree.h"
 
 // API for getting system data
+#include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "srpc/types.h"
 #include "system/api/authentication/check.h"
@@ -219,45 +220,50 @@ static int system_startup_store_timezone_name(void *priv, const struct lyd_node 
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	srpc_check_status_t check_status = srpc_check_status_none;
+	bool timezone_name_enabled = false;
 
 	struct lyd_node *clock_container_node = NULL, *timezone_name_node = NULL;
 
-	clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "timezone-name", &timezone_name_enabled), error_out);
 
-	if (clock_container_node) {
-		timezone_name_node = srpc_ly_tree_get_child_leaf(clock_container_node, "timezone-name");
-		if (timezone_name_node) {
-			const char *timezone_name = lyd_get_value(timezone_name_node);
+	if (timezone_name_enabled) {
+		clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
 
-			SRPLG_LOG_INF(PLUGIN_NAME, "Checking system timezone-name value");
-			check_status = system_check_timezone_name(ctx, timezone_name);
+		if (clock_container_node) {
+			timezone_name_node = srpc_ly_tree_get_child_leaf(clock_container_node, "timezone-name");
+			if (timezone_name_node) {
+				const char *timezone_name = lyd_get_value(timezone_name_node);
 
-			switch (check_status) {
-				case srpc_check_status_none:
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
-					goto error_out;
-					break;
-				case srpc_check_status_error:
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
-					goto error_out;
-					break;
-				case srpc_check_status_non_existant:
-					SRPLG_LOG_INF(PLUGIN_NAME, "Storing timezone-name value %s", timezone_name);
+				SRPLG_LOG_INF(PLUGIN_NAME, "Checking system timezone-name value");
+				check_status = system_check_timezone_name(ctx, timezone_name);
 
-					error = system_store_timezone_name(ctx, timezone_name);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() failed (%d)", error);
-						return -1;
-					}
-					break;
-				case srpc_check_status_equal:
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Startup timezone-name value is already applied on the system");
-					break;
-				case srpc_check_status_partial:
-					// should not be returned - treat as error
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
-					goto error_out;
-					break;
+				switch (check_status) {
+					case srpc_check_status_none:
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+						goto error_out;
+						break;
+					case srpc_check_status_error:
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+						goto error_out;
+						break;
+					case srpc_check_status_non_existant:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Storing timezone-name value %s", timezone_name);
+
+						error = system_store_timezone_name(ctx, timezone_name);
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_store_timezone_name() failed (%d)", error);
+							return -1;
+						}
+						break;
+					case srpc_check_status_equal:
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Startup timezone-name value is already applied on the system");
+						break;
+					case srpc_check_status_partial:
+						// should not be returned - treat as error
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading current system timezone-name value");
+						goto error_out;
+						break;
+				}
 			}
 		}
 	}
