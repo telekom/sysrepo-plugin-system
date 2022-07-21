@@ -710,190 +710,204 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 	system_local_user_t temp_user = {0};
 	system_authorized_key_t temp_key = {0};
 
+	// features
+	bool authentication_enabled = false;
+	bool local_users_enabled = false;
+
 	// srpc
 	srpc_check_status_t user_check_status = srpc_check_status_none, key_check_status = srpc_check_status_none;
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "authentication", &authentication_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "local_users", &local_users_enabled), error_out);
 
-	authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "authentication");
-	if (authentication_container_node) {
-		local_user_list_node = srpc_ly_tree_get_child_list(authentication_container_node, "user");
-		while (local_user_list_node) {
-			// create user
-			system_local_user_init(&temp_user);
+	if (authentication_enabled) {
+		SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
 
-			user_name_leaf_node = srpc_ly_tree_get_child_leaf(local_user_list_node, "name");
-			user_password_leaf_node = srpc_ly_tree_get_child_leaf(local_user_list_node, "password");
+		authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "authentication");
+		if (authentication_container_node) {
+			if (local_users_enabled) {
+				SRPLG_LOG_INF(PLUGIN_NAME, "Storing local-users startup data");
 
-			// a name has to exist for the list element
-			assert(user_name_leaf_node != NULL);
+				local_user_list_node = srpc_ly_tree_get_child_list(authentication_container_node, "user");
+				while (local_user_list_node) {
+					// create user
+					system_local_user_init(&temp_user);
 
-			// set name
-			error = system_local_user_set_name(&temp_user, lyd_get_value(user_name_leaf_node));
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_name() error (%d)", error);
-				goto error_out;
-			}
+					user_name_leaf_node = srpc_ly_tree_get_child_leaf(local_user_list_node, "name");
+					user_password_leaf_node = srpc_ly_tree_get_child_leaf(local_user_list_node, "password");
 
-			// set password
-			if (user_password_leaf_node) {
-				error = system_local_user_set_password(&temp_user, lyd_get_value(user_password_leaf_node));
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
-					goto error_out;
-				}
-			}
+					// a name has to exist for the list element
+					assert(user_name_leaf_node != NULL);
 
-			// add user to the list
-			error = system_local_user_list_add(&user_head, temp_user);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
-				goto error_out;
-			}
-
-			// get current user
-			found_user_el = system_local_user_list_find(user_head, temp_user.name);
-			if (!found_user_el) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
-				goto error_out;
-			}
-
-			// user found - setup keys if any
-			authorized_key_list_node = srpc_ly_tree_get_child_list(local_user_list_node, "authorized-key");
-			while (authorized_key_list_node) {
-				// add key to the current user (found_user_el)
-				system_authorized_key_init(&temp_key);
-
-				key_name_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "name");
-				key_algorithm_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "algorithm");
-				key_data_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "key-data");
-
-				// key must have a name
-				assert(key_name_leaf_node != NULL);
-
-				error = system_authorized_key_set_name(&temp_key, lyd_get_value(key_name_leaf_node));
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_name() error (%d)", error);
-					goto error_out;
-				}
-
-				if (key_algorithm_leaf_node) {
-					// set algorithm
-					error = system_authorized_key_set_algorithm(&temp_key, lyd_get_value(key_algorithm_leaf_node));
+					// set name
+					error = system_local_user_set_name(&temp_user, lyd_get_value(user_name_leaf_node));
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_algorithm() error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_name() error (%d)", error);
 						goto error_out;
 					}
-				}
 
-				if (key_data_leaf_node) {
-					// set algorithm
-					error = system_authorized_key_set_data(&temp_key, lyd_get_value(key_data_leaf_node));
+					// set password
+					if (user_password_leaf_node) {
+						error = system_local_user_set_password(&temp_user, lyd_get_value(user_password_leaf_node));
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
+							goto error_out;
+						}
+					}
+
+					// add user to the list
+					error = system_local_user_list_add(&user_head, temp_user);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_data() error (%d)", error);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
 						goto error_out;
 					}
-				}
 
-				// add to the list of current user keys
-				error = system_authorized_key_list_add(&found_user_el->user.key_head, temp_key);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
-					goto error_out;
-				}
-
-				// free temp data
-				system_authorized_key_free(&temp_key);
-				authorized_key_list_node = srpc_ly_tree_get_list_next(authorized_key_list_node);
-			}
-
-			system_local_user_free(&temp_user);
-			local_user_list_node = srpc_ly_tree_get_list_next(local_user_list_node);
-		}
-	}
-
-	system_local_user_list_init(&system_user_head);
-
-	// check if all users exist on the system
-	SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user system values");
-	user_check_status = system_authentication_check_user(ctx, user_head, &system_user_head);
-	SRPLG_LOG_INF(PLUGIN_NAME, "Recieved local users check status: %d", user_check_status);
-
-	switch (user_check_status) {
-		case srpc_check_status_none:
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user system values");
-			goto error_out;
-			break;
-		case srpc_check_status_error:
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user system values");
-			goto error_out;
-			break;
-		case srpc_check_status_non_existant:
-			SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users don\'t exist on the system - starting to store startup local users");
-			error = system_authentication_store_user(ctx, user_head);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
-				goto error_out;
-			}
-			break;
-		case srpc_check_status_equal:
-			SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users already exist on the system - no need to store anything");
-			break;
-		case srpc_check_status_partial:
-			SRPLG_LOG_INF(PLUGIN_NAME, "Some startup local users exist while others don\'t - creating non existant users");
-
-			// get complement of startup without system
-			complement_user_head = system_local_user_list_complement(user_head, system_user_head);
-			if (!complement_user_head) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_complement() failed");
-				goto error_out;
-			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Storing missing local users from startup to the system");
-
-			// add complement users to system
-			error = system_authentication_store_user(ctx, complement_user_head);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
-				goto error_out;
-			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Missing local users from startup are stored in the system");
-			break;
-	}
-
-	// after matching startup and system values for users - match key lists for all users
-	SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user authorized key system values");
-	LL_FOREACH(user_head, user_iter)
-	{
-		// check first if any keys exist in startup
-		if (user_iter->user.key_head) {
-			key_check_status = system_authentication_check_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
-			SRPLG_LOG_INF(PLUGIN_NAME, "Recieved authorized-key check status %d for user %s", user_check_status, user_iter->user.name);
-
-			switch (key_check_status) {
-				case srpc_check_status_none:
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
-					goto error_out;
-					break;
-				case srpc_check_status_error:
-					SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
-					goto error_out;
-					break;
-				case srpc_check_status_non_existant:
-					SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys don\'t exist on the system for user %s - storing authorized keys for user %s", user_iter->user.name, user_iter->user.name);
-					error = system_authentication_store_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user_authorized_key() error (%d) for user %s", error, user_iter->user.name);
+					// get current user
+					found_user_el = system_local_user_list_find(user_head, temp_user.name);
+					if (!found_user_el) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
 						goto error_out;
 					}
-					break;
-				case srpc_check_status_equal:
-					SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys already exist for local user %s - no need to store anything", user_iter->user.name);
-					break;
-				case srpc_check_status_partial:
-					// TODO
-					break;
+
+					// user found - setup keys if any
+					authorized_key_list_node = srpc_ly_tree_get_child_list(local_user_list_node, "authorized-key");
+					while (authorized_key_list_node) {
+						// add key to the current user (found_user_el)
+						system_authorized_key_init(&temp_key);
+
+						key_name_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "name");
+						key_algorithm_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "algorithm");
+						key_data_leaf_node = srpc_ly_tree_get_child_leaf(authorized_key_list_node, "key-data");
+
+						// key must have a name
+						assert(key_name_leaf_node != NULL);
+
+						error = system_authorized_key_set_name(&temp_key, lyd_get_value(key_name_leaf_node));
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_name() error (%d)", error);
+							goto error_out;
+						}
+
+						if (key_algorithm_leaf_node) {
+							// set algorithm
+							error = system_authorized_key_set_algorithm(&temp_key, lyd_get_value(key_algorithm_leaf_node));
+							if (error) {
+								SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_algorithm() error (%d)", error);
+								goto error_out;
+							}
+						}
+
+						if (key_data_leaf_node) {
+							// set algorithm
+							error = system_authorized_key_set_data(&temp_key, lyd_get_value(key_data_leaf_node));
+							if (error) {
+								SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_data() error (%d)", error);
+								goto error_out;
+							}
+						}
+
+						// add to the list of current user keys
+						error = system_authorized_key_list_add(&found_user_el->user.key_head, temp_key);
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
+							goto error_out;
+						}
+
+						// free temp data
+						system_authorized_key_free(&temp_key);
+						authorized_key_list_node = srpc_ly_tree_get_list_next(authorized_key_list_node);
+					}
+
+					system_local_user_free(&temp_user);
+					local_user_list_node = srpc_ly_tree_get_list_next(local_user_list_node);
+				}
+
+				// get system users
+				system_local_user_list_init(&system_user_head);
+
+				// check if all users exist on the system
+				SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user system values");
+				user_check_status = system_authentication_check_user(ctx, user_head, &system_user_head);
+				SRPLG_LOG_INF(PLUGIN_NAME, "Recieved local users check status: %d", user_check_status);
+
+				switch (user_check_status) {
+					case srpc_check_status_none:
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user system values");
+						goto error_out;
+						break;
+					case srpc_check_status_error:
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user system values");
+						goto error_out;
+						break;
+					case srpc_check_status_non_existant:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users don\'t exist on the system - starting to store startup local users");
+						error = system_authentication_store_user(ctx, user_head);
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
+							goto error_out;
+						}
+						break;
+					case srpc_check_status_equal:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users already exist on the system - no need to store anything");
+						break;
+					case srpc_check_status_partial:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Some startup local users exist while others don\'t - creating non existant users");
+
+						// get complement of startup without system
+						complement_user_head = system_local_user_list_complement(user_head, system_user_head);
+						if (!complement_user_head) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_complement() failed");
+							goto error_out;
+						}
+
+						SRPLG_LOG_INF(PLUGIN_NAME, "Storing missing local users from startup to the system");
+
+						// add complement users to system
+						error = system_authentication_store_user(ctx, complement_user_head);
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
+							goto error_out;
+						}
+
+						SRPLG_LOG_INF(PLUGIN_NAME, "Missing local users from startup are stored in the system");
+						break;
+				}
+
+				// after matching startup and system values for users - match key lists for all users
+				SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user authorized key system values");
+				LL_FOREACH(user_head, user_iter)
+				{
+					// check first if any keys exist in startup
+					if (user_iter->user.key_head) {
+						key_check_status = system_authentication_check_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
+						SRPLG_LOG_INF(PLUGIN_NAME, "Recieved authorized-key check status %d for user %s", user_check_status, user_iter->user.name);
+
+						switch (key_check_status) {
+							case srpc_check_status_none:
+								SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
+								goto error_out;
+								break;
+							case srpc_check_status_error:
+								SRPLG_LOG_ERR(PLUGIN_NAME, "Error occured while checking local user authorized key system values");
+								goto error_out;
+								break;
+							case srpc_check_status_non_existant:
+								SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys don\'t exist on the system for user %s - storing authorized keys for user %s", user_iter->user.name, user_iter->user.name);
+								error = system_authentication_store_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
+								if (error) {
+									SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user_authorized_key() error (%d) for user %s", error, user_iter->user.name);
+									goto error_out;
+								}
+								break;
+							case srpc_check_status_equal:
+								SRPLG_LOG_INF(PLUGIN_NAME, "Startup authorized keys already exist for local user %s - no need to store anything", user_iter->user.name);
+								break;
+							case srpc_check_status_partial:
+								// TODO
+								break;
+						}
+					}
+				}
 			}
 		}
 	}
