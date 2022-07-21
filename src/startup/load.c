@@ -172,7 +172,7 @@ static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *sessi
 	struct lyd_node *clock_container_node = NULL;
 	bool timezone_name_enabled = false;
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "timezone-name", &timezone_name_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
 
 	if (timezone_name_enabled) {
 		error = system_load_timezone_name(ctx, timezone_name_buffer);
@@ -219,8 +219,8 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "ntp", &ntp_enabled), error_out);
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
 	if (ntp_enabled) {
 		error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
@@ -418,8 +418,8 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	bool enabled_authentication = false;
 	bool enabled_local_users = false;
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "authentication", &enabled_authentication), error_out);
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "local-users", &enabled_local_users), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "authentication", &enabled_authentication), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local-users", &enabled_local_users), error_out);
 
 	if (enabled_authentication) {
 		// create authentication container

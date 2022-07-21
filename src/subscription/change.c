@@ -51,7 +51,7 @@ int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subsc
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -82,7 +82,7 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -113,7 +113,7 @@ int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subs
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -144,7 +144,7 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -175,7 +175,7 @@ int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, ui
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -202,7 +202,7 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -226,12 +226,16 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	system_ntp_server_element_t *iter = NULL;
 
+	// features
+	bool ntp_enabled = false;
+	bool ntp_udp_port_enabled = false;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -240,118 +244,125 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 		// make sure the last change servers were free'd and set to NULL
 		assert(ctx->temp_ntp_servers == NULL);
 
-		// load all system NTP servers
-		error = system_ntp_load_server(ctx, &ctx->temp_ntp_servers);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_load_server() error (%d)", error);
-			goto error_out;
-		}
+		// get features
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
-		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers before changes:");
-		LL_FOREACH(ctx->temp_ntp_servers, iter)
-		{
-			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
-		}
+		if (ntp_enabled) {
+			// load all system NTP servers
+			error = system_ntp_load_server(ctx, &ctx->temp_ntp_servers);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_load_server() error (%d)", error);
+				goto error_out;
+			}
 
-		// process changes and use store API to store the configured list
+			// process changes and use store API to store the configured list
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Servers before changes:");
+			LL_FOREACH(ctx->temp_ntp_servers, iter)
+			{
+				SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
+			}
 
-		// name change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_name);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
-			goto error_out;
-		}
+			// name change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//name", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_name);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+				goto error_out;
+			}
 
-		// address change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp/address", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_address);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for address failed: %d", error);
-			goto error_out;
-		}
+			// address change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp/address", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_address);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for address failed: %d", error);
+				goto error_out;
+			}
 
-		// port change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp/port", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_port);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
-			goto error_out;
-		}
+			if (ntp_udp_port_enabled) {
+				// port change
+				error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//udp/port", xpath);
+				if (error < 0) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+					goto error_out;
+				}
+				error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_port);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+					goto error_out;
+				}
+			}
 
-		// association-type
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//association-type", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_association_type);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for association-type failed: %d", error);
-			goto error_out;
-		}
+			// association-type
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//association-type", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_association_type);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for association-type failed: %d", error);
+				goto error_out;
+			}
 
-		// iburst
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//iburst", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_iburst);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for iburst failed: %d", error);
-			goto error_out;
-		}
+			// iburst
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//iburst", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_iburst);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for iburst failed: %d", error);
+				goto error_out;
+			}
 
-		// prefer
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//prefer", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_prefer);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for prefer failed: %d", error);
-			goto error_out;
-		}
+			// prefer
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s//prefer", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_prefer);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for prefer failed: %d", error);
+				goto error_out;
+			}
 
-		SRPLG_LOG_DBG(PLUGIN_NAME, "Servers after changes:");
-		LL_FOREACH(ctx->temp_ntp_servers, iter)
-		{
-			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
-		}
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Servers after changes:");
+			LL_FOREACH(ctx->temp_ntp_servers, iter)
+			{
+				SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s, %s, %s, %s, %s, %s>", iter->server.name, iter->server.address, iter->server.port, iter->server.association_type, iter->server.iburst, iter->server.prefer);
+			}
 
-		// delete entries before applying changes - faster than searching for each server and changing libyang tree
-		error = sr_delete_item(ctx->startup_session, "/ntp:ntp[config-file=\"/etc/ntp.conf\"]/config-entries", SR_EDIT_DEFAULT);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_delete_item() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
-		error = sr_apply_changes(ctx->startup_session, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
+			// delete entries before applying changes - faster than searching for each server and changing libyang tree
+			error = sr_delete_item(ctx->startup_session, "/ntp:ntp[config-file=\"/etc/ntp.conf\"]/config-entries", SR_EDIT_DEFAULT);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_delete_item() error (%d): %s", error, sr_strerror(error));
+				goto error_out;
+			}
+			error = sr_apply_changes(ctx->startup_session, 0);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_apply_changes() error (%d): %s", error, sr_strerror(error));
+				goto error_out;
+			}
 
-		SRPLG_LOG_INF(PLUGIN_NAME, "Deleted /etc/ntp.conf config file data");
+			SRPLG_LOG_INF(PLUGIN_NAME, "Deleted /etc/ntp.conf config file data");
 
-		// store generated data
-		error = system_ntp_store_server(ctx, ctx->temp_ntp_servers);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_store_server() error (%d)", error);
-			goto error_out;
+			// store generated data
+			error = system_ntp_store_server(ctx, ctx->temp_ntp_servers);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_store_server() error (%d)", error);
+				goto error_out;
+			}
 		}
 	}
 
@@ -378,7 +389,7 @@ int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, ui
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Done processing changes - storing data into startup");
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -444,7 +455,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -538,7 +549,7 @@ int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, u
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -564,7 +575,7 @@ int system_subscription_change_dns_resolver_attempts(sr_session_ctx_t *session, 
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -591,7 +602,7 @@ int system_subscription_change_authentication_user_authentication_order(sr_sessi
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -619,7 +630,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
 			goto error_out;

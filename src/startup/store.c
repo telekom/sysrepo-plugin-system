@@ -224,7 +224,7 @@ static int system_startup_store_timezone_name(void *priv, const struct lyd_node 
 
 	struct lyd_node *clock_container_node = NULL, *timezone_name_node = NULL;
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "timezone-name", &timezone_name_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
 
 	if (timezone_name_enabled) {
 		clock_container_node = srpc_ly_tree_get_child_container(system_container_node, "clock");
@@ -297,8 +297,8 @@ static int system_startup_store_ntp(void *priv, const struct lyd_node *system_co
 	system_ntp_server_t temp_server = {0};
 	srpc_check_status_t server_check_status = srpc_check_status_none;
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "ntp", &ntp_enabled), error_out);
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
 	if (ntp_enabled) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Storing NTP startup data");
@@ -717,8 +717,8 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 	// srpc
 	srpc_check_status_t user_check_status = srpc_check_status_none, key_check_status = srpc_check_status_none;
 
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "authentication", &authentication_enabled), error_out);
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODEL, "local_users", &local_users_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local_users", &local_users_enabled), error_out);
 
 	if (authentication_enabled) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
