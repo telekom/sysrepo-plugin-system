@@ -140,6 +140,9 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 	int error = SR_ERR_OK;
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
+	// feature
+	bool timezone_name_enabled = false;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
@@ -150,10 +153,14 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
-			goto error_out;
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
+
+		if (timezone_name_enabled) {
+			error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
+				goto error_out;
+			}
 		}
 	}
 
