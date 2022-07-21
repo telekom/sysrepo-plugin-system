@@ -206,6 +206,7 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 
 	// feature check
 	bool ntp_enabled = false;
+	bool ntp_udp_port_enabled = false;
 
 	// load list
 	system_ntp_server_element_t *ntp_server_head = NULL, *ntp_server_iter = NULL;
@@ -213,6 +214,7 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
 
 	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "ntp", &ntp_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
 	if (ntp_enabled) {
 		error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
@@ -250,7 +252,7 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 			SRPLG_LOG_INF(PLUGIN_NAME, "Setting port \"%s\"", ntp_server_iter->server.port);
 
 			// port
-			if (ntp_server_iter->server.port) {
+			if (ntp_server_iter->server.port && ntp_udp_port_enabled) {
 				error = system_ly_tree_create_ntp_server_port(ly_ctx, server_list_node, ntp_server_iter->server.port);
 				if (error) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_port() error (%d)", error);
