@@ -4,6 +4,7 @@
 #include "ly_tree.h"
 
 // API for getting system data
+#include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "system/api/load.h"
 #include "system/api/authentication/load.h"
@@ -169,21 +170,26 @@ static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *sessi
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	char timezone_name_buffer[SYSTEM_TIMEZONE_NAME_LENGTH_MAX] = {0};
 	struct lyd_node *clock_container_node = NULL;
+	bool timezone_name_enabled = false;
 
-	error = system_load_timezone_name(ctx, timezone_name_buffer);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, "ietf-system", "timezone-name", &timezone_name_enabled), error_out);
 
-	// setup clock container
-	error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
-		goto error_out;
-	}
+	if (timezone_name_enabled) {
+		error = system_load_timezone_name(ctx, timezone_name_buffer);
 
-	// set timezone-name leaf
-	error = system_ly_tree_create_timezone_name(ly_ctx, clock_container_node, timezone_name_buffer);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
-		goto error_out;
+		// setup clock container
+		error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
+			goto error_out;
+		}
+
+		// set timezone-name leaf
+		error = system_ly_tree_create_timezone_name(ly_ctx, clock_container_node, timezone_name_buffer);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
+			goto error_out;
+		}
 	}
 
 	goto out;
