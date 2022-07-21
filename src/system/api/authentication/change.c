@@ -140,6 +140,12 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		}
 	}
 
+	error = um_db_store(user_db);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_store() error (%d)", error);
+		goto error_out;
+	}
+
 	// after user changes handle authentication changes
 
 #endif
