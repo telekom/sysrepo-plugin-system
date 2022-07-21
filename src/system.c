@@ -131,6 +131,29 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		},
 	};
 
+	// log status of features
+	const char *features[] = {
+		"radius",
+		"authentication",
+		"local-users",
+		"radius-authentication",
+		"ntp",
+		"ntp-udp-port",
+		"timezone-name",
+		"dns-udp-tcp-port",
+	};
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Checking ietf-system YANG module used features");
+
+	for (size_t i = 0; i < ARRAY_SIZE(features); i++) {
+		const char *feature = features[i];
+		bool enabled = false;
+
+		SRPC_SAFE_CALL(srpc_check_feature_status(running_session, "ietf-system", feature, &enabled), error_out);
+
+		SRPLG_LOG_INF(PLUGIN_NAME, "ietf-system feature \"%s\" status = %s", feature, enabled ? "enabled" : "disabled");
+	}
+
 	connection = sr_session_get_connection(running_session);
 	error = sr_session_start(connection, SR_DS_STARTUP, &startup_session);
 	if (error) {
@@ -156,7 +179,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 
 		// copy contents of the startup session to the current running session
-		error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+		error = sr_copy_config(running_session, BASE_YANG_MODULE, SR_DS_STARTUP, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -173,7 +196,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 
 		// copy contents of the startup session to the current running session
-		error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+		error = sr_copy_config(running_session, BASE_YANG_MODULE, SR_DS_STARTUP, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
@@ -186,7 +209,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 		// in case of work on a specific callback set it to NULL
 		if (change->cb) {
-			error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+			error = sr_module_change_subscribe(running_session, BASE_YANG_MODULE, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe() error for \"%s\" (%d): %s", change->path, error, sr_strerror(error));
 				goto error_out;
@@ -214,7 +237,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 		// in case of work on a specific callback set it to NULL
 		if (op->cb) {
-			error = sr_oper_get_subscribe(running_session, BASE_YANG_MODEL, op->path, op->cb, NULL, SR_SUBSCR_DEFAULT, &subscription);
+			error = sr_oper_get_subscribe(running_session, BASE_YANG_MODULE, op->path, op->cb, NULL, SR_SUBSCR_DEFAULT, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_oper_get_subscribe() error (%d): %s", error, sr_strerror(error));
 				goto error_out;
@@ -239,7 +262,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
 	// save current running configuration into startup for next time when the plugin starts
-	error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+	error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 	}

@@ -4,6 +4,7 @@
 #include "ly_tree.h"
 
 // API for getting system data
+#include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "system/api/load.h"
 #include "system/api/authentication/load.h"
@@ -61,10 +62,10 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 			"timezone-name",
 			system_startup_load_timezone_name,
 		},
-		// {
-		// 	"ntp",
-		// 	system_startup_load_ntp,
-		// },
+		{
+			"ntp",
+			system_startup_load_ntp,
+		},
 		{
 			"dns-resolver",
 			system_startup_load_dns_resolver,
@@ -169,21 +170,26 @@ static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *sessi
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	char timezone_name_buffer[SYSTEM_TIMEZONE_NAME_LENGTH_MAX] = {0};
 	struct lyd_node *clock_container_node = NULL;
+	bool timezone_name_enabled = false;
 
-	error = system_load_timezone_name(ctx, timezone_name_buffer);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
 
-	// setup clock container
-	error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
-		goto error_out;
-	}
+	if (timezone_name_enabled) {
+		error = system_load_timezone_name(ctx, timezone_name_buffer);
 
-	// set timezone-name leaf
-	error = system_ly_tree_create_timezone_name(ly_ctx, clock_container_node, timezone_name_buffer);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
-		goto error_out;
+		// setup clock container
+		error = system_ly_tree_create_clock(ly_ctx, parent_node, &clock_container_node);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_clock_container() error (%d)", error);
+			goto error_out;
+		}
+
+		// set timezone-name leaf
+		error = system_ly_tree_create_timezone_name(ly_ctx, clock_container_node, timezone_name_buffer);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_timezone_name() error (%d)", error);
+			goto error_out;
+		}
 	}
 
 	goto out;
@@ -204,81 +210,90 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 	// ietf-system nodes
 	struct lyd_node *ntp_container_node = NULL, *server_list_node = NULL;
 
+	// feature check
+	bool ntp_enabled = false;
+	bool ntp_udp_port_enabled = false;
+
 	// load list
 	system_ntp_server_element_t *ntp_server_head = NULL, *ntp_server_iter = NULL;
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
 
-	error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp() error (%d)", error);
-		goto error_out;
-	}
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
-	// load system values
-	system_ntp_server_list_init(&ntp_server_head);
-	error = system_ntp_load_server(ctx, &ntp_server_head);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_load_server() error (%d)", error);
-		goto error_out;
-	}
-
-	LL_FOREACH(ntp_server_head, ntp_server_iter)
-	{
-		// name
-		error = system_ly_tree_create_ntp_server(ly_ctx, ntp_container_node, &server_list_node, ntp_server_iter->server.name);
+	if (ntp_enabled) {
+		error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp() error (%d)", error);
 			goto error_out;
 		}
 
-		SRPLG_LOG_INF(PLUGIN_NAME, "Setting address %s", ntp_server_iter->server.address);
-
-		// address
-		error = system_ly_tree_create_ntp_server_address(ly_ctx, server_list_node, ntp_server_iter->server.address);
+		// load system values
+		system_ntp_server_list_init(&ntp_server_head);
+		error = system_ntp_load_server(ctx, &ntp_server_head);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_address() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_load_server() error (%d)", error);
 			goto error_out;
 		}
 
-		SRPLG_LOG_INF(PLUGIN_NAME, "Setting port \"%s\"", ntp_server_iter->server.port);
-
-		// port
-		if (ntp_server_iter->server.port) {
-			error = system_ly_tree_create_ntp_server_port(ly_ctx, server_list_node, ntp_server_iter->server.port);
+		LL_FOREACH(ntp_server_head, ntp_server_iter)
+		{
+			// name
+			error = system_ly_tree_create_ntp_server(ly_ctx, ntp_container_node, &server_list_node, ntp_server_iter->server.name);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_port() error (%d)", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server() error (%d)", error);
 				goto error_out;
+			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Setting address %s", ntp_server_iter->server.address);
+
+			// address
+			error = system_ly_tree_create_ntp_server_address(ly_ctx, server_list_node, ntp_server_iter->server.address);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_address() error (%d)", error);
+				goto error_out;
+			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Setting port \"%s\"", ntp_server_iter->server.port);
+
+			// port
+			if (ntp_server_iter->server.port && ntp_udp_port_enabled) {
+				error = system_ly_tree_create_ntp_server_port(ly_ctx, server_list_node, ntp_server_iter->server.port);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_port() error (%d)", error);
+					goto error_out;
+				}
+			}
+
+			// association type
+			error = system_ly_tree_create_ntp_server_association_type(ly_ctx, server_list_node, ntp_server_iter->server.association_type);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_association_type() error (%d)", error);
+				goto error_out;
+			}
+
+			// iburst
+			if (ntp_server_iter->server.iburst) {
+				error = system_ly_tree_create_ntp_server_iburst(ly_ctx, server_list_node, ntp_server_iter->server.iburst);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_iburst() error (%d)", error);
+					goto error_out;
+				}
+			}
+
+			// prefer
+			if (ntp_server_iter->server.prefer) {
+				error = system_ly_tree_create_ntp_server_prefer(ly_ctx, server_list_node, ntp_server_iter->server.prefer);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_prefer() error (%d)", error);
+					goto error_out;
+				}
 			}
 		}
 
-		// association type
-		error = system_ly_tree_create_ntp_server_association_type(ly_ctx, server_list_node, ntp_server_iter->server.association_type);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_association_type() error (%d)", error);
-			goto error_out;
-		}
-
-		// iburst
-		if (ntp_server_iter->server.iburst) {
-			error = system_ly_tree_create_ntp_server_iburst(ly_ctx, server_list_node, ntp_server_iter->server.iburst);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_iburst() error (%d)", error);
-				goto error_out;
-			}
-		}
-
-		// prefer
-		if (ntp_server_iter->server.prefer) {
-			error = system_ly_tree_create_ntp_server_prefer(ly_ctx, server_list_node, ntp_server_iter->server.prefer);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_prefer() error (%d)", error);
-				goto error_out;
-			}
-		}
+		goto out;
 	}
-
-	goto out;
 
 error_out:
 	error = -1;
@@ -397,101 +412,108 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	system_ctx_t *ctx = (system_ctx_t *) priv;
 	struct lyd_node *authentication_container_node = NULL;
 	struct lyd_node *user_list_node = NULL, *authorized_key_list_node = NULL;
-	// UT_array *users = NULL;
-	// system_local_user_t *user_iter = NULL;
-	// system_authorized_key_t *key_iter = NULL;
 	system_local_user_element_t *user_head = NULL, *user_iter = NULL;
 	system_authorized_key_element_t *key_iter = NULL;
 
-	// create authentication container
-	error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication() error (%d)", error);
-		goto error_out;
-	}
+	bool enabled_authentication = false;
+	bool enabled_local_users = false;
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Loading users from the system");
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "authentication", &enabled_authentication), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local-users", &enabled_local_users), error_out);
 
-	// init list first
-	system_local_user_list_init(&user_head);
-
-	// load user list
-	error = system_authentication_load_user(ctx, &user_head);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
-		goto error_out;
-	}
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "Loading user authorized keys");
-
-	LL_FOREACH(user_head, user_iter)
-	{
-		system_authorized_key_list_init(&user_iter->user.key_head);
-
-		error = system_authentication_load_user_authorized_key(ctx, user_iter->user.name, &user_iter->user.key_head);
+	if (enabled_authentication) {
+		// create authentication container
+		error = system_ly_tree_create_authentication(ly_ctx, parent_node, &authentication_container_node);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user_authorized_key() error (%d)", error);
-			goto error_out;
-		}
-	}
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "Saving users and their keys to the datastore");
-
-	LL_FOREACH(user_head, user_iter)
-	{
-		// list item
-		error = system_ly_tree_create_authentication_user(ly_ctx, authentication_container_node, &user_list_node, user_iter->user.name);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user() error (%d) for %s", error, user_iter->user.name);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication() error (%d)", error);
 			goto error_out;
 		}
 
-		// password
-		if (user_iter->user.password) {
-			error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->user.password);
+		if (enabled_local_users) {
+			SRPLG_LOG_INF(PLUGIN_NAME, "Loading users from the system");
+
+			// init list first
+			system_local_user_list_init(&user_head);
+
+			// load user list
+			error = system_authentication_load_user(ctx, &user_head);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->user.password);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
 				goto error_out;
 			}
-		}
 
-		// authorized-key
-		int count = 0;
-		LL_COUNT(user_iter->user.key_head, key_iter, count);
+			SRPLG_LOG_INF(PLUGIN_NAME, "Loading user authorized keys");
 
-		if (count > 0) {
-			key_iter = NULL;
-			LL_FOREACH(user_iter->user.key_head, key_iter)
+			LL_FOREACH(user_head, user_iter)
+			{
+				system_authorized_key_list_init(&user_iter->user.key_head);
+
+				error = system_authentication_load_user_authorized_key(ctx, user_iter->user.name, &user_iter->user.key_head);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user_authorized_key() error (%d)", error);
+					goto error_out;
+				}
+			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Saving users and their keys to the datastore");
+
+			LL_FOREACH(user_head, user_iter)
 			{
 				// list item
-				error = system_ly_tree_create_authentication_user_authorized_key(ly_ctx, user_list_node, &authorized_key_list_node, key_iter->key.name);
+				error = system_ly_tree_create_authentication_user(ly_ctx, authentication_container_node, &user_list_node, user_iter->user.name);
 				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key() error (%d) for %s", error, key_iter->key.name);
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user() error (%d) for %s", error, user_iter->user.name);
 					goto error_out;
 				}
 
-				// algorithm
-				if (key_iter->key.algorithm) {
-					error = system_ly_tree_create_authentication_user_authorized_key_algorithm(ly_ctx, authorized_key_list_node, key_iter->key.algorithm);
+				// password
+				if (user_iter->user.password) {
+					error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->user.password);
 					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_algorithm() error (%d) for %s", error, key_iter->key.algorithm);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->user.password);
 						goto error_out;
 					}
 				}
 
-				// key-data
-				if (key_iter->key.data) {
-					error = system_ly_tree_create_authentication_user_authorized_key_data(ly_ctx, authorized_key_list_node, key_iter->key.data);
-					if (error) {
-						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_data() error (%d) for %s", error, key_iter->key.data);
-						goto error_out;
+				// authorized-key
+				int count = 0;
+				LL_COUNT(user_iter->user.key_head, key_iter, count);
+
+				if (count > 0) {
+					key_iter = NULL;
+					LL_FOREACH(user_iter->user.key_head, key_iter)
+					{
+						// list item
+						error = system_ly_tree_create_authentication_user_authorized_key(ly_ctx, user_list_node, &authorized_key_list_node, key_iter->key.name);
+						if (error) {
+							SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key() error (%d) for %s", error, key_iter->key.name);
+							goto error_out;
+						}
+
+						// algorithm
+						if (key_iter->key.algorithm) {
+							error = system_ly_tree_create_authentication_user_authorized_key_algorithm(ly_ctx, authorized_key_list_node, key_iter->key.algorithm);
+							if (error) {
+								SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_algorithm() error (%d) for %s", error, key_iter->key.algorithm);
+								goto error_out;
+							}
+						}
+
+						// key-data
+						if (key_iter->key.data) {
+							error = system_ly_tree_create_authentication_user_authorized_key_data(ly_ctx, authorized_key_list_node, key_iter->key.data);
+							if (error) {
+								SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_authorized_key_data() error (%d) for %s", error, key_iter->key.data);
+								goto error_out;
+							}
+						}
 					}
 				}
 			}
+
+			SRPLG_LOG_INF(PLUGIN_NAME, "Saved users to the datastore");
 		}
 	}
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "Saved users to the datastore");
 
 	goto out;
 
