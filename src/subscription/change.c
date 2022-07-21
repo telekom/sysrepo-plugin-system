@@ -632,6 +632,9 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 	char xpath_buffer[PATH_MAX] = {0};
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
+	bool authentication_enabled = false;
+	bool local_users_enabled = false;
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
@@ -648,54 +651,59 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		assert(ctx->temp_users.modified == NULL);
 		assert(ctx->temp_users.deleted == NULL);
 
-		// load current users into modifed list so they can also be modified
-		error = system_authentication_load_user(ctx, &ctx->temp_users.modified);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
-			goto error_out;
-		}
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "local-users", &local_users_enabled), error_out);
 
-		// name change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
-			goto error_out;
-		}
+		if (authentication_enabled && local_users_enabled) {
+			// load current users into modifed list so they can also be modified
+			error = system_authentication_load_user(ctx, &ctx->temp_users.modified);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
+				goto error_out;
+			}
 
-		// address change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/password", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for password failed: %d", error);
-			goto error_out;
-		}
+			// name change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+				goto error_out;
+			}
 
-		// port change
-		error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key", xpath);
-		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-			goto error_out;
-		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
-			goto error_out;
-		}
+			// address change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/password", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for password failed: %d", error);
+				goto error_out;
+			}
 
-		// apply all changes regarding created/modified/deleted users
-		error = system_authentication_user_apply_changes(ctx);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_user_apply_changes() error (%d)", error);
-			goto error_out;
+			// port change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+				goto error_out;
+			}
+
+			// apply all changes regarding created/modified/deleted users
+			error = system_authentication_user_apply_changes(ctx);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_user_apply_changes() error (%d)", error);
+				goto error_out;
+			}
 		}
 	}
 
