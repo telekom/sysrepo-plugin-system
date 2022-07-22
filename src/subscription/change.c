@@ -203,6 +203,9 @@ out:
 int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
+
+	bool ntp_enabled = false;
+
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -215,6 +218,12 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
+		// get feature status
+		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+
+		if (ntp_enabled) {
+			SRPC_SAFE_CALL(srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled), error_out);
+		}
 	}
 
 	goto out;
