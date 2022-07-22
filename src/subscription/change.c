@@ -725,5 +725,5 @@ out:
 
 	ctx->temp_users.created = ctx->temp_users.modified = ctx->temp_users.deleted = NULL;
 
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
