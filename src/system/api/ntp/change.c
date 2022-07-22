@@ -17,22 +17,38 @@ int system_ntp_change_enabled(void *priv, sr_session_ctx_t *session, const srpc_
 	int error = 0;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
+	bool enabled = strcmp(node_value, "true") == 0 ? true : false;
 
 	assert(strcmp(node_name, "enabled") == 0);
 
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
-			break;
 		case SR_OP_MODIFIED:
+			if (enabled) {
+				SRPC_SAFE_CALL(system("systemctl start ntp"), error_out);
+				SRPC_SAFE_CALL(system("systemctl enable ntp"), error_out);
+			} else {
+				SRPC_SAFE_CALL(system("systemctl stop ntp"), error_out);
+				SRPC_SAFE_CALL(system("systemctl disable ntp"), error_out);
+			}
 			break;
 		case SR_OP_DELETED:
+			// set default value = true
+			SRPC_SAFE_CALL(system("systemctl start ntp"), error_out);
+			SRPC_SAFE_CALL(system("systemctl enable ntp"), error_out);
 			break;
 		case SR_OP_MOVED:
 			break;
 	}
 
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 	return error;
 }
 
