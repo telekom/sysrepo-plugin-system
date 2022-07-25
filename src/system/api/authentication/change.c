@@ -259,7 +259,11 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 				}
 			} else {
 				// user found - set password
-				system_local_user_set_password(&found_user->user, node_value);
+				error = system_local_user_set_password(&found_user->user, node_value);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
+					goto error_out;
+				}
 			}
 
 			break;
