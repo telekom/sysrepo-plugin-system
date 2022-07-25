@@ -38,7 +38,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Modified users:");
+	SRPLG_LOG_INF(PLUGIN_NAME, "(Non)modified users:");
 	LL_FOREACH(ctx->temp_users.modified, user_iter)
 	{
 		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
@@ -91,7 +91,6 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		goto error_out;
 	}
 
-	// for modified users - iterate and change passwords
 	user_db = um_db_new();
 
 	error = um_db_load(user_db);
@@ -100,6 +99,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		goto error_out;
 	}
 
+	// for modified users - iterate and change passwords
 	LL_FOREACH(ctx->temp_users.modified, user_iter)
 	{
 		// get user
@@ -109,11 +109,14 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 			goto error_out;
 		}
 
-		// change user password hash
-		error = um_user_set_password_hash(temp_user, user_iter->user.password);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
-			goto error_out;
+		// if the password has changed - store new value
+		if ((user_iter->user.password == NULL && um_user_get_password_hash(temp_user) != NULL) || strcmp(user_iter->user.password, um_user_get_password_hash(temp_user))) {
+			SRPLG_LOG_INF(PLUGIN_NAME, "Password changed for %s: %s --> %s", user_iter->user.name, um_user_get_password_hash(temp_user), user_iter->user.password);
+			error = um_user_set_password_hash(temp_user, user_iter->user.password);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
+				goto error_out;
+			}
 		}
 	}
 
@@ -156,6 +159,10 @@ error_out:
 	error = -1;
 
 out:
+	if (user_db) {
+		um_db_free(user_db);
+	}
+
 	return error;
 }
 
@@ -238,12 +245,22 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 			// find user and add password
 			found_user = system_local_user_list_find(ctx->temp_users.created, username_buffer);
 			if (!found_user) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
-				goto error_out;
+				// user was not created but now the password is - modified user
+				found_user = system_local_user_list_find(ctx->temp_users.modified, username_buffer);
+				if (found_user) {
+					error = system_local_user_set_password(&found_user->user, node_value);
+					if (error) {
+						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
+						goto error_out;
+					}
+				} else {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed for user %s", username_buffer);
+					goto error_out;
+				}
+			} else {
+				// user found - set password
+				system_local_user_set_password(&found_user->user, node_value);
 			}
-
-			// user found - set password
-			system_local_user_set_password(&found_user->user, node_value);
 
 			break;
 		case SR_OP_MODIFIED:
@@ -261,9 +278,9 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 			}
 			break;
 		case SR_OP_DELETED:
-			// if user not deleted remove his password - modified user
 			found_user = system_local_user_list_find(ctx->temp_users.deleted, username_buffer);
 			if (!found_user) {
+				// if user not deleted remove his password - modified user
 				found_user = system_local_user_list_find(ctx->temp_users.modified, username_buffer);
 				if (found_user) {
 					error = system_local_user_set_password(&found_user->user, NULL);
