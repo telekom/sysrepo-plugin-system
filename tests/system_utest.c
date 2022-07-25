@@ -29,6 +29,7 @@ static void test_load_hostname_incorrect(void **state);
 
 // wrapper functions
 int __wrap_gethostname(char *buffer, size_t buffer_size);
+int __wrap_sethostname(char *hostname, size_t len);
 
 int main(void)
 {
@@ -66,18 +67,19 @@ static int teardown(void **state)
 
 static void test_store_hostname_correct(void **state)
 {
-	system_ctx_t *ctx = *state;
-	(void) ctx;
-
 	// TODO: see how to test because of AUGYANG usage
 }
 
 static void test_store_hostname_incorrect(void **state)
 {
 	system_ctx_t *ctx = *state;
-	(void) ctx;
+	int rc = 0;
 
-	// TODO: see how to test because of AUGYANG usage
+	will_return(__wrap_sethostname, -1);
+
+	rc = system_store_hostname(ctx, "HOSTNAME");
+
+	assert_int_equal(rc, -1);
 }
 
 static void test_load_hostname_correct(void **state)
@@ -86,7 +88,7 @@ static void test_load_hostname_correct(void **state)
 	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
 	int rc = 0;
 
-	will_return(gethostname, 0);
+	will_return(__wrap_gethostname, 0);
 
 	rc = system_load_hostname(ctx, hostname_buffer);
 
@@ -100,7 +102,7 @@ static void test_load_hostname_incorrect(void **state)
 	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
 	int rc = 0;
 
-	will_return(gethostname, -1);
+	will_return(__wrap_gethostname, -1);
 
 	// assert the function returns an error
 	rc = system_load_hostname(ctx, hostname_buffer);
@@ -116,5 +118,10 @@ int __wrap_gethostname(char *buffer, size_t buffer_size)
 		return rc;
 	}
 
+	return (int) mock();
+}
+
+int __wrap_sethostname(char *hostname, size_t len)
+{
 	return (int) mock();
 }

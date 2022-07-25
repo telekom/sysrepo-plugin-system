@@ -26,6 +26,7 @@ target_link_libraries(
     ${PLUGIN_LIRBARY_NAME}
 
     "-Wl,--wrap=gethostname"
+    "-Wl,--wrap=sethostname"
 )
 
 add_test(NAME system_utest COMMAND system_utest)
