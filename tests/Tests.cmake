@@ -23,6 +23,7 @@ target_link_libraries(
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSTEMD_LIBRARIES}
+    ${PLUGIN_LIRBARY_NAME}
 
     "-Wl,--wrap=gethostname"
 )

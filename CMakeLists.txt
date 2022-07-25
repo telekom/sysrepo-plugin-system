@@ -3,6 +3,8 @@ project(sysrepo-plugin-system C)
 
 include(CompileOptions.cmake)
 
+set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
+
 set(PLUGIN 0 CACHE BOOL "Build a plugin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 option(ENABLE_BUILD_TESTS, "Build tests" OFF)
@@ -60,10 +62,6 @@ set(
     src/system/api/authentication/change.c
 )
 
-if(NOT PLUGIN)
-    set(SOURCES ${SOURCES} src/main.c)
-endif()
-
 # get sysrepo version
 find_package(PkgConfig)
 
@@ -80,11 +78,16 @@ if(PKG_CONFIG_FOUND)
     endif()
 endif()
 
-if(PLUGIN)
-    add_library(${CMAKE_PROJECT_NAME} MODULE ${SOURCES})
-    install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION lib)
-else()
-    add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+add_library(${PLUGIN_LIRBARY_NAME} STATIC ${SOURCES})
+install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
+
+if(NOT PLUGIN)
+    add_executable(
+        ${CMAKE_PROJECT_NAME}
+        ${SOURCES}
+        src/main.c
+    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} ${PLUGIN_LIRBARY_NAME})
     install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
 endif()
 
