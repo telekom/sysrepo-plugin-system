@@ -41,7 +41,17 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	SRPLG_LOG_INF(PLUGIN_NAME, "Modified users:");
 	LL_FOREACH(ctx->temp_users.modified, user_iter)
 	{
-		SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
+		// get user
+		temp_user = um_db_get_user(user_db, user_iter->user.name);
+		if (!temp_user) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", user_iter->user.name);
+			goto error_out;
+		}
+
+		// if the password has changed - user was modified
+		if (strcmp(user_iter->user.password, um_user_get_password_hash(temp_user))) {
+			SRPLG_LOG_INF(PLUGIN_NAME, "\t %s : %s", user_iter->user.name, user_iter->user.password);
+		}
 	}
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Deleted users:");
@@ -100,22 +110,25 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	}
 
 	// for modified users - iterate and change passwords
-	// LL_FOREACH(ctx->temp_users.modified, user_iter)
-	// {
-	// 	// get user
-	// 	temp_user = um_db_get_user(user_db, user_iter->user.name);
-	// 	if (!temp_user) {
-	// 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", user_iter->user.name);
-	// 		goto error_out;
-	// 	}
+	LL_FOREACH(ctx->temp_users.modified, user_iter)
+	{
+		// get user
+		temp_user = um_db_get_user(user_db, user_iter->user.name);
+		if (!temp_user) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Unable to find user %s in the user database", user_iter->user.name);
+			goto error_out;
+		}
 
-	// 	// change user password hash
-	// 	error = um_user_set_password_hash(temp_user, user_iter->user.password);
-	// 	if (error) {
-	// 		SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
-	// 		goto error_out;
-	// 	}
-	// }
+		// if the password has changed - store new value
+		if (strcmp(user_iter->user.password, um_user_get_password_hash(temp_user))) {
+			SRPLG_LOG_INF(PLUGIN_NAME, "Password changed for %s: %s --> %s", user_iter->user.name, um_user_get_password_hash(temp_user), user_iter->user.password);
+			error = um_user_set_password_hash(temp_user, user_iter->user.password);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "um_user_set_password_hash() error (%d)", error);
+				goto error_out;
+			}
+		}
+	}
 
 	// for deleted users - delete recursively home directory and remove user from the database
 	LL_FOREACH(ctx->temp_users.deleted, user_iter)
@@ -156,6 +169,10 @@ error_out:
 	error = -1;
 
 out:
+	if (user_db) {
+		um_db_free(user_db);
+	}
+
 	return error;
 }
 
@@ -241,7 +258,7 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 				// user was not created but now the password is - modified user
 				found_user = system_local_user_list_find(ctx->temp_users.modified, username_buffer);
 				if (found_user) {
-					error = system_local_user_set_password(&found_user->user, NULL);
+					error = system_local_user_set_password(&found_user->user, node_value);
 					if (error) {
 						SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_set_password() error (%d)", error);
 						goto error_out;
@@ -250,10 +267,10 @@ int system_authentication_change_user_password(void *priv, sr_session_ctx_t *ses
 					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed for user %s", username_buffer);
 					goto error_out;
 				}
+			} else {
+				// user found - set password
+				system_local_user_set_password(&found_user->user, node_value);
 			}
-
-			// user found - set password
-			system_local_user_set_password(&found_user->user, node_value);
 
 			break;
 		case SR_OP_MODIFIED:

@@ -18,9 +18,10 @@ int system_local_user_set_name(system_local_user_t *user, const char *name)
 
 	if (name) {
 		user->name = strdup(name);
+		return user->name == NULL;
 	}
 
-	return user->name == NULL;
+	return 0;
 }
 
 int system_local_user_set_password(system_local_user_t *user, const char *password)
@@ -32,9 +33,10 @@ int system_local_user_set_password(system_local_user_t *user, const char *passwo
 
 	if (password) {
 		user->password = strdup(password);
+		return user->password == NULL;
 	}
 
-	return user->password == NULL;
+	return 0;
 }
 
 void system_local_user_free(system_local_user_t *user)
