@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include "sysrepo_types.h"
 #include <sysrepo.h>
 #include <signal.h>
