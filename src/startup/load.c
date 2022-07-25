@@ -466,8 +466,10 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 					goto error_out;
 				}
 
+				SRPLG_LOG_INF(PLUGIN_NAME, "User: \"%s\", Password: \"%s\"", user_iter->user.name, user_iter->user.password);
+
 				// password
-				if (user_iter->user.password) {
+				if (user_iter->user.password && strcmp(user_iter->user.password, "")) {
 					error = system_ly_tree_create_authentication_user_password(ly_ctx, user_list_node, user_iter->user.password);
 					if (error) {
 						SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_authentication_user_password() error (%d) for %s", error, user_iter->user.password);
