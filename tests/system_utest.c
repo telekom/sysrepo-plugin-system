@@ -1,14 +1,17 @@
+// cmocka headers
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
 
+// stdlib
 #include <unistd.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// plugin code
 #include "context.h"
 
 // store API
