@@ -10,5 +10,19 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
+add_executable(
+    system_utest
 
-# TODO: add test later
+    tests/system_utest.c
+)
+
+target_link_libraries(
+    system_utest
+
+    ${CMOCKA_LIBRARIES}
+    ${SYSREPO_LIBRARIES}
+    ${LIBYANG_LIBRARIES}
+    ${SYSTEMD_LIBRARIES}
+)
+
+add_test(NAME system_utest COMMAND system_utest)
