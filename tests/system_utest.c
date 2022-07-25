@@ -3,17 +3,118 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-static void simple_utest(void **state);
+#include <unistd.h>
+#include <linux/limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "context.h"
+
+// store API
+#include "system/api/store.h"
+
+// load API
+#include "system/api/load.h"
+
+// init functionality
+static int setup(void **state);
+static int teardown(void **state);
+
+// tests
+static void test_store_hostname_correct(void **state);
+static void test_store_hostname_incorrect(void **state);
+static void test_load_hostname_correct(void **state);
+static void test_load_hostname_incorrect(void **state);
+
+// wrapper functions
+int __wrap_gethostname(char *buffer, size_t buffer_size);
 
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
-		cmocka_unit_test(simple_utest),
+		cmocka_unit_test(test_store_hostname_correct),
+		cmocka_unit_test(test_store_hostname_incorrect),
+		cmocka_unit_test(test_load_hostname_correct),
+		cmocka_unit_test(test_load_hostname_incorrect),
 	};
-	return cmocka_run_group_tests(tests, NULL, NULL);
+
+	return cmocka_run_group_tests(tests, setup, teardown);
 }
 
-static void simple_utest(void **state)
+static int setup(void **state)
 {
-	(void) state;
+	system_ctx_t *ctx = malloc(sizeof(system_ctx_t));
+	if (!ctx) {
+		return -1;
+	}
+
+	*ctx = (system_ctx_t){0};
+	*state = ctx;
+
+	return 0;
+}
+
+static int teardown(void **state)
+{
+	if (*state) {
+		free(*state);
+	}
+
+	return 0;
+}
+
+static void test_store_hostname_correct(void **state)
+{
+	system_ctx_t *ctx = *state;
+	(void) ctx;
+
+	// TODO: see how to test because of AUGYANG usage
+}
+
+static void test_store_hostname_incorrect(void **state)
+{
+	system_ctx_t *ctx = *state;
+	(void) ctx;
+
+	// TODO: see how to test because of AUGYANG usage
+}
+
+static void test_load_hostname_correct(void **state)
+{
+	system_ctx_t *ctx = *state;
+	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
+	int rc = 0;
+
+	will_return(gethostname, 0);
+
+	rc = system_load_hostname(ctx, hostname_buffer);
+
+	assert_int_equal(rc, 0);
+	assert_string_equal(hostname_buffer, "HOSTNAME");
+}
+
+static void test_load_hostname_incorrect(void **state)
+{
+	system_ctx_t *ctx = *state;
+	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
+	int rc = 0;
+
+	will_return(gethostname, -1);
+
+	// assert the function returns an error
+	rc = system_load_hostname(ctx, hostname_buffer);
+	assert_int_equal(rc, -1);
+}
+
+int __wrap_gethostname(char *buffer, size_t buffer_size)
+{
+	int rc = 0;
+
+	rc = snprintf(buffer, buffer_size, "HOSTNAME");
+	if (rc < 0) {
+		return rc;
+	}
+
+	return (int) mock();
 }

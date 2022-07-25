@@ -23,6 +23,8 @@ target_link_libraries(
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSTEMD_LIBRARIES}
+
+    "-Wl,--wrap=gethostname"
 )
 
 add_test(NAME system_utest COMMAND system_utest)
