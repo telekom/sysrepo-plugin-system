@@ -13,7 +13,6 @@
 #include "change.h"
 #include "libyang/tree_data.h"
 #include "load.h"
-#include "srpc/node.h"
 #include "srpc/types.h"
 #include "store.h"
 #include "sysrepo_types.h"
