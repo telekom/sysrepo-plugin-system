@@ -102,6 +102,14 @@ find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
 target_link_libraries(
+    ${PLUGIN_LIRBARY_NAME}
+    ${SYSREPO_LIBRARIES}
+    ${LIBYANG_LIBRARIES}
+    ${SRPC_LIBRARIES}
+    ${UMGMT_LIBRARIES}
+)
+
+target_link_libraries(
     ${PROJECT_NAME}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
