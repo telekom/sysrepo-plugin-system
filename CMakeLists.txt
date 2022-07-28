@@ -84,10 +84,8 @@ install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
 if(NOT PLUGIN)
     add_executable(
         ${CMAKE_PROJECT_NAME}
-        ${SOURCES}
         src/main.c
     )
-    target_link_libraries(${CMAKE_PROJECT_NAME} ${PLUGIN_LIRBARY_NAME})
     install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
 endif()
 
@@ -101,6 +99,7 @@ find_package(UMGMT REQUIRED)
 find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
+# link plugin library
 target_link_libraries(
     ${PLUGIN_LIRBARY_NAME}
     ${SYSREPO_LIBRARIES}
@@ -109,8 +108,10 @@ target_link_libraries(
     ${UMGMT_LIBRARIES}
 )
 
+# link exe
 target_link_libraries(
-    ${PROJECT_NAME}
+    ${CMAKE_PROJECT_NAME}
+    ${PLUGIN_LIRBARY_NAME}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SRPC_LIBRARIES}
