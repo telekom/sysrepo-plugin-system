@@ -1,46 +1,24 @@
-# source: https://github.com/FreeRDP/FreeRDP
-# Module defines
-#  LIBSYSTEMD_FOUND - libsystemd libraries and includes found
-#  LIBSYSTEMD_INCLUDE_DIRS - the libsystemd include directories
-#  LIBSYSTEMD_LIBRARIES - the libsystemd libraries
-#
-# Cache entries:
-#   LIBSYSTEMD_LIBRARY      - detected libsystemd library
-#   LIBSYSTEMD_INCLUDE_DIR   - detected libsystemd include dir(s)
-#
-
-if(LIBSYSTEMD_INCLUDE_DIR AND LIBSYSTEMD_LIBRARY)
-    # in cache already
-    set(LIBSYSTEMD_FOUND TRUE)
-    set(LIBSYSTEMD_LIBRARIES ${LIBSYSTEMD_LIBRARY})
-    set(LIBSYSTEMD_INCLUDE_DIRS ${LIBSYSTEMD_INCLUDE_DIR})
+if(SYSTEMD_LIBRARIES AND SYSTEMD_INCLUDE_DIRS)
+    set(SYSTEMD_FOUND TRUE)
 else()
-
-    find_package(PkgConfig)
-	if(PKG_CONFIG_FOUND)
-		pkg_check_modules(_LIBSYSTEMD_PC QUIET "libsystemd")
-	endif(PKG_CONFIG_FOUND)
-
-	find_path(LIBSYSTEMD_INCLUDE_DIR systemd/sd-journal.h
-			${_LIBSYSTEMD_PC_INCLUDE_DIRS}
-			/usr/include
-			/usr/local/include
-	)
-	mark_as_advanced(LIBSYSTEMD_INCLUDE_DIR)
-
-	find_library (LIBSYSTEMD_LIBRARY NAMES systemd
-			PATHS
-			${_LIBSYSTEMD_PC_LIBDIR}
+    find_path(
+        SYSTEMD_INCLUDE_DIR
+        NAMES systemd/sd-bus.h
+        PATHS /usr/include /usr/local/include /opt/local/include /sw/include ${CMAKE_INCLUDE_PATH} ${CMAKE_INSTALL_PREFIX}/include
     )
-    mark_as_advanced(LIBSYSTEMD_LIBRARY)
 
-    include(FindPackageHandleStandardArgs)
-    FIND_PACKAGE_HANDLE_STANDARD_ARGS(libsystemd DEFAULT_MSG LIBSYSTEMD_LIBRARY LIBSYSTEMD_INCLUDE_DIR)
+    find_library(
+        SYSTEMD_LIBRARY
+        NAMES systemd
+        PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64 /opt/local/lib /sw/lib ${CMAKE_LIBRARY_PATH} ${CMAKE_INSTALL_PREFIX}/lib
+    )
 
-    if(libsystemd_FOUND)
-        set(LIBSYSTEMD_LIBRARIES ${LIBSYSTEMD_LIBRARY})
-        set(LIBSYSTEMD_INCLUDE_DIRS ${LIBSYSTEMD_INCLUDE_DIR})
-    endif()
+    if(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
+        set(SYSTEMD_FOUND TRUE)
+    else(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
+        set(SYSTEMD_FOUND FALSE)
+    endif(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
 
+    set(SYSTEMD_INCLUDE_DIRS ${SYSTEMD_INCLUDE_DIR})
+    set(SYSTEMD_LIBRARIES ${SYSTEMD_LIBRARY})
 endif()
-
