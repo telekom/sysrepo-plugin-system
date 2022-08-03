@@ -19,11 +19,11 @@ add_executable(
 target_link_libraries(
     system_utest
 
+    ${PLUGIN_LIRBARY_NAME}
     ${CMOCKA_LIBRARIES}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSTEMD_LIBRARIES}
-    ${PLUGIN_LIRBARY_NAME}
 
     "-Wl,--wrap=gethostname"
     "-Wl,--wrap=sethostname"
