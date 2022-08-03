@@ -11,9 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// sd-bus
-#include <systemd/sd-bus.h>
-
 // plugin code
 #include "context.h"
 
