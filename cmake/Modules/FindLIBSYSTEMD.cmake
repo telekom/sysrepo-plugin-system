@@ -1,24 +1,24 @@
-# - Try to find SYSTEMD
-# Once done, this will define
-#
-#  SYSTEMD_FOUND - system has SYSTEMD
-#  SYSTEMD_INCLUDE_DIRS - the SYSTEMD include directories
-#  SYSTEMD_LIBRARIES - the SYSTEMD library
-find_package(PkgConfig)
+if(SYSTEMD_LIBRARIES AND SYSTEMD_INCLUDE_DIRS)
+    set(SYSTEMD_FOUND TRUE)
+else()
+    find_path(
+        SYSTEMD_INCLUDE_DIR
+        NAMES systemd/sd-bus.h
+        PATHS /usr/include /usr/local/include /opt/local/include /sw/include ${CMAKE_INCLUDE_PATH} ${CMAKE_INSTALL_PREFIX}/include
+    )
 
-pkg_check_modules(SYSTEMD_PKGCONF libsystemd)
+    find_library(
+        SYSTEMD_LIBRARY
+        NAMES systemd
+        PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64 /opt/local/lib /sw/lib ${CMAKE_LIBRARY_PATH} ${CMAKE_INSTALL_PREFIX}/lib
+    )
 
-find_path(SYSTEMD_INCLUDE_DIRS
-  NAMES systemd/sd-bus.h
-  PATHS ${SYSTEMD_PKGCONF_INCLUDE_DIRS}
-)
+    if(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
+        set(SYSTEMD_FOUND TRUE)
+    else(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
+        set(SYSTEMD_FOUND FALSE)
+    endif(SYSTEMD_INCLUDE_DIR AND SYSTEMD_LIBRARY)
 
-find_library(SYSTEMD_LIBRARIES
-  NAMES systemd
-  PATHS ${SYSTEMD_PKGCONF_LIBRARY_DIRS}
-)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Systemd DEFAULT_MSG SYSTEMD_INCLUDE_DIRS SYSTEMD_LIBRARIES)
-
-mark_as_advanced(SYSTEMD_INCLUDE_DIRS SYSTEMD_LIBRARIES)
+    set(SYSTEMD_INCLUDE_DIRS ${SYSTEMD_INCLUDE_DIR})
+    set(SYSTEMD_LIBRARIES ${SYSTEMD_LIBRARY})
+endif()
