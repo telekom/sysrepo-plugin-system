@@ -30,7 +30,6 @@ target_link_libraries(
     "-Wl,--wrap=unlink"
     "-Wl,--wrap=symlink"
     "-Wl,--wrap=sr_apply_changes"
-    "-Wl,--wrap=sd_bus_open_system"
 )
 
 add_test(NAME system_utest COMMAND system_utest)
