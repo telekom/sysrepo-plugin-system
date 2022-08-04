@@ -730,7 +730,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 	srpc_check_status_t user_check_status = srpc_check_status_none, key_check_status = srpc_check_status_none;
 
 	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
-	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local_users", &local_users_enabled), error_out);
+	SRPC_SAFE_CALL(srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local-users", &local_users_enabled), error_out);
 
 	if (authentication_enabled) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
