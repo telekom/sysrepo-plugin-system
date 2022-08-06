@@ -271,7 +271,8 @@ int system_authentication_store_user_authorized_key(system_ctx_t *ctx, const cha
 	}
 	ssh_dir = opendir(ssh_path_buffer);
 	if (ssh_dir) {
-		LL_FOREACH (head, iter){
+		LL_FOREACH(head, iter)
+		{
 			char ssh_data_buffer[PATH_MAX] = {0};
 			if (snprintf(key_path_buffer, sizeof(key_path_buffer), "%s/%s", ssh_path_buffer, iter->key.name) < 0) {
 				goto error_out;
@@ -290,7 +291,8 @@ int system_authentication_store_user_authorized_key(system_ctx_t *ctx, const cha
 			SRPLG_LOG_ERR(PLUGIN_NAME, "mkdir() error (%d)", error);
 			goto error_out;
 		}
-		LL_FOREACH (head, iter){
+		LL_FOREACH(head, iter)
+		{
 			char ssh_data_buffer[PATH_MAX] = {0};
 			if (snprintf(key_path_buffer, sizeof(key_path_buffer), "%s/%s", ssh_path_buffer, iter->key.name) < 0) {
 				goto error_out;
@@ -303,8 +305,8 @@ int system_authentication_store_user_authorized_key(system_ctx_t *ctx, const cha
 			fclose(destFile);
 		}
 	} else {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "opendir() failed");
-			goto error_out;
+		SRPLG_LOG_ERR(PLUGIN_NAME, "opendir() failed");
+		goto error_out;
 	}
 
 	goto out;

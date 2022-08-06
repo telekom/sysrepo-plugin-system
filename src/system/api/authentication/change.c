@@ -162,7 +162,8 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	}
 
 	// after user changes handle authentication changes
-
+#else
+	goto error_out;
 #endif
 
 	goto out;
