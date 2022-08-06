@@ -691,11 +691,11 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 			}
 			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:name failed: %d", error);
 				goto error_out;
 			}
 
-			// address change
+			// password change
 			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/password", xpath);
 			if (error < 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
@@ -703,11 +703,11 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 			}
 			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for password failed: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:password failed: %d", error);
 				goto error_out;
 			}
 
-			// port change
+			// authorized-key change
 			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key", xpath);
 			if (error < 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
@@ -715,7 +715,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 			}
 			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key failed: %d", error);
 				goto error_out;
 			}
 
@@ -744,7 +744,19 @@ out:
 		system_local_user_list_free(&ctx->temp_users.deleted);
 	}
 
+	// key lists
+	if (ctx->temp_users.keys.created) {
+		system_local_user_list_free(&ctx->temp_users.keys.created);
+	}
+	if (ctx->temp_users.keys.modified) {
+		system_local_user_list_free(&ctx->temp_users.keys.modified);
+	}
+	if (ctx->temp_users.keys.deleted) {
+		system_local_user_list_free(&ctx->temp_users.keys.deleted);
+	}
+
 	ctx->temp_users.created = ctx->temp_users.modified = ctx->temp_users.deleted = NULL;
+	ctx->temp_users.keys.created = ctx->temp_users.keys.modified = ctx->temp_users.keys.deleted = NULL;
 
 	return error;
 }

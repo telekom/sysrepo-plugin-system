@@ -2,12 +2,7 @@
     <authentication>
         <user>
             <name>newuser</name>
-            <password>$6$JxBnEV8KhWx3Yp5a$aBXr1nlTUNytU2unAnDYKA8zxR2ywGibZM6DAFoq.3Dato.DtHJw/Lu3FacPy34btWZ/Od.l38WZ3lN1TLvey.</password>
-            <authorized-key>
-                <name>githubKey</name>
-                <algorithm>ssh-ed25519</algorithm>
-                <key-data>AAAAC3NzaC1lZDI1NTE5AAAAIDYOn2q50JSarbUYp+r9EnZzv1+wKuXUoMSK19E4B64l</key-data>
-            </authorized-key>
+            <password>$6$3Si/1CLLk6M20qjt$k27edpc/oP.4WYHOGJNn1SOhOa3vv0h3I7459BmIGZHjeC367RExb9wpeCs7RKyDWwmZA80So2SDINvVdSdjj0</password> <!-- NEWuser -->
         </user>
     </authentication>
 </system>

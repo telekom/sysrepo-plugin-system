@@ -14,6 +14,7 @@
 #include "common.h"
 #include "libyang/tree_data.h"
 #include "system/api/authentication/store.h"
+#include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
 #include "types.h"
@@ -30,6 +31,7 @@
 #include <utlist.h>
 
 static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size);
+static int system_authentication_change_user_authorized_key_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size);
 static int delete_home_directory(const char *username);
 static int system_authentication_authorized_key_change_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 static int system_authentication_authorized_key_change_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
@@ -92,7 +94,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		}
 	}
 
-#define APPLY_CHANGES
+	// #define APPLY_CHANGES
 
 #ifdef APPLY_CHANGES
 
@@ -425,6 +427,46 @@ out:
 	return error;
 }
 
+static int system_authentication_change_user_authorized_key_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size)
+{
+	int error = 0;
+
+	const char *name = NULL;
+
+	sr_xpath_ctx_t xpath_ctx = {0};
+	char path_buffer[PATH_MAX] = {0};
+
+	// get node full path
+	error = (lyd_path(node, LYD_PATH_STD, path_buffer, sizeof(path_buffer)) == NULL);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "lyd_path() failed");
+		goto error_out;
+	}
+
+	// extract key
+	name = sr_xpath_key_value(path_buffer, "authorized-key", "name", &xpath_ctx);
+	if (!name) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_xpath_key_value() failed");
+		goto error_out;
+	}
+
+	// store to buffer
+	error = snprintf(name_buffer, buffer_size, "%s", name);
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed");
+		goto error_out;
+	}
+
+	error = 0;
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+	return error;
+}
+
 static int delete_home_directory(const char *username)
 {
 	int error = 0;
@@ -467,23 +509,125 @@ static int system_authentication_authorized_key_change_name(void *priv, sr_sessi
 	system_ctx_t *ctx = priv;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
+	char username_buffer[33] = {0};
+	system_local_user_element_t *user_el = NULL;
+	system_local_user_t temp_user = {0};
+	system_authorized_key_t temp_key = {0};
 
 	assert(strcmp(node_name, "name") == 0);
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
+	// get username
+	error = system_authentication_change_user_extract_name(session, change_ctx->node, username_buffer, sizeof(username_buffer));
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_change_user_extract_name() error (%d)", error);
+		goto error_out;
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Recieved user name: %s", username_buffer);
+
+	// setup data
+	temp_user.name = username_buffer;
+	temp_key.name = (char *) node_value;
+
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
+			// check for user in the list
+			user_el = system_local_user_list_find(ctx->temp_users.keys.created, username_buffer);
+			if (!user_el) {
+				// user does not exist - create one
+
+				// add user to the list
+				error = system_local_user_list_add(&ctx->temp_users.keys.created, temp_user);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
+					goto error_out;
+				}
+
+				// get user element
+				user_el = system_local_user_list_find(ctx->temp_users.keys.created, username_buffer);
+				if (!user_el) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
+					goto error_out;
+				}
+			}
+
+			// add new key to the user keys list
+			error = system_authorized_key_list_add(&user_el->user.key_head, temp_key);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case SR_OP_MODIFIED:
+			// check for user in the list
+			user_el = system_local_user_list_find(ctx->temp_users.keys.modified, username_buffer);
+			if (!user_el) {
+				// user does not exist - create one
+
+				// add user to the list
+				error = system_local_user_list_add(&ctx->temp_users.keys.modified, temp_user);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
+					goto error_out;
+				}
+
+				// get user element
+				user_el = system_local_user_list_find(ctx->temp_users.keys.modified, username_buffer);
+				if (!user_el) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
+					goto error_out;
+				}
+			}
+
+			// add new key to the user keys list
+			error = system_authorized_key_list_add(&user_el->user.key_head, temp_key);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case SR_OP_DELETED:
+			// check for user in the list
+			user_el = system_local_user_list_find(ctx->temp_users.keys.deleted, username_buffer);
+			if (!user_el) {
+				// user does not exist - create one
+
+				// add user to the list
+				error = system_local_user_list_add(&ctx->temp_users.keys.deleted, temp_user);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_add() error (%d)", error);
+					goto error_out;
+				}
+
+				// get user element
+				user_el = system_local_user_list_find(ctx->temp_users.keys.deleted, username_buffer);
+				if (!user_el) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
+					goto error_out;
+				}
+			}
+
+			// add new key to the user keys list
+			error = system_authorized_key_list_add(&user_el->user.key_head, temp_key);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_add() error (%d)", error);
+				goto error_out;
+			}
 			break;
 		case SR_OP_MOVED:
 			break;
 	}
 
-	return -1;
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
+
+	return error;
 }
 
 static int system_authentication_authorized_key_change_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
@@ -508,7 +652,7 @@ static int system_authentication_authorized_key_change_algorithm(void *priv, sr_
 			break;
 	}
 
-	return -1;
+	return error;
 }
 
 static int system_authentication_authorized_key_change_key_data(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
@@ -533,5 +677,5 @@ static int system_authentication_authorized_key_change_key_data(void *priv, sr_s
 			break;
 	}
 
-	return -1;
+	return error;
 }

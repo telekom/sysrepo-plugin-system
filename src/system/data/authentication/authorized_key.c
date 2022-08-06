@@ -28,9 +28,10 @@ int system_authorized_key_set_name(system_authorized_key_t *key, const char *nam
 
 	if (name) {
 		key->name = strdup(name);
+		return key->name == NULL;
 	}
 
-	return key->name == NULL;
+	return 0;
 }
 
 int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char *algorithm)
@@ -42,9 +43,10 @@ int system_authorized_key_set_algorithm(system_authorized_key_t *key, const char
 
 	if (algorithm) {
 		key->algorithm = strdup(algorithm);
+		return key->algorithm == NULL;
 	}
 
-	return key->algorithm == NULL;
+	return 0;
 }
 
 int system_authorized_key_set_data(system_authorized_key_t *key, const char *data)
@@ -56,9 +58,10 @@ int system_authorized_key_set_data(system_authorized_key_t *key, const char *dat
 
 	if (data) {
 		key->data = strdup(data);
+		return key->data == NULL;
 	}
 
-	return key->data == NULL;
+	return 0;
 }
 
 void system_authorized_key_free(system_authorized_key_t *key)
