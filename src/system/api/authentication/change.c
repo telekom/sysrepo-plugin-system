@@ -43,6 +43,8 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	int error = 0;
 	um_db_t *user_db = NULL;
 	um_user_t *temp_user = NULL;
+	bool has_user_changes = false;
+	bool has_key_changes = false;
 
 	system_local_user_element_t *user_iter = NULL;
 	system_authorized_key_element_t *key_iter = NULL;
@@ -95,7 +97,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		}
 	}
 
-	// #define APPLY_CHANGES
+#define APPLY_CHANGES
 
 #ifdef APPLY_CHANGES
 
@@ -112,6 +114,10 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_load() error (%d)", error);
 		goto error_out;
+	}
+
+	if (ctx->temp_users.modified || ctx->temp_users.deleted) {
+		has_user_changes = true;
 	}
 
 	// for modified users - iterate and change passwords
@@ -158,13 +164,27 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 		}
 	}
 
-	error = um_db_store(user_db);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_store() error (%d)", error);
-		goto error_out;
+	if (has_user_changes) {
+		error = um_db_store(user_db);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "um_db_store() error (%d)", error);
+			goto error_out;
+		}
 	}
 
-	// after user changes handle authentication changes
+	LL_FOREACH(ctx->temp_users.keys.created, user_iter)
+	{
+		error = system_authentication_store_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user_authorized_key() error (%d) for user %s", error, user_iter->user.name);
+			goto error_out;
+		}
+	}
+
+	LL_FOREACH(ctx->temp_users.keys.deleted, user_iter)
+	{
+		// TODO: remove key from user's .ssh/ directory
+	}
 #else
 	goto error_out;
 #endif

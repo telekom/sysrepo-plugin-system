@@ -310,6 +310,7 @@ int system_authentication_store_user_authorized_key(system_ctx_t *ctx, const cha
 		key_file_opened = false;
 	}
 
+	error = 0;
 	goto out;
 
 error_out:
