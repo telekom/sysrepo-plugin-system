@@ -14,6 +14,7 @@
 #include "common.h"
 #include "libyang/tree_data.h"
 #include "system/api/authentication/store.h"
+#include "system/data/authentication/authorized_key.h"
 #include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
@@ -637,20 +638,73 @@ static int system_authentication_authorized_key_change_algorithm(void *priv, sr_
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
 
+	char username_buffer[33] = {0};
+	char key_buffer[PATH_MAX] = {0};
+
+	system_local_user_element_t *user_el = NULL;
+	system_authorized_key_element_t *key_el = NULL;
+	system_local_user_element_t **users_list = NULL;
+
 	assert(strcmp(node_name, "algorithm") == 0);
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
+	// get username
+	error = system_authentication_change_user_extract_name(session, change_ctx->node, username_buffer, sizeof(username_buffer));
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_change_user_extract_name() error (%d)", error);
+		goto error_out;
+	}
+
+	// get key name
+	error = system_authentication_change_user_authorized_key_extract_name(session, change_ctx->node, key_buffer, sizeof(key_buffer));
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_change_user_authorized_key_extract_name() error (%d)", error);
+		goto error_out;
+	}
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Recieved user name: %s", username_buffer);
+
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
+			users_list = &ctx->temp_users.keys.created;
 			break;
 		case SR_OP_MODIFIED:
+			users_list = &ctx->temp_users.keys.modified;
 			break;
 		case SR_OP_DELETED:
+			// if deleted, information not needed
+			goto out;
 			break;
 		case SR_OP_MOVED:
 			break;
 	}
+
+	user_el = system_local_user_list_find(*users_list, username_buffer);
+	if (!user_el) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_find() failed");
+		goto error_out;
+	}
+
+	key_el = system_authorized_key_list_find(user_el->user.key_head, key_buffer);
+	if (!key_el) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_list_find() failed");
+		goto error_out;
+	}
+
+	// set algorithm
+	error = system_authorized_key_set_algorithm(&key_el->key, node_value);
+	if (error) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "system_authorized_key_set_algorithm() error (%d)", error);
+		goto error_out;
+	}
+
+	goto out;
+
+error_out:
+	error = -1;
+
+out:
 
 	return error;
 }
@@ -661,6 +715,7 @@ static int system_authentication_authorized_key_change_key_data(void *priv, sr_s
 	system_ctx_t *ctx = priv;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
+	char username_buffer[33] = {0};
 
 	assert(strcmp(node_name, "key-data") == 0);
 
