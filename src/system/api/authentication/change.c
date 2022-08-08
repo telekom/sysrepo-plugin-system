@@ -41,6 +41,7 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 	um_db_t *user_db = NULL;
 	um_user_t *temp_user = NULL;
 	bool has_user_changes = false;
+	char file_path_buffer[PATH_MAX] = {0};
 
 	system_local_user_element_t *user_iter = NULL;
 	system_authorized_key_element_t *key_iter = NULL;
@@ -188,7 +189,20 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx)
 
 	LL_FOREACH(ctx->temp_users.keys.deleted, user_iter)
 	{
-		// TODO: remove key from user's .ssh/ directory
+		LL_FOREACH(user_iter->user.key_head, key_iter)
+		{
+			if (snprintf(file_path_buffer, sizeof(file_path_buffer), "/home/%s/.ssh/%s", user_iter->user.name, key_iter->key.name) < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error");
+				goto error_out;
+			}
+
+			// file path written - remove file
+			error = remove(file_path_buffer);
+			if (error != 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "remove() failed (%d)", error);
+				goto error_out;
+			}
+		}
 	}
 #else
 	goto error_out;
