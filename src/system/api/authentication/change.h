@@ -22,7 +22,6 @@ int system_authentication_user_apply_changes(system_ctx_t *ctx);
 
 int system_authentication_change_user_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 int system_authentication_change_user_password(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
-// int system_authentication_change_user_authorized_key(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 int system_authentication_user_change_authorized_key_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 int system_authentication_user_change_authorized_key_algorithm(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 int system_authentication_user_change_authorized_key_key_data(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);

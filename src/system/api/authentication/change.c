@@ -366,67 +366,6 @@ out:
 	return error;
 }
 
-// int system_authentication_change_user_authorized_key(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
-// {
-// 	int error = 0;
-// 	system_ctx_t *ctx = priv;
-// 	const char *node_name = LYD_NAME(change_ctx->node);
-// 	const char *node_value = lyd_get_value(change_ctx->node);
-// 	char xpath_buffer[PATH_MAX] = {0};
-// 	char path_buffer[PATH_MAX] = {0};
-
-// 	const char *node_path = lyd_path(change_ctx->node, LYD_PATH_STD, path_buffer, sizeof(path_buffer));
-
-// 	// assert(strcmp(node_name, "authorized-key") == 0);
-
-// 	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
-
-// 	// name change
-// 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", node_path);
-// 	if (error < 0) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-// 		goto error_out;
-// 	}
-// 	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_name);
-// 	if (error) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
-// 		goto error_out;
-// 	}
-
-// 	// algorithm change
-// 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/algorithm", node_path);
-// 	if (error < 0) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-// 		goto error_out;
-// 	}
-// 	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_algorithm);
-// 	if (error) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for algorithm failed: %d", error);
-// 		goto error_out;
-// 	}
-
-// 	// key-data change
-// 	error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/key-data", node_path);
-// 	if (error < 0) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
-// 		goto error_out;
-// 	}
-// 	error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_authorized_key_change_key_data);
-// 	if (error) {
-// 		SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for key-data failed: %d", error);
-// 		goto error_out;
-// 	}
-
-// 	goto out;
-
-// error_out:
-// 	error = -1;
-
-// out:
-
-// 	return error;
-// }
-
 static int system_authentication_change_user_extract_name(sr_session_ctx_t *session, const struct lyd_node *node, char *name_buffer, size_t buffer_size)
 {
 	int error = 0;
