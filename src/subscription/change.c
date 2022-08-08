@@ -655,6 +655,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 
 	bool authentication_enabled = false;
 	bool local_users_enabled = false;
+	system_local_user_element_t *user_iter = NULL;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -683,6 +684,23 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				goto error_out;
 			}
 
+			// also key users list
+			error = system_authentication_load_user(ctx, &ctx->temp_users.keys.modified);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user() error (%d)", error);
+				goto error_out;
+			}
+
+			// load all keys for the modified list
+			LL_FOREACH(ctx->temp_users.keys.modified, user_iter)
+			{
+				error = system_authentication_load_user_authorized_key(ctx, user_iter->user.name, &user_iter->user.key_head);
+				if (error) {
+					SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_load_user_authorized_key() error (%d) for user %s", error, user_iter->user.name);
+					goto error_out;
+				}
+			}
+
 			// name change
 			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/name", xpath);
 			if (error < 0) {
@@ -707,15 +725,39 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				goto error_out;
 			}
 
-			// authorized-key change
-			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key", xpath);
+			// authorized-key name change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key//name", xpath);
 			if (error < 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_authorized_key);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_name);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key failed: %d", error);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:name failed: %d", error);
+				goto error_out;
+			}
+
+			// authorized-key algorithm change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key//algorithm", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_algorithm);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:algorithm failed: %d", error);
+				goto error_out;
+			}
+
+			// authorized-key key-data change
+			error = snprintf(xpath_buffer, sizeof(xpath_buffer), "%s/authorized-key//key-data", xpath);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
+				goto error_out;
+			}
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_key_data);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:key-data failed: %d", error);
 				goto error_out;
 			}
 

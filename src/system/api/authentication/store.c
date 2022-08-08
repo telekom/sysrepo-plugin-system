@@ -14,6 +14,7 @@
 #include "common.h"
 #include "umgmt/group.h"
 
+#include <asm-generic/errno-base.h>
 #include <linux/limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -266,48 +267,47 @@ int system_authentication_store_user_authorized_key(system_ctx_t *ctx, const cha
 	FILE *key_file = NULL;
 	bool key_file_opened = false;
 
-	error = snprintf(ssh_path_buffer, sizeof(ssh_path_buffer), "/home/%s/.ssh", user);
-	if (error < 0) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed");
-		goto error_out;
-	}
-
-	ssh_dir = opendir(ssh_path_buffer);
-	if (errno == ENOENT) {
-		// create directory
-		error = mkdir(ssh_path_buffer, 0700);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "mkdir() error (%d)", error);
-			goto error_out;
-		}
-	} else {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "opendir() failed");
-		goto error_out;
-	}
-
-	// create key files
-	LL_FOREACH(head, iter)
-	{
-		if ((error = snprintf(key_path_buffer, sizeof(key_path_buffer), "%s/%s", ssh_path_buffer, iter->key.name)) < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
-			goto error_out;
-		}
-
-		key_file = fopen(key_path_buffer, "w");
-		if (!key_file) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "fopen() failed");
-			goto error_out;
-		}
-		key_file_opened = true;
-
-		error = fprintf(key_file, "%s %s", iter->key.algorithm, iter->key.data);
+	if (strcmp(user, "root")) {
+		error = snprintf(ssh_path_buffer, sizeof(ssh_path_buffer), "/home/%s/.ssh", user);
 		if (error < 0) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "fprintf() error (%d)", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() failed");
 			goto error_out;
 		}
 
-		fclose(key_file);
-		key_file_opened = false;
+		ssh_dir = opendir(ssh_path_buffer);
+		if (errno == ENOENT) {
+			// create directory
+			error = mkdir(ssh_path_buffer, 0700);
+			if (error) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "mkdir() error (%d) for user %s:%s", error, user, ssh_path_buffer);
+				goto error_out;
+			}
+		}
+
+		// create key files
+		LL_FOREACH(head, iter)
+		{
+			if ((error = snprintf(key_path_buffer, sizeof(key_path_buffer), "%s/%s", ssh_path_buffer, iter->key.name)) < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error (%d)", error);
+				goto error_out;
+			}
+
+			key_file = fopen(key_path_buffer, "w");
+			if (!key_file) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "fopen() failed");
+				goto error_out;
+			}
+			key_file_opened = true;
+
+			error = fprintf(key_file, "%s %s", iter->key.algorithm, iter->key.data);
+			if (error < 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "fprintf() error (%d)", error);
+				goto error_out;
+			}
+
+			fclose(key_file);
+			key_file_opened = false;
+		}
 	}
 
 	error = 0;
