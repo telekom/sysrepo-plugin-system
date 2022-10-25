@@ -13,7 +13,7 @@
 #include "change.h"
 #include "plugin/common.h"
 #include "libyang/tree_data.h"
-#include "system/api/authentication/store.h"
+#include "plugin/api/system/authentication/store.h"
 #include "system/data/authentication/authorized_key.h"
 #include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/local_user.h"

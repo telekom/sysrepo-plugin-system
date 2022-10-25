@@ -15,16 +15,16 @@
 #include "plugin/context.h"
 
 // store API
-#include "system/api/store.h"
+#include "plugin/api/system/store.h"
 
 // load API
-#include "system/api/load.h"
+#include "plugin/api/system/load.h"
 
 // check API
-#include "system/api/check.h"
+#include "plugin/api/system/check.h"
 
 // ntp load API
-#include "system/api/dns_resolver/load.h"
+#include "plugin/api/system/dns_resolver/load.h"
 
 // init functionality
 static int setup(void **state);

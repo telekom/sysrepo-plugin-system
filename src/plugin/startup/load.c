@@ -18,12 +18,12 @@
 // API for getting system data
 #include "srpc/common.h"
 #include "srpc/ly_tree.h"
-#include "system/api/load.h"
-#include "system/api/authentication/load.h"
-#include "system/api/dns_resolver/load.h"
+#include "plugin/api/system/load.h"
+#include "plugin/api/system/authentication/load.h"
+#include "plugin/api/system/dns_resolver/load.h"
 
 // data manipulation
-#include "system/api/ntp/load.h"
+#include "plugin/api/system/ntp/load.h"
 #include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/local_user/list.h"
 #include "system/data/ip_address.h"

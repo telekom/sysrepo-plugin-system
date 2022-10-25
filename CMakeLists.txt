@@ -43,22 +43,22 @@ set(
     src/system/data/authentication/local_user/list.c
 
     # system API
-    src/system/api/load.c
-    src/system/api/check.c
-    src/system/api/store.c
-    src/system/api/change.c
-    src/system/api/ntp/load.c
-    src/system/api/ntp/check.c
-    src/system/api/ntp/store.c
-    src/system/api/ntp/change.c
-    src/system/api/dns_resolver/load.c
-    src/system/api/dns_resolver/check.c
-    src/system/api/dns_resolver/store.c
-    src/system/api/dns_resolver/change.c
-    src/system/api/authentication/load.c
-    src/system/api/authentication/check.c
-    src/system/api/authentication/store.c
-    src/system/api/authentication/change.c
+    src/plugin/api/system/load.c
+    src/plugin/api/system/check.c
+    src/plugin/api/system/store.c
+    src/plugin/api/system/change.c
+    src/plugin/api/system/ntp/load.c
+    src/plugin/api/system/ntp/check.c
+    src/plugin/api/system/ntp/store.c
+    src/plugin/api/system/ntp/change.c
+    src/plugin/api/system/dns_resolver/load.c
+    src/plugin/api/system/dns_resolver/check.c
+    src/plugin/api/system/dns_resolver/store.c
+    src/plugin/api/system/dns_resolver/change.c
+    src/plugin/api/system/authentication/load.c
+    src/plugin/api/system/authentication/check.c
+    src/plugin/api/system/authentication/store.c
+    src/plugin/api/system/authentication/change.c
 )
 
 # get sysrepo version

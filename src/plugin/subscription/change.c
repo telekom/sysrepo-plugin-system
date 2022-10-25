@@ -18,7 +18,7 @@
 #include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "sysrepo_types.h"
-#include "system/api/authentication/load.h"
+#include "plugin/api/system/authentication/load.h"
 #include "system/data/authentication/local_user/list.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
@@ -27,20 +27,20 @@
 #include "umgmt/db.h"
 
 // Load API
-#include "system/api/load.h"
-#include "system/api/dns_resolver/load.h"
-#include "system/api/ntp/load.h"
+#include "plugin/api/system/load.h"
+#include "plugin/api/system/dns_resolver/load.h"
+#include "plugin/api/system/ntp/load.h"
 
 // Change API
-#include "system/api/change.h"
-#include "system/api/dns_resolver/change.h"
-#include "system/api/ntp/change.h"
-#include "system/api/authentication/change.h"
+#include "plugin/api/system/change.h"
+#include "plugin/api/system/dns_resolver/change.h"
+#include "plugin/api/system/ntp/change.h"
+#include "plugin/api/system/authentication/change.h"
 
 // Store API
-#include "system/api/store.h"
-#include "system/api/dns_resolver/store.h"
-#include "system/api/ntp/store.h"
+#include "plugin/api/system/store.h"
+#include "plugin/api/system/dns_resolver/store.h"
+#include "plugin/api/system/ntp/store.h"
 
 #include <sysrepo.h>
 #include <sysrepo/xpath.h>
