@@ -251,6 +251,10 @@ out:
 		um_user_free(new_user);
 	}
 
+	if (!group_added && new_group) {
+		um_group_free(new_group);
+	}
+
 	if (db) {
 		um_db_free(db);
 	}
