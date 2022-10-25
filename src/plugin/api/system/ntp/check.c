@@ -13,7 +13,7 @@
 #include "check.h"
 #include "load.h"
 #include "plugin/common.h"
-#include "system/data/ntp/server/list.h"
+#include "plugin/data/system/ntp/server/list.h"
 
 #include <srpc.h>
 #include <utlist.h>

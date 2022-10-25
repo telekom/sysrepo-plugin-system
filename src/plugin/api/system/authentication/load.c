@@ -15,10 +15,10 @@
 #include "plugin/types.h"
 #include "plugin/common.h"
 
-#include "system/data/authentication/authorized_key/list.h"
-#include "system/data/authentication/authorized_key.h"
-#include "system/data/authentication/local_user/list.h"
-#include "system/data/authentication/local_user.h"
+#include "plugin/data/system/authentication/authorized_key/list.h"
+#include "plugin/data/system/authentication/authorized_key.h"
+#include "plugin/data/system/authentication/local_user/list.h"
+#include "plugin/data/system/authentication/local_user.h"
 #include "umgmt/user.h"
 
 #include <unistd.h>

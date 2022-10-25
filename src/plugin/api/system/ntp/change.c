@@ -16,8 +16,8 @@
 #include "libyang/tree_data.h"
 #include "sysrepo/xpath.h"
 #include "sysrepo_types.h"
-#include "system/data/ntp/server.h"
-#include "system/data/ntp/server/list.h"
+#include "plugin/data/system/ntp/server.h"
+#include "plugin/data/system/ntp/server/list.h"
 
 #include <assert.h>
 #include <sysrepo.h>

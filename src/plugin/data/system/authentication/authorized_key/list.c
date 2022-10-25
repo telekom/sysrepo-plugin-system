@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "list.h"
-#include "system/data/authentication/authorized_key.h"
+#include "plugin/data/system/authentication/authorized_key.h"
 
 #include <string.h>
 #include <stdlib.h>

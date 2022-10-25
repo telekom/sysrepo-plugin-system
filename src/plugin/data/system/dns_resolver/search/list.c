@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "list.h"
-#include "system/data/dns_resolver/search.h"
+#include "plugin/data/system/dns_resolver/search.h"
 
 #include <string.h>
 #include <stdlib.h>

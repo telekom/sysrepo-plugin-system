@@ -24,12 +24,12 @@
 
 // data manipulation
 #include "plugin/api/system/ntp/load.h"
-#include "system/data/authentication/authorized_key/list.h"
-#include "system/data/authentication/local_user/list.h"
-#include "system/data/ip_address.h"
-#include "system/data/dns_resolver/search/list.h"
-#include "system/data/dns_resolver/server/list.h"
-#include "system/data/ntp/server/list.h"
+#include "plugin/data/system/authentication/authorized_key/list.h"
+#include "plugin/data/system/authentication/local_user/list.h"
+#include "plugin/data/system/ip_address.h"
+#include "plugin/data/system/dns_resolver/search/list.h"
+#include "plugin/data/system/dns_resolver/server/list.h"
+#include "plugin/data/system/ntp/server/list.h"
 
 #include <sysrepo.h>
 #include <unistd.h>

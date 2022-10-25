@@ -14,8 +14,8 @@
 #include "plugin/common.h"
 
 // data
-#include "system/data/ntp/server.h"
-#include "system/data/ntp/server/list.h"
+#include "plugin/data/system/ntp/server.h"
+#include "plugin/data/system/ntp/server/list.h"
 
 #include <assert.h>
 #include <string.h>

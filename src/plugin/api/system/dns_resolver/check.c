@@ -15,8 +15,8 @@
 #include "srpc/types.h"
 #include "plugin/types.h"
 #include "plugin/common.h"
-#include "system/data/dns_resolver/search/list.h"
-#include "system/data/dns_resolver/server/list.h"
+#include "plugin/data/system/dns_resolver/search/list.h"
+#include "plugin/data/system/dns_resolver/server/list.h"
 
 #include <sysrepo.h>
 

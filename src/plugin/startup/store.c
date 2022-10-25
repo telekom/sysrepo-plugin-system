@@ -30,17 +30,17 @@
 #include "plugin/api/system/authentication/store.h"
 
 // data manipulation
-#include "system/data/authentication/authorized_key.h"
-#include "system/data/authentication/authorized_key/list.h"
-#include "system/data/authentication/local_user.h"
-#include "system/data/authentication/local_user/list.h"
-#include "system/data/ip_address.h"
-#include "system/data/dns_resolver/search.h"
-#include "system/data/dns_resolver/search/list.h"
-#include "system/data/dns_resolver/server.h"
-#include "system/data/dns_resolver/server/list.h"
-#include "system/data/ntp/server.h"
-#include "system/data/ntp/server/list.h"
+#include "plugin/data/system/authentication/authorized_key.h"
+#include "plugin/data/system/authentication/authorized_key/list.h"
+#include "plugin/data/system/authentication/local_user.h"
+#include "plugin/data/system/authentication/local_user/list.h"
+#include "plugin/data/system/ip_address.h"
+#include "plugin/data/system/dns_resolver/search.h"
+#include "plugin/data/system/dns_resolver/search/list.h"
+#include "plugin/data/system/dns_resolver/server.h"
+#include "plugin/data/system/dns_resolver/server/list.h"
+#include "plugin/data/system/ntp/server.h"
+#include "plugin/data/system/ntp/server/list.h"
 #include "plugin/types.h"
 
 #include <sysrepo.h>

@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "list.h"
-#include "system/data/authentication/local_user.h"
+#include "plugin/data/system/authentication/local_user.h"
 
 #include <string.h>
 #include <stdlib.h>

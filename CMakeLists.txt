@@ -30,17 +30,17 @@ set(
     src/plugin/subscription/rpc.c
 
     # data
-    src/system/data/ip_address.c
-    src/system/data/dns_resolver/search.c
-    src/system/data/dns_resolver/search/list.c
-    src/system/data/dns_resolver/server.c
-    src/system/data/dns_resolver/server/list.c
-    src/system/data/ntp/server.c
-    src/system/data/ntp/server/list.c
-    src/system/data/authentication/authorized_key.c
-    src/system/data/authentication/authorized_key/list.c
-    src/system/data/authentication/local_user.c
-    src/system/data/authentication/local_user/list.c
+    src/plugin/data/system/ip_address.c
+    src/plugin/data/system/dns_resolver/search.c
+    src/plugin/data/system/dns_resolver/search/list.c
+    src/plugin/data/system/dns_resolver/server.c
+    src/plugin/data/system/dns_resolver/server/list.c
+    src/plugin/data/system/ntp/server.c
+    src/plugin/data/system/ntp/server/list.c
+    src/plugin/data/system/authentication/authorized_key.c
+    src/plugin/data/system/authentication/authorized_key/list.c
+    src/plugin/data/system/authentication/local_user.c
+    src/plugin/data/system/authentication/local_user/list.c
 
     # system API
     src/plugin/api/system/load.c

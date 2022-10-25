@@ -14,10 +14,10 @@
 #include "plugin/common.h"
 
 // data
-#include "system/data/dns_resolver/server.h"
-#include "system/data/dns_resolver/server/list.h"
-#include "system/data/dns_resolver/search/list.h"
-#include "system/data/ip_address.h"
+#include "plugin/data/system/dns_resolver/server.h"
+#include "plugin/data/system/dns_resolver/server/list.h"
+#include "plugin/data/system/dns_resolver/search/list.h"
+#include "plugin/data/system/ip_address.h"
 
 #include <systemd/sd-bus.h>
 
