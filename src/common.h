@@ -17,6 +17,8 @@
 
 #define BASE_YANG_MODULE "ietf-system"
 
+#define IETF_SYSTEM_YANG_MODULE "ietf-system"
+
 #define SYSTEM_SYSTEM_CONTAINER_YANG_PATH "/" BASE_YANG_MODULE ":system"
 
 // rpc

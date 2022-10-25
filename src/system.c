@@ -134,10 +134,12 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	// operational getters
 	srpc_operational_t oper[] = {
 		{
+			IETF_SYSTEM_YANG_MODULE,
 			SYSTEM_STATE_PLATFORM_YANG_PATH "/*",
 			system_subscription_operational_platform,
 		},
 		{
+			IETF_SYSTEM_YANG_MODULE,
 			SYSTEM_STATE_CLOCK_YANG_PATH "/*",
 			system_subscription_operational_clock,
 		},

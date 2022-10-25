@@ -69,7 +69,7 @@ int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subsc
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = srpc_iterate_changes(ctx, session, xpath, system_change_contact);
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_contact, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
@@ -100,7 +100,7 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = srpc_iterate_changes(ctx, session, xpath, system_change_hostname);
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_hostname, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
@@ -131,7 +131,7 @@ int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		error = srpc_iterate_changes(ctx, session, xpath, system_change_location);
+		error = srpc_iterate_changes(ctx, session, xpath, system_change_location, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 			goto error_out;
@@ -168,7 +168,7 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
 
 		if (timezone_name_enabled) {
-			error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name);
+			error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() error (%d)", error);
 				goto error_out;
@@ -234,7 +234,7 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
 
 		if (ntp_enabled) {
-			SRPC_SAFE_CALL(srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled), error_out);
+			SRPC_SAFE_CALL(srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled, NULL, NULL), error_out);
 		}
 	}
 
@@ -297,7 +297,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_name);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_name, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
 				goto error_out;
@@ -309,7 +309,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_address);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_address, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for address failed: %d", error);
 				goto error_out;
@@ -322,7 +322,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 					SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 					goto error_out;
 				}
-				error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_port);
+				error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_port, NULL, NULL);
 				if (error) {
 					SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
 					goto error_out;
@@ -335,7 +335,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_association_type);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_association_type, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for association-type failed: %d", error);
 				goto error_out;
@@ -347,7 +347,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_iburst);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_iburst, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for iburst failed: %d", error);
 				goto error_out;
@@ -359,7 +359,7 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_prefer);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_ntp_change_server_prefer, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for prefer failed: %d", error);
 				goto error_out;
@@ -439,7 +439,7 @@ int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, ui
 			SRPLG_LOG_DBG(PLUGIN_NAME, "\t<%s>", iter->search.domain);
 		}
 
-		error = srpc_iterate_changes(ctx, session, xpath, system_dns_resolver_change_search);
+		error = srpc_iterate_changes(ctx, session, xpath, system_dns_resolver_change_search, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
 			goto error_out;
@@ -513,7 +513,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_name);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_name, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for name failed: %d", error);
 			goto error_out;
@@ -525,7 +525,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_address);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_address, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for address failed: %d", error);
 			goto error_out;
@@ -537,7 +537,7 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 			SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 			goto error_out;
 		}
-		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_port);
+		error = srpc_iterate_changes(ctx, session, xpath_buffer, system_dns_resolver_change_server_port, NULL, NULL);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for port failed: %d", error);
 			goto error_out;
@@ -707,7 +707,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_name, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:name failed: %d", error);
 				goto error_out;
@@ -719,7 +719,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_change_user_password, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:password failed: %d", error);
 				goto error_out;
@@ -731,7 +731,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_name);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_name, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:name failed: %d", error);
 				goto error_out;
@@ -743,7 +743,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_algorithm);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_algorithm, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:algorithm failed: %d", error);
 				goto error_out;
@@ -755,7 +755,7 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 				SRPLG_LOG_ERR(PLUGIN_NAME, "snprintf() error: %d", error);
 				goto error_out;
 			}
-			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_key_data);
+			error = srpc_iterate_changes(ctx, session, xpath_buffer, system_authentication_user_change_authorized_key_key_data, NULL, NULL);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for user:authorized-key:key-data failed: %d", error);
 				goto error_out;
