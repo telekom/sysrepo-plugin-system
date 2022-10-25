@@ -13,7 +13,6 @@
 #include "operational.h"
 #include "common.h"
 #include "ly_tree.h"
-#include "utils/memory.h"
 
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
@@ -155,10 +154,10 @@ static int system_get_platform_info(struct system_platform *platform)
 		return -1;
 	}
 
-	platform->os_name = xstrndup(uname_data.sysname, strnlen(uname_data.sysname, SYSTEM_UTS_LEN + 1));
-	platform->os_release = xstrndup(uname_data.release, strnlen(uname_data.release, SYSTEM_UTS_LEN + 1));
-	platform->os_version = xstrndup(uname_data.version, strnlen(uname_data.version, SYSTEM_UTS_LEN + 1));
-	platform->machine = xstrndup(uname_data.machine, strnlen(uname_data.machine, SYSTEM_UTS_LEN + 1));
+	platform->os_name = strndup(uname_data.sysname, strnlen(uname_data.sysname, SYSTEM_UTS_LEN + 1));
+	platform->os_release = strndup(uname_data.release, strnlen(uname_data.release, SYSTEM_UTS_LEN + 1));
+	platform->os_version = strndup(uname_data.version, strnlen(uname_data.version, SYSTEM_UTS_LEN + 1));
+	platform->machine = strndup(uname_data.machine, strnlen(uname_data.machine, SYSTEM_UTS_LEN + 1));
 
 	return 0;
 }
@@ -166,16 +165,16 @@ static int system_get_platform_info(struct system_platform *platform)
 static void system_free_platform_info(struct system_platform *platform)
 {
 	if (platform->os_name) {
-		FREE_SAFE(platform->os_name);
+		free(platform->os_name);
 	}
 	if (platform->os_release) {
-		FREE_SAFE(platform->os_release);
+		free(platform->os_release);
 	}
 	if (platform->os_version) {
-		FREE_SAFE(platform->os_version);
+		free(platform->os_version);
 	}
 	if (platform->machine) {
-		FREE_SAFE(platform->machine);
+		free(platform->machine);
 	}
 }
 

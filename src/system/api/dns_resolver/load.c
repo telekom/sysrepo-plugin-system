@@ -18,7 +18,6 @@
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/ip_address.h"
-#include "utils/memory.h"
 
 #include <systemd/sd-bus.h>
 
@@ -199,7 +198,7 @@ int system_dns_resolver_load_server(system_ctx_t *ctx, system_dns_server_element
 		}
 
 		// copy to the current server name
-		tmp_server.name = xstrdup(ip_buffer);
+		tmp_server.name = strdup(ip_buffer);
 
 		error = system_dns_server_list_add(head, tmp_server);
 		if (error) {

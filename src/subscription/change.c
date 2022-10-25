@@ -25,7 +25,6 @@
 #include "system/data/ntp/server/list.h"
 #include "types.h"
 #include "umgmt/db.h"
-#include "utils/memory.h"
 
 // Load API
 #include "system/api/load.h"

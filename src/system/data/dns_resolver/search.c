@@ -11,7 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "search.h"
-#include "utils/memory.h"
+#include <stdlib.h>
+#include <string.h>
 
 void system_dns_search_init(system_dns_search_t *search)
 {
@@ -26,7 +27,7 @@ int system_dns_search_set_domain(system_dns_search_t *search, const char *domain
 		free((void *) search->domain);
 	}
 
-	search->domain = xstrdup(domain);
+	search->domain = strdup(domain);
 
 	return error;
 }

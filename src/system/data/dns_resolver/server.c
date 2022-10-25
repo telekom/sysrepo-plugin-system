@@ -11,7 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "server.h"
-#include "utils/memory.h"
+#include <stdlib.h>
+#include <string.h>
 
 void system_dns_server_init(system_dns_server_t *server)
 {
@@ -26,7 +27,7 @@ int system_dns_server_set_name(system_dns_server_t *server, const char *name)
 		free((void *) server->name);
 	}
 
-	server->name = xstrdup(name);
+	server->name = strdup(name);
 
 	return error;
 }
@@ -40,7 +41,7 @@ int system_dns_server_set_address(system_dns_server_t *server, system_ip_address
 	if (server->address.value) {
 		free((void *) server->address.value);
 	}
-	server->address.value = xstrdup(address.value);
+	server->address.value = strdup(address.value);
 #endif
 
 	return error;

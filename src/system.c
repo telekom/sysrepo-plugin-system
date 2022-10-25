@@ -13,7 +13,6 @@
 #include <system.h>
 #include <common.h>
 #include <context.h>
-#include <utils/memory.h>
 
 // stdlib
 #include <stdbool.h>
@@ -53,7 +52,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	system_ctx_t *ctx = NULL;
 
 	// init context
-	ctx = xmalloc(sizeof(*ctx));
+	ctx = malloc(sizeof(*ctx));
 	*ctx = (system_ctx_t){0};
 
 	*private_data = ctx;
@@ -271,15 +270,7 @@ out:
 
 void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 {
-	int error = 0;
-
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
-	// save current running configuration into startup for next time when the plugin starts
-	error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-	}
-
-	FREE_SAFE(ctx);
+	free(ctx);
 }

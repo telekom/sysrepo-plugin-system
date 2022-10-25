@@ -11,9 +11,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "ip_address.h"
-#include "utils/memory.h"
 
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 void system_ip_address_init(system_ip_address_t *address)
 {

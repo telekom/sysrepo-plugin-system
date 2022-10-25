@@ -11,7 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "server.h"
-#include "utils/memory.h"
+#include <stdlib.h>
+#include <string.h>
 
 void system_ntp_server_init(system_ntp_server_t *server)
 {
@@ -27,7 +28,7 @@ int system_ntp_server_set_name(system_ntp_server_t *server, const char *name)
 	}
 
 	if (name) {
-		server->name = xstrdup(name);
+		server->name = strdup(name);
 	}
 
 	return error;
@@ -42,7 +43,7 @@ int system_ntp_server_set_address(system_ntp_server_t *server, const char *addre
 	}
 
 	if (address) {
-		server->address = xstrdup(address);
+		server->address = strdup(address);
 	}
 
 	return error;
@@ -57,7 +58,7 @@ int system_ntp_server_set_port(system_ntp_server_t *server, const char *port)
 	}
 
 	if (port) {
-		server->port = xstrdup(port);
+		server->port = strdup(port);
 	}
 
 	return error;
@@ -72,7 +73,7 @@ int system_ntp_server_set_association_type(system_ntp_server_t *server, const ch
 	}
 
 	if (association_type) {
-		server->association_type = xstrdup(association_type);
+		server->association_type = strdup(association_type);
 	}
 
 	return error;
@@ -86,7 +87,7 @@ int system_ntp_server_set_iburst(system_ntp_server_t *server, const char *iburst
 	}
 
 	if (iburst) {
-		server->iburst = xstrdup(iburst);
+		server->iburst = strdup(iburst);
 	}
 
 	return error;
@@ -101,7 +102,7 @@ int system_ntp_server_set_prefer(system_ntp_server_t *server, const char *prefer
 	}
 
 	if (prefer) {
-		server->prefer = xstrdup(prefer);
+		server->prefer = strdup(prefer);
 	}
 
 	return error;

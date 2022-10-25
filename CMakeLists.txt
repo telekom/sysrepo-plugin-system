@@ -19,7 +19,6 @@ set(
 
     src/system.c
     src/ly_tree.c
-    src/utils/memory.c
 
     # startup
     src/startup/load.c
