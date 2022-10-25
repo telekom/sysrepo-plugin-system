@@ -163,7 +163,7 @@ out:
 int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
-	system_ctx_t *ctx = (system_ctx_t *) private_data;
+	// system_ctx_t *ctx = (system_ctx_t *) private_data;
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
@@ -178,7 +178,7 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -190,7 +190,6 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		// get feature status
@@ -223,7 +222,6 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change servers were free'd and set to NULL
@@ -370,7 +368,6 @@ int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, ui
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change search values were free'd and set to NULL
@@ -430,7 +427,6 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change servers were free'd and set to NULL
@@ -515,10 +511,9 @@ out:
 int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
-	system_ctx_t *ctx = (system_ctx_t *) private_data;
+	// system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
@@ -529,16 +524,15 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_dns_resolver_attempts(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
-	system_ctx_t *ctx = (system_ctx_t *) private_data;
+	// system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
@@ -550,26 +544,26 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_authentication_user_authentication_order(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
 	int error = SR_ERR_OK;
-	system_ctx_t *ctx = (system_ctx_t *) private_data;
+	// system_ctx_t *ctx = (system_ctx_t *) private_data;
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
-		error = -1;
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
 	}
 
 	goto out;
+
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_authentication_user(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
