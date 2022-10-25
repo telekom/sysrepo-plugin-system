@@ -14,8 +14,9 @@
 #include <sysrepo.h>
 #include <signal.h>
 #include <unistd.h>
-#include <system.h>
 #include <common.h>
+
+#include "plugin.h"
 
 volatile int exit_application = 0;
 

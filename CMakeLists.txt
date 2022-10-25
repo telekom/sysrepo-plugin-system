@@ -17,7 +17,7 @@ include_directories(
 set(
     SOURCES
 
-    src/system.c
+    src/plugin.c
     src/ly_tree.c
 
     # startup
