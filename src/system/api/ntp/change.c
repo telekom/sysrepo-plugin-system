@@ -39,17 +39,17 @@ int system_ntp_change_enabled(void *priv, sr_session_ctx_t *session, const srpc_
 		case SR_OP_CREATED:
 		case SR_OP_MODIFIED:
 			if (enabled) {
-				SRPC_SAFE_CALL(system("systemctl start ntp"), error_out);
-				SRPC_SAFE_CALL(system("systemctl enable ntp"), error_out);
+				SRPC_SAFE_CALL_ERR(error, system("systemctl start ntp"), error_out);
+				SRPC_SAFE_CALL_ERR(error, system("systemctl enable ntp"), error_out);
 			} else {
-				SRPC_SAFE_CALL(system("systemctl stop ntp"), error_out);
-				SRPC_SAFE_CALL(system("systemctl disable ntp"), error_out);
+				SRPC_SAFE_CALL_ERR(error, system("systemctl stop ntp"), error_out);
+				SRPC_SAFE_CALL_ERR(error, system("systemctl disable ntp"), error_out);
 			}
 			break;
 		case SR_OP_DELETED:
 			// set default value = true
-			SRPC_SAFE_CALL(system("systemctl start ntp"), error_out);
-			SRPC_SAFE_CALL(system("systemctl enable ntp"), error_out);
+			SRPC_SAFE_CALL_ERR(error, system("systemctl start ntp"), error_out);
+			SRPC_SAFE_CALL_ERR(error, system("systemctl enable ntp"), error_out);
 			break;
 		case SR_OP_MOVED:
 			break;

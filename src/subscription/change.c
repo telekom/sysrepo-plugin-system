@@ -61,12 +61,6 @@ int system_subscription_change_contact(sr_session_ctx_t *session, uint32_t subsc
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		error = srpc_iterate_changes(ctx, session, xpath, system_change_contact, NULL, NULL);
 		if (error) {
@@ -92,12 +86,6 @@ int system_subscription_change_hostname(sr_session_ctx_t *session, uint32_t subs
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		error = srpc_iterate_changes(ctx, session, xpath, system_change_hostname, NULL, NULL);
 		if (error) {
@@ -123,12 +111,6 @@ int system_subscription_change_location(sr_session_ctx_t *session, uint32_t subs
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		error = srpc_iterate_changes(ctx, session, xpath, system_change_location, NULL, NULL);
 		if (error) {
@@ -157,14 +139,8 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
 
 		if (timezone_name_enabled) {
 			error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name, NULL, NULL);
@@ -192,12 +168,6 @@ int system_subscription_change_timezone_utc_offset(sr_session_ctx_t *session, ui
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
@@ -222,18 +192,12 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		// get feature status
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
 
 		if (ntp_enabled) {
-			SRPC_SAFE_CALL(srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled, NULL, NULL), error_out);
+			SRPC_SAFE_CALL_ERR(error, srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled, NULL, NULL), error_out);
 		}
 	}
 
@@ -261,19 +225,13 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change servers were free'd and set to NULL
 		assert(ctx->temp_ntp_servers == NULL);
 
 		// get features
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
 		if (ntp_enabled) {
 			// load all system NTP servers
@@ -414,13 +372,6 @@ int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, ui
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "Done processing changes - storing data into startup");
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change search values were free'd and set to NULL
 		assert(ctx->temp_dns_search == NULL);
@@ -481,12 +432,6 @@ int system_subscription_change_dns_resolver_server(sr_session_ctx_t *session, ui
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		// make sure the last change servers were free'd and set to NULL
 		assert(ctx->temp_dns_servers == NULL);
@@ -575,12 +520,6 @@ int system_subscription_change_dns_resolver_timeout(sr_session_ctx_t *session, u
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
@@ -601,12 +540,6 @@ int system_subscription_change_dns_resolver_attempts(sr_session_ctx_t *session, 
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Unsupported option for now");
 	}
@@ -628,12 +561,6 @@ int system_subscription_change_authentication_user_authentication_order(sr_sessi
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 	}
 
@@ -660,20 +587,14 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		error = -1;
 		goto error_out;
-	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODULE, SR_DS_RUNNING, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	} else if (event == SR_EV_CHANGE) {
 		// assert user database is NULL from the last change
 		assert(ctx->temp_users.created == NULL);
 		assert(ctx->temp_users.modified == NULL);
 		assert(ctx->temp_users.deleted == NULL);
 
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
-		SRPC_SAFE_CALL(srpc_check_feature_status(session, BASE_YANG_MODULE, "local-users", &local_users_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "local-users", &local_users_enabled), error_out);
 
 		if (authentication_enabled && local_users_enabled) {
 			// load current users into modifed list so they can also be modified

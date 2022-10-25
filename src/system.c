@@ -162,7 +162,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		const char *feature = features[i];
 		bool enabled = false;
 
-		SRPC_SAFE_CALL(srpc_check_feature_status(running_session, "ietf-system", feature, &enabled), error_out);
+		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(running_session, "ietf-system", feature, &enabled), error_out);
 
 		SRPLG_LOG_INF(PLUGIN_NAME, "ietf-system feature \"%s\" status = %s", feature, enabled ? "enabled" : "disabled");
 	}
