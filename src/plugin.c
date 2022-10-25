@@ -27,13 +27,13 @@
 #include "srpc/types.h"
 
 // startup
-#include "startup/load.h"
-#include "startup/store.h"
+#include "plugin/startup/load.h"
+#include "plugin/startup/store.h"
 
 // subs
-#include "subscription/change.h"
-#include "subscription/operational.h"
-#include "subscription/rpc.h"
+#include "plugin/subscription/change.h"
+#include "plugin/subscription/operational.h"
+#include "plugin/subscription/rpc.h"
 
 #include <srpc.h>
 

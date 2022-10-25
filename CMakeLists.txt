@@ -21,13 +21,13 @@ set(
     src/plugin/ly_tree.c
 
     # startup
-    src/startup/load.c
-    src/startup/store.c
+    src/plugin/startup/load.c
+    src/plugin/startup/store.c
 
     # subs
-    src/subscription/change.c
-    src/subscription/operational.c
-    src/subscription/rpc.c
+    src/plugin/subscription/change.c
+    src/plugin/subscription/operational.c
+    src/plugin/subscription/rpc.c
 
     # data
     src/system/data/ip_address.c
