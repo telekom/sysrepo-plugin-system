@@ -13,8 +13,8 @@
 #ifndef SYSTEM_PLUGIN_API_DNS_RESOLVER_STORE_H
 #define SYSTEM_PLUGIN_API_DNS_RESOLVER_STORE_H
 
-#include "types.h"
-#include "context.h"
+#include "plugin/types.h"
+#include "plugin/context.h"
 
 int system_dns_resolver_store_search(system_ctx_t *ctx, system_dns_search_element_t *head);
 int system_dns_resolver_store_server(system_ctx_t *ctx, system_dns_server_element_t *head);

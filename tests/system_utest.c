@@ -12,7 +12,7 @@
 #include <string.h>
 
 // plugin code
-#include "context.h"
+#include "plugin/context.h"
 
 // store API
 #include "system/api/store.h"
@@ -239,7 +239,6 @@ static void test_check_timezone_name_correct(void **state)
 	int rc = 0;
 	srpc_check_status_t status = srpc_check_status_none;
 
-
 	rc = system_load_timezone_name(ctx, timezone_name_buffer);
 
 	assert_int_equal(rc, 0);
@@ -265,8 +264,8 @@ static void test_load_dns_resolver_search_correct(void **state)
 	system_dns_search_element_t *head = NULL;
 	int rc = 0;
 
-	head = calloc(sizeof(system_dns_search_element_t), 
-		      sizeof(system_dns_search_element_t));
+	head = calloc(sizeof(system_dns_search_element_t),
+				  sizeof(system_dns_search_element_t));
 
 	rc = system_dns_resolver_load_search(ctx, &head);
 
@@ -279,8 +278,8 @@ static void test_load_dns_resolver_server_correct(void **state)
 	system_dns_server_element_t *head = NULL;
 	int rc = 0;
 
-	head = calloc(sizeof(system_dns_server_element_t), 
-		      sizeof(system_dns_server_element_t));
+	head = calloc(sizeof(system_dns_server_element_t),
+				  sizeof(system_dns_server_element_t));
 
 	rc = system_dns_resolver_load_server(ctx, &head);
 
@@ -322,4 +321,3 @@ int __wrap_sr_apply_changes(sr_session_ctx_t *session, uint32_t timeout_ms)
 {
 	return (int) mock();
 }
-

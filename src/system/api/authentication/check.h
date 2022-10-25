@@ -13,8 +13,8 @@
 #ifndef SYSTEM_PLUGIN_API_AUTHENTICATION_CHECK_H
 #define SYSTEM_PLUGIN_API_AUTHENTICATION_CHECK_H
 
-#include "context.h"
-#include "types.h"
+#include "plugin/context.h"
+#include "plugin/types.h"
 #include <srpc.h>
 
 srpc_check_status_t system_authentication_check_user(system_ctx_t *ctx, system_local_user_element_t *head, system_local_user_element_t **system_head);

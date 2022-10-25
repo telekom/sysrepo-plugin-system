@@ -12,8 +12,8 @@
  */
 #include "load.h"
 #include "sysrepo.h"
-#include "types.h"
-#include "common.h"
+#include "plugin/types.h"
+#include "plugin/common.h"
 
 #include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/authorized_key.h"

@@ -11,14 +11,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "change.h"
-#include "common.h"
+#include "plugin/common.h"
 #include "libyang/tree_data.h"
 #include "system/api/authentication/store.h"
 #include "system/data/authentication/authorized_key.h"
 #include "system/data/authentication/authorized_key/list.h"
 #include "system/data/authentication/local_user.h"
 #include "system/data/authentication/local_user/list.h"
-#include "types.h"
+#include "plugin/types.h"
 #include "umgmt/db.h"
 #include "umgmt/types.h"
 #include "umgmt/user.h"

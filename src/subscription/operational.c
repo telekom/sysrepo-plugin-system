@@ -11,8 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "operational.h"
-#include "common.h"
-#include "ly_tree.h"
+#include "plugin/common.h"
+#include "plugin/ly_tree.h"
 
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>

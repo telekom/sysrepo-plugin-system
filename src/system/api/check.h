@@ -13,8 +13,8 @@
 #ifndef SYSTEM_PLUGIN_API_CHECK_H
 #define SYSTEM_PLUGIN_API_CHECK_H
 
-#include "common.h"
-#include "context.h"
+#include "plugin/common.h"
+#include "plugin/context.h"
 
 #include <srpc.h>
 

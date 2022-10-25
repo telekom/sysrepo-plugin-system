@@ -13,8 +13,8 @@
 #include "check.h"
 #include "load.h"
 #include "srpc/types.h"
-#include "types.h"
-#include "common.h"
+#include "plugin/types.h"
+#include "plugin/common.h"
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
 

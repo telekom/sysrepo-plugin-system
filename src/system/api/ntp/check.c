@@ -12,7 +12,7 @@
  */
 #include "check.h"
 #include "load.h"
-#include "common.h"
+#include "plugin/common.h"
 #include "system/data/ntp/server/list.h"
 
 #include <srpc.h>

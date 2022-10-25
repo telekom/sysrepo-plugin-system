@@ -11,10 +11,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "change.h"
-#include "common.h"
-#include "context.h"
+#include "plugin/common.h"
+#include "plugin/context.h"
 #include "libyang/printer_data.h"
-#include "ly_tree.h"
+#include "plugin/ly_tree.h"
 #include "srpc/common.h"
 #include "srpc/ly_tree.h"
 #include "sysrepo_types.h"
@@ -23,7 +23,7 @@
 #include "system/data/dns_resolver/search/list.h"
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/ntp/server/list.h"
-#include "types.h"
+#include "plugin/types.h"
 #include "umgmt/db.h"
 
 // Load API

@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "store.h"
-#include "common.h"
+#include "plugin/common.h"
 #include "umgmt/group.h"
 
 #include <asm-generic/errno-base.h>

@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_API_STORE_H
 #define SYSTEM_PLUGIN_API_STORE_H
 
-#include "context.h"
+#include "plugin/context.h"
 
 int system_store_hostname(system_ctx_t *ctx, const char *hostname);
 int system_store_contact(system_ctx_t *ctx, const char *contact);

@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "load.h"
-#include "common.h"
+#include "plugin/common.h"
 
 // data
 #include "system/data/ntp/server.h"

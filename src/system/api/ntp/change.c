@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "change.h"
-#include "common.h"
+#include "plugin/common.h"
 
 #include "libyang/tree_data.h"
 #include "sysrepo/xpath.h"

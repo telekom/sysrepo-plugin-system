@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "store.h"
-#include "common.h"
+#include "plugin/common.h"
 
 #include <systemd/sd-bus.h>
 
@@ -82,7 +82,7 @@ int system_dns_resolver_store_search(system_ctx_t *ctx, system_dns_search_elemen
 		goto invalid;
 	}
 
-	//SRP_LOG_INF("Set domains successfully!");
+	// SRP_LOG_INF("Set domains successfully!");
 	goto finish;
 
 invalid:

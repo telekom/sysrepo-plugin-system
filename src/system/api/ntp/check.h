@@ -13,8 +13,8 @@
 #ifndef SYSTEM_PLUGIN_API_NTP_CHECK_H
 #define SYSTEM_PLUGIN_API_NTP_CHECK_H
 
-#include "types.h"
-#include "context.h"
+#include "plugin/types.h"
+#include "plugin/context.h"
 
 #include <srpc.h>
 

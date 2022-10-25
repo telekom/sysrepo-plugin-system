@@ -12,7 +12,7 @@
  */
 #include "check.h"
 #include "load.h"
-#include "common.h"
+#include "plugin/common.h"
 #include "system/data/authentication/local_user/list.h"
 #include "system/data/authentication/authorized_key/list.h"
 

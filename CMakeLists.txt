@@ -18,7 +18,7 @@ set(
     SOURCES
 
     src/plugin.c
-    src/ly_tree.c
+    src/plugin/ly_tree.c
 
     # startup
     src/startup/load.c

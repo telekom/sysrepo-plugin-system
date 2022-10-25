@@ -11,11 +11,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "store.h"
-#include "common.h"
-#include "context.h"
+#include "plugin/common.h"
+#include "plugin/context.h"
 #include "libyang/printer_data.h"
 #include "srpc/ly_tree.h"
-#include "types.h"
+#include "plugin/types.h"
 
 #include <assert.h>
 #include <sysrepo.h>

@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_DATA_AUTHENTICATION_AUTHORIZED_KEY_LIST_H
 #define SYSTEM_PLUGIN_DATA_AUTHENTICATION_AUTHORIZED_KEY_LIST_H
 
-#include "types.h"
+#include "plugin/types.h"
 
 void system_authorized_key_list_init(system_authorized_key_element_t **head);
 int system_authorized_key_list_add(system_authorized_key_element_t **head, system_authorized_key_t key);

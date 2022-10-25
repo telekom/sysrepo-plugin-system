@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_DATA_NTP_SERVER_LIST_H
 #define SYSTEM_PLUGIN_DATA_NTP_SERVER_LIST_H
 
-#include "types.h"
+#include "plugin/types.h"
 
 void system_ntp_server_list_init(system_ntp_server_element_t **head);
 int system_ntp_server_list_add(system_ntp_server_element_t **head, system_ntp_server_t server);

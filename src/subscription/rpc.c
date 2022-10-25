@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "rpc.h"
-#include "common.h"
+#include "plugin/common.h"
 
 #include <assert.h>
 #include <sysrepo.h>

@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_LIST_H
 #define SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_LIST_H
 
-#include "types.h"
+#include "plugin/types.h"
 
 void system_local_user_list_init(system_local_user_element_t **head);
 int system_local_user_list_add(system_local_user_element_t **head, system_local_user_t user);

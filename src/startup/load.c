@@ -11,9 +11,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "load.h"
-#include "common.h"
-#include "context.h"
-#include "ly_tree.h"
+#include "plugin/common.h"
+#include "plugin/context.h"
+#include "plugin/ly_tree.h"
 
 // API for getting system data
 #include "srpc/common.h"

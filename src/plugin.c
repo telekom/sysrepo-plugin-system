@@ -11,8 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "plugin.h"
-#include "common.h"
-#include "context.h"
+#include "plugin/common.h"
+#include "plugin/context.h"
 
 // stdlib
 #include <stdbool.h>

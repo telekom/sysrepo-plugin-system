@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_API_AUTHENTICATION_CHANGE_H
 #define SYSTEM_PLUGIN_API_AUTHENTICATION_CHANGE_H
 
-#include "context.h"
+#include "plugin/context.h"
 
 #include <srpc.h>
 

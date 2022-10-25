@@ -12,7 +12,7 @@
  */
 #include "list.h"
 #include "system/data/dns_resolver/server.h"
-#include "types.h"
+#include "plugin/types.h"
 
 #include <stdlib.h>
 #include <string.h>

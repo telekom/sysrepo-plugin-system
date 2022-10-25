@@ -11,9 +11,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "store.h"
-#include "common.h"
+#include "plugin/common.h"
 #include "libyang/printer_data.h"
-#include "ly_tree.h"
+#include "plugin/ly_tree.h"
 
 // API for getting system data
 #include "srpc/common.h"
@@ -41,7 +41,7 @@
 #include "system/data/dns_resolver/server/list.h"
 #include "system/data/ntp/server.h"
 #include "system/data/ntp/server/list.h"
-#include "types.h"
+#include "plugin/types.h"
 
 #include <sysrepo.h>
 #include <stdlib.h>

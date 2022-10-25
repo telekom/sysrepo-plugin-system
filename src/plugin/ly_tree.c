@@ -10,8 +10,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "ly_tree.h"
-#include "common.h"
+#include "plugin/ly_tree.h"
+#include "plugin/common.h"
 
 #include <linux/limits.h>
 #include <sysrepo.h>

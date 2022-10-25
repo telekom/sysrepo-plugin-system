@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_H
 #define SYSTEM_PLUGIN_DATA_AUTHENTICATION_LOCAL_USER_H
 
-#include "types.h"
+#include "plugin/types.h"
 
 void system_local_user_init(system_local_user_t *user);
 int system_local_user_set_name(system_local_user_t *user, const char *name);

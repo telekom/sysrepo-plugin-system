@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_DATA_NTP_SERVER_H
 #define SYSTEM_PLUGIN_DATA_NTP_SERVER_H
 
-#include "types.h"
+#include "plugin/types.h"
 
 void system_ntp_server_init(system_ntp_server_t *server);
 int system_ntp_server_set_name(system_ntp_server_t *server, const char *name);

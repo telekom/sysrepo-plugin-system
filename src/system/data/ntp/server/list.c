@@ -12,7 +12,7 @@
  */
 #include "list.h"
 #include "system/data/ntp/server.h"
-#include "types.h"
+#include "plugin/types.h"
 
 #include <string.h>
 #include <stdlib.h>

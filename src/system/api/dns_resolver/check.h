@@ -13,8 +13,8 @@
 #ifndef SYSTEM_PLUGIN_API_DNS_RESOLVER_CHECK_H
 #define SYSTEM_PLUGIN_API_DNS_RESOLVER_CHECK_H
 
-#include "context.h"
-#include "types.h"
+#include "plugin/context.h"
+#include "plugin/types.h"
 
 #include <srpc.h>
 

@@ -13,7 +13,7 @@
 #ifndef SYSTEM_PLUGIN_CONTEXT_H
 #define SYSTEM_PLUGIN_CONTEXT_H
 
-#include "types.h"
+#include "plugin/types.h"
 #include "umgmt/types.h"
 #include <sysrepo_types.h>
 
