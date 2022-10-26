@@ -17,6 +17,7 @@
 
 // API for getting system data
 #include "srpc/common.h"
+#include "srpc/feature_status.h"
 #include "srpc/ly_tree.h"
 #include "plugin/api/system/load.h"
 #include "plugin/api/system/authentication/load.h"
@@ -97,6 +98,9 @@ int system_startup_load_data(system_ctx_t *ctx, sr_session_ctx_t *session)
 		goto error_out;
 	}
 
+	// reload features hash before adding all system values
+	SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_reload(&ctx->ietf_system_features, session, IETF_SYSTEM_YANG_MODULE), error_out);
+
 	// load system container info
 	error = system_ly_tree_create_system(ly_ctx, &system_container_node);
 	for (size_t i = 0; i < ARRAY_SIZE(load_values); i++) {
@@ -135,7 +139,9 @@ out:
 	if (system_container_node) {
 		lyd_free_tree(system_container_node);
 	}
+
 	sr_release_context(conn_ctx);
+
 	return error;
 }
 
@@ -186,7 +192,7 @@ static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *sessi
 	struct lyd_node *clock_container_node = NULL;
 	bool timezone_name_enabled = false;
 
-	SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
+	timezone_name_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "timezone-name");
 
 	if (timezone_name_enabled) {
 		error = system_load_timezone_name(ctx, timezone_name_buffer);
@@ -225,16 +231,13 @@ static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const 
 	struct lyd_node *ntp_container_node = NULL, *server_list_node = NULL;
 
 	// feature check
-	bool ntp_enabled = false;
-	bool ntp_udp_port_enabled = false;
+	bool ntp_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp");
+	bool ntp_udp_port_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp-udp-port");
 
 	// load list
 	system_ntp_server_element_t *ntp_server_head = NULL, *ntp_server_iter = NULL;
 
 	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
-
-	SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
-	SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
 
 	if (ntp_enabled) {
 		error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
@@ -429,11 +432,8 @@ static int system_startup_load_authentication(void *priv, sr_session_ctx_t *sess
 	system_local_user_element_t *user_head = NULL, *user_iter = NULL;
 	system_authorized_key_element_t *key_iter = NULL;
 
-	bool enabled_authentication = false;
-	bool enabled_local_users = false;
-
-	SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "authentication", &enabled_authentication), error_out);
-	SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(ctx->startup_session, BASE_YANG_MODULE, "local-users", &enabled_local_users), error_out);
+	bool enabled_authentication = srpc_feature_status_hash_check(ctx->ietf_system_features, "authentication");
+	bool enabled_local_users = srpc_feature_status_hash_check(ctx->ietf_system_features, "local-users");
 
 	if (enabled_authentication) {
 		// create authentication container

@@ -24,6 +24,7 @@
 #include <libyang/tree_data.h>
 
 #include "srpc/common.h"
+#include "srpc/feature_status.h"
 #include "srpc/types.h"
 
 // startup
@@ -144,6 +145,11 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		},
 	};
 
+	ctx->ietf_system_features = srpc_feature_status_hash_new();
+
+	// load feature status
+	SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_load(&ctx->ietf_system_features, running_session, "ietf-system"), error_out);
+
 	// log status of features
 	const char *features[] = {
 		"radius",
@@ -160,11 +166,8 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 	for (size_t i = 0; i < ARRAY_SIZE(features); i++) {
 		const char *feature = features[i];
-		bool enabled = false;
 
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(running_session, "ietf-system", feature, &enabled), error_out);
-
-		SRPLG_LOG_INF(PLUGIN_NAME, "ietf-system feature \"%s\" status = %s", feature, enabled ? "enabled" : "disabled");
+		SRPLG_LOG_INF(PLUGIN_NAME, "ietf-system feature \"%s\" status = %s", feature, srpc_feature_status_hash_check(ctx->ietf_system_features, feature) ? "enabled" : "disabled");
 	}
 
 	connection = sr_session_get_connection(running_session);
@@ -185,16 +188,11 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	if (empty_startup) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore is empty");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Loading initial system data");
-		error = system_startup_load_data(ctx, startup_session);
+
+		// load data only into running DS - do not use startup unless said explicitly
+		error = system_startup_load_data(ctx, running_session);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading initial data into the startup datastore... exiting");
-			goto error_out;
-		}
-
-		// copy contents of the startup session to the current running session
-		error = sr_copy_config(running_session, BASE_YANG_MODULE, SR_DS_STARTUP, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
 		}
 	} else {
@@ -202,6 +200,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore contains data");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
 
+		// check and apply if needed data from startup to the system
 		error = system_startup_store_data(ctx, startup_session);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");

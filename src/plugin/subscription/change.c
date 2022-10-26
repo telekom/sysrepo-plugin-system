@@ -16,6 +16,7 @@
 #include "libyang/printer_data.h"
 #include "plugin/ly_tree.h"
 #include "srpc/common.h"
+#include "srpc/feature_status.h"
 #include "srpc/ly_tree.h"
 #include "sysrepo_types.h"
 #include "plugin/api/system/authentication/load.h"
@@ -140,7 +141,11 @@ int system_subscription_change_timezone_name(sr_session_ctx_t *session, uint32_t
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "timezone-name", &timezone_name_enabled), error_out);
+		// reload features in case of changes during plugin runtime
+		SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_reload(&ctx->ietf_system_features, session, IETF_SYSTEM_YANG_MODULE), error_out);
+
+		// get feature
+		timezone_name_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "timezone-name");
 
 		if (timezone_name_enabled) {
 			error = srpc_iterate_changes(ctx, session, xpath, system_change_timezone_name, NULL, NULL);
@@ -192,8 +197,11 @@ int system_subscription_change_ntp_enabled(sr_session_ctx_t *session, uint32_t s
 		SRPLG_LOG_ERR(PLUGIN_NAME, "aborting changes for: %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_CHANGE) {
-		// get feature status
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
+		// reload features in case of changes during plugin runtime
+		SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_reload(&ctx->ietf_system_features, session, IETF_SYSTEM_YANG_MODULE), error_out);
+
+		// get feature
+		ntp_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp");
 
 		if (ntp_enabled) {
 			SRPC_SAFE_CALL_ERR(error, srpc_iterate_changes(ctx, session, xpath, system_ntp_change_enabled, NULL, NULL), error_out);
@@ -227,9 +235,12 @@ int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t su
 		// make sure the last change servers were free'd and set to NULL
 		assert(ctx->temp_ntp_servers == NULL);
 
+		// reload features in case of changes during plugin runtime
+		SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_reload(&ctx->ietf_system_features, session, IETF_SYSTEM_YANG_MODULE), error_out);
+
 		// get features
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp", &ntp_enabled), error_out);
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "ntp-udp-port", &ntp_udp_port_enabled), error_out);
+		ntp_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp");
+		ntp_udp_port_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp-udp-port");
 
 		if (ntp_enabled) {
 			// load all system NTP servers
@@ -587,8 +598,12 @@ int system_subscription_change_authentication_user(sr_session_ctx_t *session, ui
 		assert(ctx->temp_users.modified == NULL);
 		assert(ctx->temp_users.deleted == NULL);
 
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "authentication", &authentication_enabled), error_out);
-		SRPC_SAFE_CALL_ERR(error, srpc_check_feature_status(session, BASE_YANG_MODULE, "local-users", &local_users_enabled), error_out);
+		// reload features in case of changes during plugin runtime
+		SRPC_SAFE_CALL_ERR(error, srpc_feature_status_hash_reload(&ctx->ietf_system_features, session, IETF_SYSTEM_YANG_MODULE), error_out);
+
+		// get features
+		authentication_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "authentication");
+		local_users_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "local-users");
 
 		if (authentication_enabled && local_users_enabled) {
 			// load current users into modifed list so they can also be modified

@@ -14,6 +14,7 @@
 #define SYSTEM_PLUGIN_CONTEXT_H
 
 #include "plugin/types.h"
+#include "srpc/types.h"
 #include "umgmt/types.h"
 #include <sysrepo_types.h>
 
@@ -26,6 +27,7 @@ struct system_ctx_s {
 	system_dns_search_element_t *temp_dns_search;  ///< Allocated before changes iteration and free'd after.
 	system_dns_server_element_t *temp_dns_servers; ///< Allocated before changes iteration and free'd after.
 	system_ntp_server_element_t *temp_ntp_servers; ///< Allocated before changes iteration and free'd after.
+	srpc_feature_status_hash_t *ietf_system_features;
 	struct {
 		system_local_user_element_t *created;
 		system_local_user_element_t *modified;
