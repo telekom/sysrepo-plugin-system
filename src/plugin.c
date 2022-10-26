@@ -264,5 +264,9 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 {
 	system_ctx_t *ctx = (system_ctx_t *) private_data;
 
+	if (ctx->ietf_system_features) {
+		srpc_feature_status_hash_free(&ctx->ietf_system_features);
+	}
+
 	free(ctx);
 }
