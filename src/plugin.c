@@ -206,13 +206,6 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;
 		}
-
-		// copy contents of the startup session to the current running session
-		error = sr_copy_config(running_session, BASE_YANG_MODULE, SR_DS_STARTUP, 0);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
-			goto error_out;
-		}
 	}
 
 	// subscribe every module change
