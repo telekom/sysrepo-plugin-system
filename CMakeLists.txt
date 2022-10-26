@@ -17,49 +17,48 @@ include_directories(
 set(
     SOURCES
 
-    src/system.c
-    src/ly_tree.c
-    src/utils/memory.c
+    src/plugin.c
+    src/plugin/ly_tree.c
 
     # startup
-    src/startup/load.c
-    src/startup/store.c
+    src/plugin/startup/load.c
+    src/plugin/startup/store.c
 
     # subs
-    src/subscription/change.c
-    src/subscription/operational.c
-    src/subscription/rpc.c
+    src/plugin/subscription/change.c
+    src/plugin/subscription/operational.c
+    src/plugin/subscription/rpc.c
 
     # data
-    src/system/data/ip_address.c
-    src/system/data/dns_resolver/search.c
-    src/system/data/dns_resolver/search/list.c
-    src/system/data/dns_resolver/server.c
-    src/system/data/dns_resolver/server/list.c
-    src/system/data/ntp/server.c
-    src/system/data/ntp/server/list.c
-    src/system/data/authentication/authorized_key.c
-    src/system/data/authentication/authorized_key/list.c
-    src/system/data/authentication/local_user.c
-    src/system/data/authentication/local_user/list.c
+    src/plugin/data/system/ip_address.c
+    src/plugin/data/system/dns_resolver/search.c
+    src/plugin/data/system/dns_resolver/search/list.c
+    src/plugin/data/system/dns_resolver/server.c
+    src/plugin/data/system/dns_resolver/server/list.c
+    src/plugin/data/system/ntp/server.c
+    src/plugin/data/system/ntp/server/list.c
+    src/plugin/data/system/authentication/authorized_key.c
+    src/plugin/data/system/authentication/authorized_key/list.c
+    src/plugin/data/system/authentication/local_user.c
+    src/plugin/data/system/authentication/local_user/list.c
 
     # system API
-    src/system/api/load.c
-    src/system/api/check.c
-    src/system/api/store.c
-    src/system/api/change.c
-    src/system/api/ntp/load.c
-    src/system/api/ntp/check.c
-    src/system/api/ntp/store.c
-    src/system/api/ntp/change.c
-    src/system/api/dns_resolver/load.c
-    src/system/api/dns_resolver/check.c
-    src/system/api/dns_resolver/store.c
-    src/system/api/dns_resolver/change.c
-    src/system/api/authentication/load.c
-    src/system/api/authentication/check.c
-    src/system/api/authentication/store.c
-    src/system/api/authentication/change.c
+    src/plugin/api/system/load.c
+    src/plugin/api/system/check.c
+    src/plugin/api/system/store.c
+    src/plugin/api/system/change.c
+    src/plugin/api/system/ntp/load.c
+    src/plugin/api/system/ntp/check.c
+    src/plugin/api/system/ntp/store.c
+    src/plugin/api/system/ntp/change.c
+    src/plugin/api/system/dns_resolver/load.c
+    src/plugin/api/system/dns_resolver/check.c
+    src/plugin/api/system/dns_resolver/store.c
+    src/plugin/api/system/dns_resolver/change.c
+    src/plugin/api/system/authentication/load.c
+    src/plugin/api/system/authentication/check.c
+    src/plugin/api/system/authentication/store.c
+    src/plugin/api/system/authentication/change.c
 )
 
 # get sysrepo version

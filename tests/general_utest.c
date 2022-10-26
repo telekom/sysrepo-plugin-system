@@ -30,7 +30,7 @@
 #include <linux/sysinfo.h>
 #include <string.h>
 
-#include "common.h"
+#include "plugin/common.h"
 #include "callbacks.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -50,17 +50,17 @@ static void test_correct_get_timezone_name(void **state);
 static void test_incorrect_get_timezone_name(void **state);
 static void test_readlink_fail_get_timezone_name(void **state);
 static void test_correct_get_plugin_file_path(void **state);
-//static void test_getenv_fail_get_plugin_file_path(void **state);
-//static void test_access_fail_get_plugin_file_path(void **state);
-//static void test_fopen_fail_get_plugin_file_path(void **state);
+// static void test_getenv_fail_get_plugin_file_path(void **state);
+// static void test_access_fail_get_plugin_file_path(void **state);
+// static void test_fopen_fail_get_plugin_file_path(void **state);
 static void test_correct_get_contact_info(void **state);
 static void test_incorrect_get_contact_info(void **state);
 static void test_correct_set_contact_info(void **state);
 static void test_incorrect_set_contact_info(void **state);
 static void test_correct_get_location(void **state);
-//static void test_incorrect_get_location(void **state);
-//static void test_correct_set_location(void **state);
-//static void test_incorrect_set_location(void **state);
+// static void test_incorrect_get_location(void **state);
+// static void test_correct_set_location(void **state);
+// static void test_incorrect_set_location(void **state);
 
 int main(void)
 {
@@ -75,17 +75,17 @@ int main(void)
 		cmocka_unit_test(test_incorrect_get_timezone_name),
 		cmocka_unit_test(test_readlink_fail_get_timezone_name),
 		cmocka_unit_test(test_correct_get_plugin_file_path),
-		//cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
-		//cmocka_unit_test(test_access_fail_get_plugin_file_path),
-		//cmocka_unit_test(test_fopen_fail_get_plugin_file_path),
+		// cmocka_unit_test(test_getenv_fail_get_plugin_file_path),
+		// cmocka_unit_test(test_access_fail_get_plugin_file_path),
+		// cmocka_unit_test(test_fopen_fail_get_plugin_file_path),
 		cmocka_unit_test(test_correct_get_contact_info),
 		cmocka_unit_test(test_incorrect_get_contact_info),
 		cmocka_unit_test(test_correct_set_contact_info),
 		cmocka_unit_test(test_incorrect_set_contact_info),
 		cmocka_unit_test(test_correct_get_location),
-		//cmocka_unit_test(test_incorrect_get_location),
-		//cmocka_unit_test(test_correct_set_location),
-		//cmocka_unit_test(test_incorrect_set_location)
+		// cmocka_unit_test(test_incorrect_get_location),
+		// cmocka_unit_test(test_correct_set_location),
+		// cmocka_unit_test(test_incorrect_set_location)
 	};
 
 	return cmocka_run_group_tests(tests, NULL, NULL);
