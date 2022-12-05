@@ -61,22 +61,6 @@ set(
     src/plugin/api/system/authentication/change.c
 )
 
-# get sysrepo version
-find_package(PkgConfig)
-
-if(PKG_CONFIG_FOUND)
-    execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} "--modversion" "sysrepo" OUTPUT_VARIABLE SYSREPO_VERSION)
-
-    if(SYSREPO_VERSION)
-        # strip new line from string
-        string(STRIP ${SYSREPO_VERSION} SYSREPO_VERSION)
-
-        if(${SYSREPO_VERSION} VERSION_LESS "1.0.0")
-            message(FATAL_ERROR "${PROJECT_NAME} requires at least libsysrepo verision 1.0.0")
-        endif()
-    endif()
-endif()
-
 add_library(${PLUGIN_LIRBARY_NAME} STATIC ${SOURCES})
 install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
 
