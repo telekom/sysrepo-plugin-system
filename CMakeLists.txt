@@ -6,14 +6,32 @@ include(CompileOptions.cmake)
 set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
 
 set(PLUGIN 0 CACHE BOOL "Build a plugin")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
+# local includes
 include_directories(
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/deps/uthash/include
 )
 
+# first - find needed and optional packages
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
+find_package(SYSREPO REQUIRED)
+find_package(LIBYANG REQUIRED)
+find_package(SRPC REQUIRED)
+find_package(UMGMT REQUIRED)
+find_package(LIBSYSTEMD)
+find_package(AUGYANG)
+
+# package includes
+include_directories(
+    ${SYSREPO_INCLUDE_DIRS}
+    ${LIBYANG_INCLUDE_DIRS}
+    ${SRPC_INCLUDE_DIRS}
+    ${UMGMT_INCLUDE_DIRS}
+)
+
+# sources
 set(
     SOURCES
 
@@ -61,24 +79,9 @@ set(
     src/plugin/api/system/authentication/change.c
 )
 
+# build plugin static library
 add_library(${PLUGIN_LIRBARY_NAME} STATIC ${SOURCES})
 install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
-
-if(NOT PLUGIN)
-    add_executable(
-        ${CMAKE_PROJECT_NAME}
-        src/main.c
-    )
-    install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
-endif()
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
-find_package(SYSREPO REQUIRED)
-find_package(LIBYANG REQUIRED)
-find_package(SRPC REQUIRED)
-find_package(UMGMT REQUIRED)
-find_package(LIBSYSTEMD)
-find_package(AUGYANG)
 
 # link plugin library
 target_link_libraries(
@@ -89,22 +92,39 @@ target_link_libraries(
     ${UMGMT_LIBRARIES}
 )
 
-# link exe
-target_link_libraries(
-    ${CMAKE_PROJECT_NAME}
-    ${PLUGIN_LIRBARY_NAME}
-    ${SYSREPO_LIBRARIES}
-    ${LIBYANG_LIBRARIES}
-    ${SRPC_LIBRARIES}
-    ${UMGMT_LIBRARIES}
-)
-
-include_directories(
-    ${SYSREPO_INCLUDE_DIRS}
-    ${LIBYANG_INCLUDE_DIRS}
-    ${SRPC_INCLUDE_DIRS}
-    ${UMGMT_INCLUDE_DIRS}
-)
+if(NOT PLUGIN)
+    add_executable(
+        ${CMAKE_PROJECT_NAME}
+        src/main.c
+    )
+    # link executable
+    target_link_libraries(
+        ${CMAKE_PROJECT_NAME}
+        ${PLUGIN_LIRBARY_NAME}
+        ${SYSREPO_LIBRARIES}
+        ${LIBYANG_LIBRARIES}
+        ${SRPC_LIBRARIES}
+        ${UMGMT_LIBRARIES}
+    )
+    install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
+else()
+    # build plugin as a module for sysrepo-plugind
+    add_library(
+        ${CMAKE_PROJECT_NAME}
+        MODULE
+        ${SOURCES}
+    )
+    # remove lib prefix from plugin library
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES PREFIX "")
+    # link executable
+    target_link_libraries(
+        ${CMAKE_PROJECT_NAME}
+        ${SYSREPO_LIBRARIES}
+        ${LIBYANG_LIBRARIES}
+        ${SRPC_LIBRARIES}
+        ${UMGMT_LIBRARIES}
+    )
+endif()
 
 if(SYSTEMD_FOUND)
     if(DEFINED SYSTEMD_IFINDEX)
@@ -114,8 +134,13 @@ if(SYSTEMD_FOUND)
     endif()
 
     add_compile_definitions(SYSTEMD)
-    target_link_libraries(${CMAKE_PROJECT_NAME} ${SYSTEMD_LIBRARIES})
-    include_directories(${SYSTEMD_INCLUDE_DIRS})
+    target_link_libraries(
+        ${CMAKE_PROJECT_NAME}
+        ${SYSTEMD_LIBRARIES}
+    )
+    include_directories(
+        ${SYSTEMD_INCLUDE_DIRS}
+    )
 endif()
 
 # augyang support
