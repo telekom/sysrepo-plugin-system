@@ -29,7 +29,7 @@ build:
     # build system plugin
     - mkdir build
     - cmake -DSYSTEMD_IFINDEX=1 -DCMAKE_C_COMPILER=clang -S . -B build/
-    - make -j
+    - cmake --build build/
   
   artifacts:
     paths:
