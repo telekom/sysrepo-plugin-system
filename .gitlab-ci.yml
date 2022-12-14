@@ -62,7 +62,7 @@ test:default:
   needs: ["build:default"]
   script:
     - cd build
-    - ctest
+    - ctest -V
   artifacts:
     paths:
       - build/
