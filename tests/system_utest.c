@@ -73,7 +73,7 @@ int main(void)
 		cmocka_unit_test(test_check_hostname_incorrect),
 		cmocka_unit_test(test_check_timezone_name_correct),
 		cmocka_unit_test(test_check_timezone_name_incorrect),
-		// cmocka_unit_test(test_load_dns_resolver_search_correct),
+		cmocka_unit_test(test_load_dns_resolver_search_correct),
 		cmocka_unit_test(test_load_dns_resolver_server_correct),
 	};
 
