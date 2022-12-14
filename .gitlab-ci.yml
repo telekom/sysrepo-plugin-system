@@ -5,6 +5,7 @@ variables:
 
 stages:
   - build
+  - test
 
 # install libraries
 before_script:
@@ -27,7 +28,7 @@ build:default:
 
   script:
     - mkdir build
-    - cmake -S . -B build/ -DSYSTEMD_IFINDEX=1 -DCMAKE_C_COMPILER=clang
+    - cmake -S . -B build/ -DSYSTEMD_IFINDEX=1 -DENABLE_BUILD_TESTS=ON -DCMAKE_C_COMPILER=clang
     - cmake --build build/
   
   artifacts:
@@ -39,7 +40,7 @@ build:sanitized:
 
   script:
     - mkdir build-sanitized
-    - cmake -S . -B build-sanitized/ -DSYSTEMD_IFINDEX=1 -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS=\"-fsanitize=address,undefined\" -DENABLE_SANITIZER=ON
+    - cmake -S . -B build-sanitized/ -DSYSTEMD_IFINDEX=1 -DENABLE_BUILD_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS=\"-fsanitize=address,undefined\" -DENABLE_SANITIZER=ON
     - cmake --build build-sanitized/
   artifacts:
     paths:
@@ -50,8 +51,18 @@ build:sanitized_memory:
 
   script:
     - mkdir build-sanitized-memory
-    - cmake -S . -B build-sanitized-memory/ -DSYSTEMD_IFINDEX=1 -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS=\"-fsanitize=memory\" -DENABLE_SANITIZER=ON
+    - cmake -S . -B build-sanitized-memory/ -DSYSTEMD_IFINDEX=1 -DENABLE_BUILD_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS=\"-fsanitize=memory\" -DENABLE_SANITIZER=ON
     - cmake --build build-sanitized-memory/
   artifacts:
     paths:
       - build-sanitized-memory/
+
+test:default:
+  stage: test
+  needs: ["build:default"]
+  script:
+    - cd build
+    - ctest
+  artifacts:
+    paths:
+      - build/
