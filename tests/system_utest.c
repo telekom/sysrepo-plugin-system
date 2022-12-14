@@ -264,9 +264,6 @@ static void test_load_dns_resolver_search_correct(void **state)
 	system_dns_search_element_t *head = NULL;
 	int rc = 0;
 
-	head = calloc(sizeof(system_dns_search_element_t),
-				  sizeof(system_dns_search_element_t));
-
 	rc = system_dns_resolver_load_search(ctx, &head);
 
 	assert_int_equal(rc, 0);
@@ -277,9 +274,6 @@ static void test_load_dns_resolver_server_correct(void **state)
 	system_ctx_t *ctx = *state;
 	system_dns_server_element_t *head = NULL;
 	int rc = 0;
-
-	head = calloc(sizeof(system_dns_server_element_t),
-				  sizeof(system_dns_server_element_t));
 
 	rc = system_dns_resolver_load_server(ctx, &head);
 
