@@ -22,6 +22,8 @@ find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(UMGMT REQUIRED)
+find_package(SRPC REQUIRED)
+find_package(SRPCPP REQUIRED)
 find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
@@ -29,26 +31,29 @@ find_package(AUGYANG)
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
+    ${SRPCPP_INCLUDE_DIRS}
 )
 
-# sources
+# Plugin library
 set(
-    SOURCES
+    PLUGIN_SOURCES
 
-    src/cpp/main.cpp
+    src/Plugin.cpp
 )
 
-add_executable(
-    ${CMAKE_PROJECT_NAME}
-
-    ${SOURCES}
+add_library(
+    ${PLUGIN_LIRBARY_NAME}
+    MODULE
+    ${PLUGIN_SOURCES}
 )
 
 target_link_libraries(
-    ${CMAKE_PROJECT_NAME}
+    ${PLUGIN_LIRBARY_NAME}
 
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
+    ${SRPC_LIBRARIES}
+    ${SRPCPP_LIBRARIES}
 )
