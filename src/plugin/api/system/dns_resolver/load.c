@@ -39,6 +39,7 @@ int system_dns_resolver_load_search(system_ctx_t *ctx, system_dns_search_element
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
+		error = -1;
 		goto invalid;
 	}
 
@@ -53,22 +54,26 @@ int system_dns_resolver_load_search(system_ctx_t *ctx, system_dns_search_element
 		"a(isb)");
 
 	if (r < 0) {
+		error = -2;
 		goto invalid;
 	}
 
 	// message recieved -> enter msg and get needed info
 	r = sd_bus_message_enter_container(msg, 'a', "(isb)");
 	if (r < 0) {
+		error = -3;
 		goto invalid;
 	}
 
 	for (;;) {
 		r = sd_bus_message_enter_container(msg, 'r', "isb");
 		if (r < 0) {
+			error = -4;
 			goto invalid;
 		}
 
 		if (r == 0) {
+			error = -5;
 			// done with reading data
 			break;
 		}
@@ -76,18 +81,21 @@ int system_dns_resolver_load_search(system_ctx_t *ctx, system_dns_search_element
 		// read Domain struct
 		r = sd_bus_message_read(msg, "isb", &tmp_search.ifindex, &tmp_search.domain, &tmp_search.search);
 		if (r < 0) {
+			error = -6;
 			goto invalid;
 		}
 
 		// leave Domain struct
 		r = sd_bus_message_exit_container(msg);
 		if (r < 0) {
+			error = -7;
 			goto invalid;
 		}
 
 		error = system_dns_search_list_add(head, tmp_search);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "system_dns_search_list_add() error (%d)", error);
+			error = -8;
 			goto invalid;
 		}
 	}
@@ -96,7 +104,7 @@ int system_dns_resolver_load_search(system_ctx_t *ctx, system_dns_search_element
 
 invalid:
 	SRPLG_LOG_ERR(PLUGIN_NAME, "sd-bus failure (%d): %s", r, sdb_err.message);
-	error = -1;
+	// error = -1;
 
 finish:
 	sd_bus_message_unref(msg);
