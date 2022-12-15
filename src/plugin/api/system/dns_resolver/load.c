@@ -134,7 +134,7 @@ int system_dns_resolver_load_server(system_ctx_t *ctx, system_dns_server_element
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to open system bus: %s\n", strerror(-r));
-		goto finish;
+		goto invalid;
 	}
 
 	r = sd_bus_get_property(
