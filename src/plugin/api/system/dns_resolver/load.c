@@ -73,7 +73,6 @@ int system_dns_resolver_load_search(system_ctx_t *ctx, system_dns_search_element
 		}
 
 		if (r == 0) {
-			error = -5;
 			// done with reading data
 			break;
 		}
