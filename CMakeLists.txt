@@ -84,15 +84,6 @@ set(
 add_library(${PLUGIN_LIRBARY_NAME} STATIC ${SOURCES})
 install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
 
-# link plugin library
-target_link_libraries(
-    ${PLUGIN_LIRBARY_NAME}
-    ${SYSREPO_LIBRARIES}
-    ${LIBYANG_LIBRARIES}
-    ${SRPC_LIBRARIES}
-    ${UMGMT_LIBRARIES}
-)
-
 if(NOT PLUGIN)
     add_executable(
         ${CMAKE_PROJECT_NAME}
