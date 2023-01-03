@@ -5,7 +5,6 @@ include(CompileOptions.cmake)
 
 set(PLUGIN_CORE_LIBRARY_NAME "srplg-ietf-system-core")
 
-# set(PLUGIN 0 CACHE BOOL "Build a plugin")
 option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
 # local includes
@@ -87,13 +86,14 @@ install(TARGETS ${PLUGIN_CORE_LIBRARY_NAME} DESTINATION lib)
 # add main plugin to the build process
 add_subdirectory("src/plugins/ietf-system")
 
-# # augyang support
+# augyang support
 if(AUGYANG_FOUND)
     add_subdirectory("src/plugins/ietf-system-augeas")
 else(AUGYANG_FOUND)
     message(WARNING "AUGYANG not found - disabled build of the augeas specific plugin")
 endif()
 
+# unit testing
 if(ENABLE_BUILD_TESTS)
     find_package(CMOCKA REQUIRED)
     include(CTest)
