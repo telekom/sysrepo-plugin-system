@@ -16,6 +16,7 @@
 
 volatile int exit_application = 0;
 
+// extern needed data to build the plugin executable
 extern const char *PLUGIN_NAME;
 extern int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data);
 extern void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data);

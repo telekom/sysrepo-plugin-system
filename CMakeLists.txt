@@ -3,9 +3,9 @@ project(sysrepo-plugin-system C)
 
 include(CompileOptions.cmake)
 
-set(PLUGIN_LIRBARY_NAME srplg-ietf-system-core)
+set(PLUGIN_CORE_LIBRARY_NAME "srplg-ietf-system-core")
 
-set(PLUGIN 0 CACHE BOOL "Build a plugin")
+# set(PLUGIN 0 CACHE BOOL "Build a plugin")
 option(ENABLE_BUILD_TESTS, "Build tests" OFF)
 
 # local includes
@@ -14,13 +14,13 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/deps/uthash/include
 )
 
-# first - find needed and optional packages
+# find needed and optional packages
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(SRPC REQUIRED)
 find_package(UMGMT REQUIRED)
-find_package(LIBSYSTEMD)
+find_package(LIBSYSTEMD REQUIRED)
 find_package(AUGYANG)
 
 # package includes
@@ -29,11 +29,12 @@ include_directories(
     ${LIBYANG_INCLUDE_DIRS}
     ${SRPC_INCLUDE_DIRS}
     ${UMGMT_INCLUDE_DIRS}
+    ${SYSTEMD_INCLUDE_DIRS}
 )
 
 # sources
 set(
-    SOURCES
+    CORE_SOURCES
 
     src/core/common.c
     src/core/ly_tree.c
@@ -79,33 +80,19 @@ set(
     src/core/api/system/authentication/change.c
 )
 
-# build plugin core library
-add_library(${PLUGIN_LIRBARY_NAME} STATIC ${SOURCES})
-install(TARGETS ${PLUGIN_LIRBARY_NAME} DESTINATION lib)
+# build plugin static library
+add_library(${PLUGIN_CORE_LIBRARY_NAME} STATIC ${CORE_SOURCES})
+install(TARGETS ${PLUGIN_CORE_LIBRARY_NAME} DESTINATION lib)
 
-# if(SYSTEMD_FOUND)
-#     if(DEFINED SYSTEMD_IFINDEX)
-#         add_compile_definitions(SYSTEMD_IFINDEX=${SYSTEMD_IFINDEX})
-#     else()
-#         message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
-#     endif()
-
-#     add_compile_definitions(SYSTEMD)
-#     target_link_libraries(
-#         ${CMAKE_PROJECT_NAME}
-#         ${SYSTEMD_LIBRARIES}
-#     )
-#     include_directories(
-#         ${SYSTEMD_INCLUDE_DIRS}
-#     )
-# endif()
+# add main plugin to the build process
+add_subdirectory("src/plugins/ietf-system")
 
 # # augyang support
-# if(AUGYANG_FOUND)
-#     add_compile_definitions(AUGYANG)
-# else(AUGYANG_FOUND)
-#     message(WARNING "AUGYANG not found - augeas support will be disabled")
-# endif()
+if(AUGYANG_FOUND)
+    add_subdirectory("src/plugins/ietf-system-augeas")
+else(AUGYANG_FOUND)
+    message(WARNING "AUGYANG not found - disabled build of the augeas specific plugin")
+endif()
 
 if(ENABLE_BUILD_TESTS)
     find_package(CMOCKA REQUIRED)

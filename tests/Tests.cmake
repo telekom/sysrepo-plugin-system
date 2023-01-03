@@ -19,7 +19,7 @@ add_executable(
 target_link_libraries(
     system_utest
 
-    ${PLUGIN_LIRBARY_NAME}
+    ${PLUGIN_CORE_LIBRARY_NAME}
     ${CMOCKA_LIBRARIES}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
