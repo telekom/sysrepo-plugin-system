@@ -11,8 +11,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "plugin.h"
-#include "plugin/common.h"
-#include "plugin/context.h"
+#include "core/common.h"
+#include "core/context.h"
 
 // stdlib
 #include <stdbool.h>
@@ -28,13 +28,13 @@
 #include "srpc/types.h"
 
 // startup
-#include "plugin/startup/load.h"
-#include "plugin/startup/store.h"
+#include "core/startup/load.h"
+#include "core/startup/store.h"
 
 // subs
-#include "plugin/subscription/change.h"
-#include "plugin/subscription/operational.h"
-#include "plugin/subscription/rpc.h"
+#include "core/subscription/change.h"
+#include "core/subscription/operational.h"
+#include "core/subscription/rpc.h"
 
 #include <srpc.h>
 

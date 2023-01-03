@@ -12,19 +12,19 @@
 #include <string.h>
 
 // plugin code
-#include "plugin/context.h"
+#include "core/context.h"
 
 // store API
-#include "plugin/api/system/store.h"
+#include "core/api/system/store.h"
 
 // load API
-#include "plugin/api/system/load.h"
+#include "core/api/system/load.h"
 
 // check API
-#include "plugin/api/system/check.h"
+#include "core/api/system/check.h"
 
 // ntp load API
-#include "plugin/api/system/dns_resolver/load.h"
+#include "core/api/system/dns_resolver/load.h"
 
 // init functionality
 static int setup(void **state);
