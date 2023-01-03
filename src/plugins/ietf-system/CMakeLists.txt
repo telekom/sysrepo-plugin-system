@@ -23,13 +23,13 @@ add_library(
     ${PLUGIN_SOURCES}
 )
 
+# add plugin as a standalone executable
 add_executable(
     ${PLUGIN_EXECUTABLE_NAME}
 
     ${PLUGIN_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/main.c
 )
-
 target_link_libraries(
     ${PLUGIN_EXECUTABLE_NAME}
 
