@@ -10,15 +10,15 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "sysrepo_types.h"
 #include <sysrepo.h>
 #include <signal.h>
 #include <unistd.h>
 
-#include "plugin.h"
-#include "plugin/common.h"
-
 volatile int exit_application = 0;
+
+extern const char *PLUGIN_NAME;
+extern int sr_plugin_init_cb(sr_session_ctx_t *session, void **private_data);
+extern void sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_data);
 
 static void sigint_handler(__attribute__((unused)) int signum);
 

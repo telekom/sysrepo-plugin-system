@@ -13,7 +13,8 @@
 #ifndef SYSTEM_PLUGIN_COMMON_H
 #define SYSTEM_PLUGIN_COMMON_H
 
-#define PLUGIN_NAME "system-plugin"
+// #define PLUGIN_NAME "system-plugin"
+extern const char *const PLUGIN_NAME;
 
 #define BASE_YANG_MODULE "ietf-system"
 

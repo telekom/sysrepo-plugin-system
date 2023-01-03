@@ -36,6 +36,7 @@ set(
     SOURCES
 
     src/plugin.c
+    src/plugin/common.c
     src/plugin/ly_tree.c
 
     # startup
