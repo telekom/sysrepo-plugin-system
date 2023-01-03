@@ -13,7 +13,7 @@
 add_executable(
     system_utest
 
-    tests/system_utest.c
+    ${CMAKE_SOURCE_DIR}/tests/unit/system_utest.c
 )
 
 target_link_libraries(
