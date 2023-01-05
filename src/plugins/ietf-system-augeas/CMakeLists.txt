@@ -19,6 +19,8 @@ set(
     PLUGIN_SOURCES
 
     plugin.c
+    datastore/running/load.c
+    datastore/running/store.c
 )
 
 # add plugin as a sysrepo-plugind library

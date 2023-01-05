@@ -28,8 +28,8 @@
 #include "srpc/types.h"
 
 // startup
-#include "core/startup/load.h"
-#include "core/startup/store.h"
+#include "datastore/running/load.h"
+#include "datastore/running/store.h"
 
 // subs
 #include "core/subscription/change.h"
@@ -186,22 +186,22 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	}
 
 	if (empty_startup) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore is empty");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Running datastore is empty");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Loading initial system data");
 
 		// load data only into running DS - do not use startup unless said explicitly
-		error = system_startup_load_data(ctx, running_session);
+		error = system_running_ds_load(ctx, running_session);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading initial data into the startup datastore... exiting");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading initial data into the running datastore... exiting");
 			goto error_out;
 		}
 	} else {
 		// make sure the data from startup DS is stored in the system
-		SRPLG_LOG_INF(PLUGIN_NAME, "Startup datastore contains data");
-		SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Running datastore contains data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Storing running datastore data in the system");
 
 		// check and apply if needed data from startup to the system
-		error = system_startup_store_data(ctx, startup_session);
+		error = system_running_ds_store(ctx, startup_session);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;

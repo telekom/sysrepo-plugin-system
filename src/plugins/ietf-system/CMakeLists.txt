@@ -19,6 +19,8 @@ set(
     PLUGIN_SOURCES
 
     plugin.c
+    datastore/running/load.c
+    datastore/running/store.c
 )
 
 # check for systemd flag
