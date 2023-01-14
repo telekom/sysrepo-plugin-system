@@ -47,53 +47,57 @@ include_directories(
 set(
     CORE_SOURCES
 
-    src/core/common.c
-    src/core/ly_tree.c
+    ${CMAKE_SOURCE_DIR}/src/core/common.c
+    ${CMAKE_SOURCE_DIR}/src/core/ly_tree.c
 
     # startup
-    src/core/startup/load.c
-    src/core/startup/store.c
+    ${CMAKE_SOURCE_DIR}/src/core/startup/load.c
+    ${CMAKE_SOURCE_DIR}/src/core/startup/store.c
 
     # subs
-    src/core/subscription/change.c
-    src/core/subscription/operational.c
-    src/core/subscription/rpc.c
+    ${CMAKE_SOURCE_DIR}/src/core/subscription/change.c
+    ${CMAKE_SOURCE_DIR}/src/core/subscription/operational.c
+    ${CMAKE_SOURCE_DIR}/src/core/subscription/rpc.c
 
     # data
-    src/core/data/system/ip_address.c
-    src/core/data/system/dns_resolver/search.c
-    src/core/data/system/dns_resolver/search/list.c
-    src/core/data/system/dns_resolver/server.c
-    src/core/data/system/dns_resolver/server/list.c
-    src/core/data/system/ntp/server.c
-    src/core/data/system/ntp/server/list.c
-    src/core/data/system/authentication/authorized_key.c
-    src/core/data/system/authentication/authorized_key/list.c
-    src/core/data/system/authentication/local_user.c
-    src/core/data/system/authentication/local_user/list.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/ip_address.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/dns_resolver/search.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/dns_resolver/search/list.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/dns_resolver/server.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/dns_resolver/server/list.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/ntp/server.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/ntp/server/list.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/authentication/authorized_key.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/authentication/authorized_key/list.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/authentication/local_user.c
+    ${CMAKE_SOURCE_DIR}/src/core/data/system/authentication/local_user/list.c
 
     # system API
-    src/core/api/system/load.c
-    src/core/api/system/check.c
-    src/core/api/system/store.c
-    src/core/api/system/change.c
-    src/core/api/system/ntp/load.c
-    src/core/api/system/ntp/check.c
-    src/core/api/system/ntp/store.c
-    src/core/api/system/ntp/change.c
-    src/core/api/system/dns_resolver/load.c
-    src/core/api/system/dns_resolver/check.c
-    src/core/api/system/dns_resolver/store.c
-    src/core/api/system/dns_resolver/change.c
-    src/core/api/system/authentication/load.c
-    src/core/api/system/authentication/check.c
-    src/core/api/system/authentication/store.c
-    src/core/api/system/authentication/change.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/load.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/check.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/store.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/change.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/ntp/load.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/ntp/check.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/ntp/store.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/ntp/change.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/dns_resolver/load.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/dns_resolver/check.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/dns_resolver/store.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/dns_resolver/change.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/authentication/load.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/authentication/check.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/authentication/store.c
+    ${CMAKE_SOURCE_DIR}/src/core/api/system/authentication/change.c
 )
 
-# build plugin static library
+# build plugin core static library
 add_library(${PLUGIN_CORE_LIBRARY_NAME} STATIC ${CORE_SOURCES})
-install(TARGETS ${PLUGIN_CORE_LIBRARY_NAME} DESTINATION lib)
+target_compile_options(
+    ${PLUGIN_CORE_LIBRARY_NAME}
+    PRIVATE
+    -fPIC
+)
 
 # add main plugin to the build process
 add_subdirectory("src/plugins/ietf-system")

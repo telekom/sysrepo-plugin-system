@@ -12,7 +12,7 @@
 #
 cmake_minimum_required(VERSION 3.0)
 
-set(PLUGIN_LIBRARY_NAME "srplg-ietf-system")
+set(PLUGIN_MODULE_NAME "srplg-ietf-system")
 set(PLUGIN_EXECUTABLE_NAME "ietf-system-plugin")
 
 set(
@@ -32,9 +32,20 @@ endif()
 
 # add plugin as a sysrepo-plugind library
 add_library(
-    ${PLUGIN_LIBRARY_NAME}
+    ${PLUGIN_MODULE_NAME}
     MODULE
     ${PLUGIN_SOURCES}
+)
+target_link_libraries(
+    ${PLUGIN_MODULE_NAME}
+
+    ${PLUGIN_CORE_LIBRARY_NAME}
+
+    ${SYSREPO_LIBRARIES}
+    ${LIBYANG_LIBRARIES}
+    ${SRPC_LIBRARIES}
+    ${UMGMT_LIBRARIES}
+    ${SYSTEMD_LIBRARIES}
 )
 
 # add plugin as a standalone executable
@@ -58,5 +69,5 @@ target_link_libraries(
     ${SYSTEMD_LIBRARIES}
 )
 
-install(TARGETS ${PLUGIN_LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${PLUGIN_MODULE_NAME} DESTINATION lib)
 install(TARGETS ${PLUGIN_EXECUTABLE_NAME} DESTINATION bin)
