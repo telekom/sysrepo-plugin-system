@@ -121,7 +121,9 @@ out:
 static int system_aug_running_store_ntp(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
+
 	system_ctx_t *ctx = (system_ctx_t *) priv;
+
 	struct lyd_node *ntp_container_node = NULL;
 	struct lyd_node *server_list_node = NULL;
 	struct lyd_node *server_name_leaf_node = NULL;
@@ -130,6 +132,7 @@ static int system_aug_running_store_ntp(void *priv, const struct lyd_node *syste
 	struct lyd_node *server_association_type_leaf_node = NULL;
 	struct lyd_node *server_iburst_leaf_node = NULL, *server_prefer_leaf_node = NULL;
 	struct lyd_node *udp_container_node = NULL;
+
 	system_ntp_server_element_t *ntp_server_head = NULL;
 
 	bool ntp_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp");
