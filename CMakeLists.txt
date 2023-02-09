@@ -103,7 +103,7 @@ target_compile_options(
 add_subdirectory("src/plugins/ietf-system")
 
 # augyang support
-if(AUGYANG_FOUND)
+if(AUGYANG_FOUND AND ENABLE_AUGEAS_PLUGIN)
     add_subdirectory("src/plugins/ietf-system-augeas")
 else(AUGYANG_FOUND)
     message(WARNING "AUGYANG not found - disabled build of the augeas specific plugin")
