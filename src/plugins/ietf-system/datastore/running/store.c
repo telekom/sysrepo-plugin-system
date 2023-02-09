@@ -59,11 +59,11 @@
 
 #include <utlist.h>
 
-static int system_startup_store_contact(void *priv, const struct lyd_node *system_container_node);
-static int system_startup_store_location(void *priv, const struct lyd_node *system_container_node);
-static int system_startup_store_timezone_name(void *priv, const struct lyd_node *system_container_node);
-static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *system_container_node);
-static int system_startup_store_authentication(void *priv, const struct lyd_node *system_container_node);
+static int system_running_store_contact(void *priv, const struct lyd_node *system_container_node);
+static int system_running_store_location(void *priv, const struct lyd_node *system_container_node);
+static int system_running_store_timezone_name(void *priv, const struct lyd_node *system_container_node);
+static int system_running_store_dns_resolver(void *priv, const struct lyd_node *system_container_node);
+static int system_running_store_authentication(void *priv, const struct lyd_node *system_container_node);
 
 int system_running_ds_store(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
@@ -79,23 +79,23 @@ int system_running_ds_store(system_ctx_t *ctx, sr_session_ctx_t *session)
 	srpc_startup_store_t store_values[] = {
 		{
 			"contact",
-			system_startup_store_contact,
+			system_running_store_contact,
 		},
 		{
 			"location",
-			system_startup_store_location,
+			system_running_store_location,
 		},
 		{
 			"timezone-name",
-			system_startup_store_timezone_name,
+			system_running_store_timezone_name,
 		},
 		{
 			"dns-resolver",
-			system_startup_store_dns_resolver,
+			system_running_store_dns_resolver,
 		},
 		{
 			"authentication",
-			system_startup_store_authentication,
+			system_running_store_authentication,
 		},
 	};
 
@@ -125,7 +125,7 @@ out:
 	return error;
 }
 
-static int system_startup_store_contact(void *priv, const struct lyd_node *system_container_node)
+static int system_running_store_contact(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -147,7 +147,7 @@ static int system_startup_store_contact(void *priv, const struct lyd_node *syste
 	return 0;
 }
 
-static int system_startup_store_location(void *priv, const struct lyd_node *system_container_node)
+static int system_running_store_location(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -169,7 +169,7 @@ static int system_startup_store_location(void *priv, const struct lyd_node *syst
 	return 0;
 }
 
-static int system_startup_store_timezone_name(void *priv, const struct lyd_node *system_container_node)
+static int system_running_store_timezone_name(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -229,7 +229,7 @@ out:
 	return 0;
 }
 
-static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *system_container_node)
+static int system_running_store_dns_resolver(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -247,7 +247,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 	system_ip_address_t tmp_ip = {0};
 	srpc_check_status_t search_check_status = srpc_check_status_none, server_check_status = srpc_check_status_none;
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Storing dns-resolver startup data");
+	SRPLG_LOG_INF(PLUGIN_NAME, "Storing dns-resolver running data");
 
 	dns_resolver_container_node = srpc_ly_tree_get_child_container(system_container_node, "dns-resolver");
 	if (dns_resolver_container_node) {
@@ -325,7 +325,7 @@ static int system_startup_store_dns_resolver(void *priv, const struct lyd_node *
 					// values exist - don't do anything
 					break;
 				case srpc_check_status_partial:
-					// TODO: create an union between startup and system values and apply that list to the system
+					// TODO: create an union between running and system values and apply that list to the system
 					break;
 			}
 		}
@@ -455,7 +455,7 @@ out:
 	return error;
 }
 
-static int system_startup_store_authentication(void *priv, const struct lyd_node *system_container_node)
+static int system_running_store_authentication(void *priv, const struct lyd_node *system_container_node)
 {
 	int error = 0;
 
@@ -481,12 +481,12 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 	srpc_check_status_t user_check_status = srpc_check_status_none, key_check_status = srpc_check_status_none;
 
 	if (authentication_enabled) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication startup data");
+		SRPLG_LOG_INF(PLUGIN_NAME, "Storing authentication running data");
 
 		authentication_container_node = srpc_ly_tree_get_child_container(system_container_node, "authentication");
 		if (authentication_container_node) {
 			if (local_users_enabled) {
-				SRPLG_LOG_INF(PLUGIN_NAME, "Storing local-users startup data");
+				SRPLG_LOG_INF(PLUGIN_NAME, "Storing local-users running data");
 
 				local_user_list_node = srpc_ly_tree_get_child_list(authentication_container_node, "user");
 				while (local_user_list_node) {
@@ -586,7 +586,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 				system_local_user_list_init(&system_user_head);
 
 				// check if all users exist on the system
-				SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user system values");
+				SRPLG_LOG_INF(PLUGIN_NAME, "Checking running local user system values");
 				user_check_status = system_authentication_check_user(ctx, user_head, &system_user_head);
 				SRPLG_LOG_INF(PLUGIN_NAME, "Recieved local users check status: %d", user_check_status);
 
@@ -600,7 +600,7 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 						goto error_out;
 						break;
 					case srpc_check_status_non_existant:
-						SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users don\'t exist on the system - starting to store startup local users");
+						SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users don\'t exist on the system - starting to store running local users");
 						error = system_authentication_store_user(ctx, user_head);
 						if (error) {
 							SRPLG_LOG_ERR(PLUGIN_NAME, "system_authentication_store_user() error (%d)", error);
@@ -611,16 +611,16 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 						SRPLG_LOG_INF(PLUGIN_NAME, "Startup local users already exist on the system - no need to store anything");
 						break;
 					case srpc_check_status_partial:
-						SRPLG_LOG_INF(PLUGIN_NAME, "Some startup local users exist while others don\'t - creating non existant users");
+						SRPLG_LOG_INF(PLUGIN_NAME, "Some running local users exist while others don\'t - creating non existant users");
 
-						// get complement of startup without system
+						// get complement of running without system
 						complement_user_head = system_local_user_list_complement(user_head, system_user_head);
 						if (!complement_user_head) {
 							SRPLG_LOG_ERR(PLUGIN_NAME, "system_local_user_list_complement() failed");
 							goto error_out;
 						}
 
-						SRPLG_LOG_INF(PLUGIN_NAME, "Storing missing local users from startup to the system");
+						SRPLG_LOG_INF(PLUGIN_NAME, "Storing missing local users from running to the system");
 
 						// add complement users to system
 						error = system_authentication_store_user(ctx, complement_user_head);
@@ -629,15 +629,15 @@ static int system_startup_store_authentication(void *priv, const struct lyd_node
 							goto error_out;
 						}
 
-						SRPLG_LOG_INF(PLUGIN_NAME, "Missing local users from startup are stored in the system");
+						SRPLG_LOG_INF(PLUGIN_NAME, "Missing local users from running are stored in the system");
 						break;
 				}
 
-				// after matching startup and system values for users - match key lists for all users
-				SRPLG_LOG_INF(PLUGIN_NAME, "Checking startup local user authorized key system values");
+				// after matching running and system values for users - match key lists for all users
+				SRPLG_LOG_INF(PLUGIN_NAME, "Checking running local user authorized key system values");
 				LL_FOREACH(user_head, user_iter)
 				{
-					// check first if any keys exist in startup
+					// check first if any keys exist in running
 					if (user_iter->user.key_head) {
 						key_check_status = system_authentication_check_user_authorized_key(ctx, user_iter->user.name, user_iter->user.key_head);
 						SRPLG_LOG_INF(PLUGIN_NAME, "Recieved authorized-key check status %d for user %s", user_check_status, user_iter->user.name);
