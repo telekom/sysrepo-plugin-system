@@ -18,6 +18,7 @@ include(CompileOptions.cmake)
 set(PLUGIN_CORE_LIBRARY_NAME "srplg-ietf-system-core")
 
 option(ENABLE_BUILD_TESTS, "Build tests" OFF)
+option(ENABLE_AUGEAS_PLUGIN, "Build augeas specific plugin" OFF)
 
 # local includes
 include_directories(
