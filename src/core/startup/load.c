@@ -46,7 +46,6 @@ static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, c
 static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
@@ -218,107 +217,6 @@ error_out:
 	error = -1;
 
 out:
-	return error;
-}
-
-static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
-{
-	int error = 0;
-
-	system_ctx_t *ctx = priv;
-
-	// ietf-system nodes
-	struct lyd_node *ntp_container_node = NULL, *server_list_node = NULL;
-
-	// feature check
-	bool ntp_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp");
-	bool ntp_udp_port_enabled = srpc_feature_status_hash_check(ctx->ietf_system_features, "ntp-udp-port");
-
-	// load list
-	system_ntp_server_element_t *ntp_server_head = NULL, *ntp_server_iter = NULL;
-
-	SRPLG_LOG_INF(PLUGIN_NAME, "Loading NTP data");
-
-	if (ntp_enabled) {
-		error = system_ly_tree_create_ntp(ly_ctx, parent_node, &ntp_container_node);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp() error (%d)", error);
-			goto error_out;
-		}
-
-		// load system values
-		system_ntp_server_list_init(&ntp_server_head);
-		error = system_ntp_load_server(ctx, &ntp_server_head);
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "system_ntp_load_server() error (%d)", error);
-			goto error_out;
-		}
-
-		LL_FOREACH(ntp_server_head, ntp_server_iter)
-		{
-			// name
-			error = system_ly_tree_create_ntp_server(ly_ctx, ntp_container_node, &server_list_node, ntp_server_iter->server.name);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server() error (%d)", error);
-				goto error_out;
-			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Setting address %s", ntp_server_iter->server.address);
-
-			// address
-			error = system_ly_tree_create_ntp_server_address(ly_ctx, server_list_node, ntp_server_iter->server.address);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_address() error (%d)", error);
-				goto error_out;
-			}
-
-			SRPLG_LOG_INF(PLUGIN_NAME, "Setting port \"%s\"", ntp_server_iter->server.port);
-
-			// port
-			if (ntp_server_iter->server.port && ntp_udp_port_enabled) {
-				error = system_ly_tree_create_ntp_server_port(ly_ctx, server_list_node, ntp_server_iter->server.port);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_port() error (%d)", error);
-					goto error_out;
-				}
-			}
-
-			// association type
-			error = system_ly_tree_create_ntp_server_association_type(ly_ctx, server_list_node, ntp_server_iter->server.association_type);
-			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_association_type() error (%d)", error);
-				goto error_out;
-			}
-
-			// iburst
-			if (ntp_server_iter->server.iburst) {
-				error = system_ly_tree_create_ntp_server_iburst(ly_ctx, server_list_node, ntp_server_iter->server.iburst);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_iburst() error (%d)", error);
-					goto error_out;
-				}
-			}
-
-			// prefer
-			if (ntp_server_iter->server.prefer) {
-				error = system_ly_tree_create_ntp_server_prefer(ly_ctx, server_list_node, ntp_server_iter->server.prefer);
-				if (error) {
-					SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_ntp_server_prefer() error (%d)", error);
-					goto error_out;
-				}
-			}
-		}
-
-		goto out;
-	}
-
-error_out:
-	error = -1;
-
-out:
-
-	system_ntp_server_list_free(&ntp_server_head);
-
 	return error;
 }
 
