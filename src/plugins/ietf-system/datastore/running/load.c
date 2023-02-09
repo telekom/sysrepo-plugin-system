@@ -59,10 +59,6 @@ int system_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 
 	srpc_startup_load_t load_values[] = {
 		{
-			"hostname",
-			system_startup_load_hostname,
-		},
-		{
 			"contact",
 			system_startup_load_contact,
 		},

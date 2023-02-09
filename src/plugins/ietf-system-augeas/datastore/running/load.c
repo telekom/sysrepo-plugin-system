@@ -11,7 +11,8 @@
 #include "core/api/system/ntp/load.h"
 #include "core/data/system/ntp/server/list.h"
 
-static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_aug_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_aug_running_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
 int system_aug_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
@@ -23,8 +24,12 @@ int system_aug_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 
 	srpc_startup_load_t load_values[] = {
 		{
+			"hostname",
+			system_aug_running_load_hostname,
+		},
+		{
 			"ntp",
-			system_startup_load_ntp,
+			system_aug_running_load_ntp,
 		},
 	};
 
@@ -82,7 +87,11 @@ out:
 	return error;
 }
 
-static int system_startup_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_aug_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+{
+}
+
+static int system_aug_running_load_ntp(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 
