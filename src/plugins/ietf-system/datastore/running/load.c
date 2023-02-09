@@ -42,12 +42,12 @@
 
 #include <utlist.h>
 
-static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
-static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
+static int system_running_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 
 int system_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 {
@@ -60,23 +60,23 @@ int system_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 	srpc_startup_load_t load_values[] = {
 		{
 			"contact",
-			system_startup_load_contact,
+			system_running_load_contact,
 		},
 		{
 			"location",
-			system_startup_load_location,
+			system_running_load_location,
 		},
 		{
 			"timezone-name",
-			system_startup_load_timezone_name,
+			system_running_load_timezone_name,
 		},
 		{
 			"dns-resolver",
-			system_startup_load_dns_resolver,
+			system_running_load_dns_resolver,
 		},
 		{
 			"authentication",
-			system_startup_load_authentication,
+			system_running_load_authentication,
 		},
 	};
 
@@ -102,7 +102,7 @@ int system_running_ds_load(system_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-// enable or disable storing into startup - use when testing load functionality for now
+// enable or disable storing into running - use when testing load functionality for now
 #define SYSTEM_PLUGIN_LOAD_STARTUP
 
 #ifdef SYSTEM_PLUGIN_LOAD_STARTUP
@@ -134,7 +134,7 @@ out:
 	return error;
 }
 
-static int system_startup_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -161,19 +161,19 @@ out:
 	return error;
 }
 
-static int system_startup_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	return error;
 }
 
-static int system_startup_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -210,7 +210,7 @@ out:
 	return error;
 }
 
-static int system_startup_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_dns_resolver(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
@@ -311,7 +311,7 @@ out:
 	return error;
 }
 
-static int system_startup_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
+static int system_running_load_authentication(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
 {
 	int error = 0;
 	system_ctx_t *ctx = (system_ctx_t *) priv;
