@@ -42,7 +42,6 @@
 
 #include <utlist.h>
 
-static int system_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_running_load_contact(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_running_load_location(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
 static int system_running_load_timezone_name(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node);
@@ -131,33 +130,6 @@ out:
 
 	sr_release_context(conn_ctx);
 
-	return error;
-}
-
-static int system_running_load_hostname(void *priv, sr_session_ctx_t *session, const struct ly_ctx *ly_ctx, struct lyd_node *parent_node)
-{
-	int error = 0;
-	system_ctx_t *ctx = (system_ctx_t *) priv;
-	char hostname_buffer[SYSTEM_HOSTNAME_LENGTH_MAX] = {0};
-
-	error = system_load_hostname(ctx, hostname_buffer);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_load_hostname() error (%d)", error);
-		goto error_out;
-	}
-
-	error = system_ly_tree_create_hostname(ly_ctx, parent_node, hostname_buffer);
-	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "system_ly_tree_create_hostname() error (%d)", error);
-		goto error_out;
-	}
-
-	goto out;
-
-error_out:
-	error = -1;
-
-out:
 	return error;
 }
 
