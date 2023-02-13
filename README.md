@@ -70,6 +70,11 @@ $ cd build
 $ cmake -DSYSTEMD_IFINDEX=1 -DENABLE_AUGEAS_PLUGIN=ON ..
 ```
 
+After configuring the build process with CMake, run the make command to build the plugin:
+```
+$ make -j
+```
+
 ### Build artifacts
 
 Plugin will be built as a standalone application and also as a `sysrepo-plugind` module. For example, for the main ietf-system plugin there are two build artifacts:
