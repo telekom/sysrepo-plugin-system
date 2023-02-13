@@ -13,7 +13,9 @@
 #include "store.h"
 #include "core/common.h"
 
+#ifdef SYSTEMD
 #include <systemd/sd-bus.h>
+#endif
 
 #include <sysrepo.h>
 
