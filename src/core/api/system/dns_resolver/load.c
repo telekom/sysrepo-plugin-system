@@ -19,7 +19,9 @@
 #include "core/data/system/dns_resolver/search/list.h"
 #include "core/data/system/ip_address.h"
 
+#ifdef SYSTEMD
 #include <systemd/sd-bus.h>
+#endif
 
 #include <sysrepo.h>
 
