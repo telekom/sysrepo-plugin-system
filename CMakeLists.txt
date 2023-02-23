@@ -1,44 +1,42 @@
 cmake_minimum_required(VERSION 3.0)
-project(sysrepo-plugin-system)
+project(ietf-system-plugin)
 
-include(CompileOptions.cmake)
-
-set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
 
-set(PLUGIN 0 CACHE BOOL "Build a plugin")
-option(ENABLE_BUILD_TESTS, "Build tests" OFF)
+set(PLUGIN_LIRBARY_NAME ietf-system-plugin)
 
-# local includes
-include_directories(
-    ${CMAKE_SOURCE_DIR}/src/
-    ${CMAKE_SOURCE_DIR}/deps/uthash/include
-)
-
-# first - find needed and optional packages
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(SYSREPOCPP REQUIRED)
 find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
-find_package(UMGMT REQUIRED)
-find_package(SRPC REQUIRED)
-find_package(SRPCPP REQUIRED)
-find_package(LIBSYSTEMD)
-find_package(AUGYANG)
 
-# package includes
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
     ${SRPCPP_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/src
 )
 
-# Plugin library
+set(
+    PLUGIN_HEADERS
+
+    src/core/sub/change.cpp
+    src/core/sub/oper.cpp
+    src/core/sub/rpc.cpp
+    src/core/yang/tree.cpp
+    src/plugin.cpp
+)
+
+
 set(
     PLUGIN_SOURCES
 
-    src/Plugin.cpp
+    src/core/sub/change.cpp
+    src/core/sub/oper.cpp
+    src/core/sub/rpc.cpp
+    src/core/yang/tree.cpp
+    src/plugin.cpp
 )
 
 add_library(
@@ -54,6 +52,4 @@ target_link_libraries(
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
-    ${SRPC_LIBRARIES}
-    ${SRPCPP_LIBRARIES}
 )
