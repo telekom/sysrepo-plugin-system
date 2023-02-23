@@ -21,6 +21,7 @@ include_directories(
 set(
     PLUGIN_HEADERS
 
+    src/core/context.cpp
     src/core/sub/change.cpp
     src/core/sub/oper.cpp
     src/core/sub/rpc.cpp
@@ -32,6 +33,7 @@ set(
 set(
     PLUGIN_SOURCES
 
+    src/core/context.cpp
     src/core/sub/change.cpp
     src/core/sub/oper.cpp
     src/core/sub/rpc.cpp
