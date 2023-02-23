@@ -5,12 +5,19 @@
 #include "core/sub/change.hpp"
 #include "core/sub/oper.hpp"
 #include "core/sub/rpc.hpp"
+#include "sysrepo-cpp/Enum.hpp"
+#include "sysrepo-cpp/Subscription.hpp"
 #include "sysrepo.h"
 
 #include <sysrepo-cpp/Session.hpp>
 #include <sysrepo-cpp/utils/utils.hpp>
 
 namespace sr = sysrepo;
+
+struct OperationalCallback {
+    std::string xpath;
+    sysrepo::OperGetCb callback;
+};
 
 /**
  * Create all operational plugin subscriptions.
@@ -76,24 +83,20 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
  */
 void createOperationalSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::OperCtx> oper_ctx)
 {
-    // platform/os-name
-    auto sub = sess.onOperGet("ietf-system", ietf::sys::sub::oper::PlatformOsNameOperGetCb(oper_ctx), "/ietf-system:system-state/platform/os-name");
+    std::optional<sr::Subscription> sub;
 
-    // platform/os-release
-    sub = sess.onOperGet("ietf-system", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(oper_ctx), "/ietf-system:system-state/platform/os-release");
+    std::list<OperationalCallback> oper_callbacks = {
+        OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/clock/current-datetime", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/clock/boot-datetime", ietf::sys::sub::oper::ClockBootDatetimeOperGetCb(oper_ctx) },
+    };
 
-    // platform/os-version
-    sub = sess.onOperGet("ietf-system", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(oper_ctx), "/ietf-system:system-state/platform/os-version");
-
-    // platform/machine
-    sub = sess.onOperGet("ietf-system", ietf::sys::sub::oper::PlatformMachineOperGetCb(oper_ctx), "/ietf-system:system-state/platform/machine");
-
-    // clock/current-datetime
-    sub = sess.onOperGet(
-        "ietf-system", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(oper_ctx), "/ietf-system:system-state/clock/current-datetime");
-
-    // clock/boot-datetime
-    sub = sess.onOperGet("ietf-system", ietf::sys::sub::oper::ClockBootDatetimeOperGetCb(oper_ctx), "/ietf-system:system-state/clock/boot-datetime");
+    for (auto& cb : oper_callbacks) {
+        sub = sess.onOperGet("ietf-system", cb.callback, cb.xpath);
+    }
 }
 
 /**

@@ -29,7 +29,6 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-        SRPLG_LOG_INF("ietf-system-plugin", "PlatformOsNameOperGetCb called for path /ietf-system:system-state/platform/os-name.");
         return error;
     }
 
