@@ -4,7 +4,9 @@ project(ietf-system-plugin)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
 
-set(PLUGIN_LIRBARY_NAME ietf-system-plugin)
+set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
+set(PLUGIN_EXECUTABLE_NAME ietf-system-plugin)
+set(PLUGIN_CORE_LIBRARY_NAME ietf-system-plugin-core)
 
 find_package(SYSREPOCPP REQUIRED)
 find_package(LIBYANGCPP REQUIRED)
@@ -19,28 +21,75 @@ include_directories(
 )
 
 set(
-    PLUGIN_HEADERS
+    CORE_HEADERS
+
+    src/core/context.hpp
+    src/core/sub/change.hpp
+    src/core/sub/oper.hpp
+    src/core/sub/rpc.hpp
+    src/core/yang/tree.hpp
+)
+
+set(
+    CORE_SOURCES
 
     src/core/context.cpp
     src/core/sub/change.cpp
     src/core/sub/oper.cpp
     src/core/sub/rpc.cpp
     src/core/yang/tree.cpp
-    src/plugin.cpp
 )
 
+set(
+    PLUGIN_HEADERS
+
+    src/plugin.hpp
+)
 
 set(
     PLUGIN_SOURCES
 
-    src/core/context.cpp
-    src/core/sub/change.cpp
-    src/core/sub/oper.cpp
-    src/core/sub/rpc.cpp
-    src/core/yang/tree.cpp
     src/plugin.cpp
 )
 
+set(
+    EXECUTABLE_SOURCES
+
+    src/main.c
+    src/plugin.cpp
+)
+
+# core library
+add_library(
+    ${PLUGIN_CORE_LIBRARY_NAME}
+    STATIC
+    ${CORE_SOURCES}
+)
+
+target_compile_options(
+    ${PLUGIN_CORE_LIBRARY_NAME}
+    PRIVATE
+    -fPIC
+)
+
+# plugin as an executable
+add_executable(
+    ${PLUGIN_EXECUTABLE_NAME}
+    ${EXECUTABLE_SOURCES}
+)
+
+target_link_libraries(
+    ${PLUGIN_EXECUTABLE_NAME}
+
+    ${PLUGIN_CORE_LIBRARY_NAME}
+
+    ${SYSREPO_LIBRARIES}
+    ${LIBYANG_LIBRARIES}
+    ${SYSREPOCPP_LIBRARIES}
+    ${LIBYANGCPP_LIBRARIES}
+)
+
+# plugin as a library
 add_library(
     ${PLUGIN_LIRBARY_NAME}
     MODULE
@@ -49,6 +98,8 @@ add_library(
 
 target_link_libraries(
     ${PLUGIN_LIRBARY_NAME}
+
+    ${PLUGIN_CORE_LIBRARY_NAME}
 
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
