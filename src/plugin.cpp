@@ -19,6 +19,16 @@ struct OperationalCallback {
     sysrepo::OperGetCb callback;
 };
 
+struct ModuleChangeCallback {
+    std::string xpath;
+    sysrepo::ModuleChangeCb callback;
+};
+
+struct RPCCallback {
+    std::string xpath;
+    sysrepo::RpcActionCb callback;
+};
+
 /**
  * Create all operational plugin subscriptions.
  *
@@ -95,7 +105,7 @@ void createOperationalSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys
     };
 
     for (auto& cb : oper_callbacks) {
-        sub = sess.onOperGet("ietf-system", cb.callback, cb.xpath);
+        oper_ctx->addSubscription(sess, cb.xpath, cb.callback);
     }
 }
 

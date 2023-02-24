@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sysrepo-cpp/Subscription.hpp"
 #include <sysrepo-cpp/Session.hpp>
 
 namespace ietf::sys {
@@ -12,6 +13,19 @@ public:
      * sysrepo-plugin-generator: Generated default constructor for operational context.
      */
     OperCtx() = default;
+
+    /**
+     * Add a subscription to the list of subscriptions.
+     *
+     * @param sess Session to use for creating the subscription.
+     * @param xpath XPath to subscribe to.
+     * @param callback Callback to use for the subscription.
+     *
+     */
+    void addSubscription(sysrepo::Session& sess, const std::string& xpath, sysrepo::OperGetCb callback);
+
+private:
+    std::optional<sysrepo::Subscription> m_sub;
 };
 
 /**
@@ -99,6 +113,14 @@ public:
      *
      */
     std::shared_ptr<NotifCtx>& getNotifCtx();
+
+    /**
+     * sysrepo-plugin-generator: Generated method for adding an operational data subscription.
+     *
+     * @param sub Operational data subscription.
+     *
+     */
+    void addOperSub(sysrepo::Subscription sub);
 
     /**
      * sysrepo-plugin-generator: Generated default destructor for plugin context.

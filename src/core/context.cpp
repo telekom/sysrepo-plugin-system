@@ -2,6 +2,21 @@
 
 namespace ietf::sys {
 /**
+ * Add a subscription to the list of subscriptions.
+ *
+ * @param sub Subscription to add.
+ *
+ */
+void OperCtx::addSubscription(sysrepo::Session& sess, const std::string& xpath, sysrepo::OperGetCb callback)
+{
+    if (m_sub) {
+        m_sub->onOperGet("ietf-system", callback, xpath);
+    } else {
+        m_sub = sess.onOperGet("ietf-system", callback, xpath);
+    }
+}
+
+/**
  * sysrepo-plugin-generator: Generated constructor for plugin context.
  *
  * @param sess Plugin session from the plugin init callback.
