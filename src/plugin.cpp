@@ -109,12 +109,13 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto oper_callbacks = {
-        OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(ctx.getOperContext()) },
-        OperationalCallback {
-            "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(ctx.getOperContext()) },
-        OperationalCallback {
-            "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(ctx.getOperContext()) },
-        OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(ctx.getOperContext()) },
+        // OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(ctx.getOperContext()) },
+        // OperationalCallback {
+        //     "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(ctx.getOperContext()) },
+        // OperationalCallback {
+        //     "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(ctx.getOperContext()) },
+        // OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::PlatformOperGetCb(ctx.getOperContext()) },
         OperationalCallback {
             "/ietf-system:system-state/clock/current-datetime", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(ctx.getOperContext()) },
         OperationalCallback {
