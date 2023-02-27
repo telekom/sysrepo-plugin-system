@@ -1,0 +1,5 @@
+<system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
+    <clock>
+        <timezone-name>Europe/Stockholm</timezone-name>
+    </clock>
+</system>

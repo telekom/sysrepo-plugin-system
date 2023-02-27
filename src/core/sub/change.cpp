@@ -8,6 +8,9 @@
 // logging
 #include <sysrepo.h>
 
+// path handling
+#include <filesystem>
+
 namespace ietf::sys {
 namespace sub::change {
     /**
@@ -159,6 +162,74 @@ namespace sub::change {
         std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        switch (event) {
+        case sysrepo::Event::Update:
+            break;
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                switch (change.operation) {
+                case sysrepo::ChangeOperation::Created:
+                case sysrepo::ChangeOperation::Modified: {
+                    namespace fs = std::filesystem;
+
+                    // modified hostname - get current value and use sethostname()
+                    auto value = change.node.asTerm().value();
+                    auto timezone_name = std::get<std::string>(value);
+
+                    // change timezone-name
+                    auto tz_dir = fs::path("/usr/share/zoneinfo");
+                    auto tz_file = tz_dir / timezone_name;
+
+                    // check if the file exists
+                    auto status = fs::status(tz_file);
+                    if (!fs::exists(status)) {
+                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "timezone file %s does not exist", tz_file.c_str());
+                        return sr::ErrorCode::InvalidArgument;
+                    }
+
+                    // check for /etc/localtime symlink
+                    auto localtime = fs::path("/etc/localtime");
+                    if (fs::exists(localtime)) {
+                        // remove the symlink
+                        try {
+                            if (auto err = fs::remove(localtime); err != 0) {
+                                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to remove /etc/localtime symlink");
+                                return sr::ErrorCode::Internal;
+                            }
+                        } catch (fs::filesystem_error& err) {
+                            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to remove /etc/localtime symlink");
+                            return sr::ErrorCode::Internal;
+                        }
+                    }
+
+                    // symlink removed; create a new one
+                    try {
+                        fs::create_symlink(tz_file, localtime);
+                    } catch (fs::filesystem_error& err) {
+                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to create /etc/localtime symlink");
+                        return sr::ErrorCode::Internal;
+                    }
+
+                    break;
+                }
+                case sysrepo::ChangeOperation::Deleted:
+                    break;
+                case sysrepo::ChangeOperation::Moved:
+                    break;
+                }
+            }
+            break;
+        case sysrepo::Event::Done:
+            break;
+        case sysrepo::Event::Abort:
+            break;
+        case sysrepo::Event::Enabled:
+            break;
+        case sysrepo::Event::RPC:
+            break;
+        }
+
         return error;
     }
 
