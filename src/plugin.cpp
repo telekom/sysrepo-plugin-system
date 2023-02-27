@@ -131,7 +131,22 @@ void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext&
  * @param ctx Plugin context.
  *
  */
-void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }
+void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
+{
+    const auto change_callbacks = {
+        ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(ctx.getModuleChangeContext()) },
+    };
+
+    auto& sub_handle = ctx.getSubscriptionHandle();
+
+    for (auto& cb : change_callbacks) {
+        if (sub_handle.has_value()) {
+            sub_handle->onModuleChange("ietf-system", cb.callback, cb.xpath);
+        } else {
+            sub_handle = sess.onModuleChange("ietf-system", cb.callback, cb.xpath);
+        }
+    }
+}
 
 /**
  * Create all RPC plugin subscriptions.
