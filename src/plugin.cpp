@@ -30,31 +30,31 @@ struct RpcCallback {
 };
 
 /**
- * Create all operational plugin subscriptions.
+ * Register all operational plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
+void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 /**
- * Create all module change plugin subscriptions.
+ * Register all module change plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
+void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 /**
- * Create all RPC plugin subscriptions.
+ * Register all RPC plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
+void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 /**
  * @brief Plugin init callback.
@@ -74,9 +74,11 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // create session subscriptions
     SRPLG_LOG_INF("ietf-system-plugin", "Creating plugin subscriptions");
-    createOperationalSubscriptions(sess, *plugin_ctx);
-    createModuleChangeSubscriptions(sess, *plugin_ctx);
-    createRpcSubscriptions(sess, *plugin_ctx);
+
+    registerOperationalSubscriptions(sess, *plugin_ctx);
+    registerModuleChangeSubscriptions(sess, *plugin_ctx);
+    registerRpcSubscriptions(sess, *plugin_ctx);
+
     SRPLG_LOG_INF("ietf-system-plugin", "Created plugin subscriptions");
 
     return static_cast<int>(error);
@@ -100,13 +102,13 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 }
 
 /**
- * Create all operational plugin subscriptions.
+ * Register all operational plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
+void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto oper_callbacks = {
         OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::PlatformOperGetCb(ctx.getOperContext()) },
@@ -125,13 +127,13 @@ void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext&
 }
 
 /**
- * Create all module change plugin subscriptions.
+ * Register all module change plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
+void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto change_callbacks = {
         ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(ctx.getModuleChangeContext()) },
@@ -151,13 +153,13 @@ void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext
 }
 
 /**
- * Create all RPC plugin subscriptions.
+ * Register all RPC plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
  * @param ctx Plugin context.
  *
  */
-void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
+void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto rpc_callbacks = {
         RpcCallback { "/ietf-system:system-restart", ietf::sys::sub::rpc::SystemRestartRpcCb(ctx.getRpcContext()) },
