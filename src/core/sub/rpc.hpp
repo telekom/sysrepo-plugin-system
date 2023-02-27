@@ -25,7 +25,7 @@ namespace sub::rpc {
          * @param ctx Plugin RPC context.
          *
          */
-        SetCurrentDatetimeRpcCb(std::shared_ptr<ietf::sys::RPCCtx> ctx);
+        SetCurrentDatetimeRpcCb(std::shared_ptr<ietf::sys::RpcContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated RPC/action operator() for path /ietf-system:set-current-datetime.
@@ -46,7 +46,7 @@ namespace sub::rpc {
             uint32_t requestId, ly::DataNode output);
 
     private:
-        std::shared_ptr<ietf::sys::RPCCtx> m_ctx;
+        std::shared_ptr<ietf::sys::RpcContext> m_ctx;
     };
 
     /**
@@ -60,7 +60,7 @@ namespace sub::rpc {
          * @param ctx Plugin RPC context.
          *
          */
-        SystemRestartRpcCb(std::shared_ptr<ietf::sys::RPCCtx> ctx);
+        SystemRestartRpcCb(std::shared_ptr<ietf::sys::RpcContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated RPC/action operator() for path /ietf-system:system-restart.
@@ -81,7 +81,7 @@ namespace sub::rpc {
             uint32_t requestId, ly::DataNode output);
 
     private:
-        std::shared_ptr<ietf::sys::RPCCtx> m_ctx;
+        std::shared_ptr<ietf::sys::RpcContext> m_ctx;
     };
 
     /**
@@ -95,7 +95,7 @@ namespace sub::rpc {
          * @param ctx Plugin RPC context.
          *
          */
-        SystemShutdownRpcCb(std::shared_ptr<ietf::sys::RPCCtx> ctx);
+        SystemShutdownRpcCb(std::shared_ptr<ietf::sys::RpcContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated RPC/action operator() for path /ietf-system:system-shutdown.
@@ -116,7 +116,7 @@ namespace sub::rpc {
             uint32_t requestId, ly::DataNode output);
 
     private:
-        std::shared_ptr<ietf::sys::RPCCtx> m_ctx;
+        std::shared_ptr<ietf::sys::RpcContext> m_ctx;
     };
 
 }

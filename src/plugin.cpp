@@ -33,42 +33,42 @@ struct RPCCallback {
  * Create all operational plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param oper_ctx Operational context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createOperationalSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::OperCtx> oper_ctx);
+void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 /**
  * Create all module change plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param change_ctx Module changes context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createModuleChangeSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::ModuleChangeCtx> change_ctx);
+void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 /**
  * Create all RPC plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param rpc_ctx RPC context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createRpcSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::RPCCtx> rpc_ctx);
+void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
 int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 {
     sr::ErrorCode error = sysrepo::ErrorCode::Ok;
     auto sess = sysrepo::wrapUnmanagedSession(session);
-    auto plugin_ctx = new ietf::sys::PluginCtx(sess);
+    auto plugin_ctx = new ietf::sys::PluginContext(sess);
 
     *priv = static_cast<void*>(plugin_ctx);
 
     // create session subscriptions
     SRPLG_LOG_INF("ietf-system-plugin", "Creating plugin subscriptions");
-    createOperationalSubscriptions(sess, plugin_ctx->getOperCtx());
-    createModuleChangeSubscriptions(sess, plugin_ctx->getModuleChangeCtx());
-    createRpcSubscriptions(sess, plugin_ctx->getRPCCtx());
+    createOperationalSubscriptions(sess, *plugin_ctx);
+    createModuleChangeSubscriptions(sess, *plugin_ctx);
+    createRpcSubscriptions(sess, *plugin_ctx);
     SRPLG_LOG_INF("ietf-system-plugin", "Created plugin subscriptions");
 
     return static_cast<int>(error);
@@ -78,7 +78,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 {
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup called");
 
-    auto plugin_ctx = static_cast<ietf::sys::PluginCtx*>(priv);
+    auto plugin_ctx = static_cast<ietf::sys::PluginContext*>(priv);
     delete plugin_ctx;
 
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup finished");
@@ -88,24 +88,32 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
  * Create all operational plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param oper_ctx Operational context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createOperationalSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::OperCtx> oper_ctx)
+void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
-    std::optional<sr::Subscription> sub;
-
     std::list<OperationalCallback> oper_callbacks = {
-        OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(oper_ctx) },
-        OperationalCallback { "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(oper_ctx) },
-        OperationalCallback { "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(oper_ctx) },
-        OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(oper_ctx) },
-        OperationalCallback { "/ietf-system:system-state/clock/current-datetime", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(oper_ctx) },
-        OperationalCallback { "/ietf-system:system-state/clock/boot-datetime", ietf::sys::sub::oper::ClockBootDatetimeOperGetCb(oper_ctx) },
+        OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(ctx.getOperContext()) },
+        OperationalCallback {
+            "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(ctx.getOperContext()) },
+        OperationalCallback {
+            "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(ctx.getOperContext()) },
+        OperationalCallback {
+            "/ietf-system:system-state/clock/current-datetime", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(ctx.getOperContext()) },
+        OperationalCallback {
+            "/ietf-system:system-state/clock/boot-datetime", ietf::sys::sub::oper::ClockBootDatetimeOperGetCb(ctx.getOperContext()) },
     };
 
+    auto& sub_handle = ctx.getSubscriptionHandle();
+
     for (auto& cb : oper_callbacks) {
-        oper_ctx->addSubscription(sess, cb.xpath, cb.callback);
+        if (sub_handle.has_value()) {
+            sub_handle->onOperGet("ietf-system", cb.callback, cb.xpath);
+        } else {
+            sub_handle = sess.onOperGet("ietf-system", cb.callback, cb.xpath);
+        }
     }
 }
 
@@ -113,16 +121,16 @@ void createOperationalSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys
  * Create all module change plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param change_ctx Module changes context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createModuleChangeSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::ModuleChangeCtx> change_ctx) { }
+void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }
 
 /**
  * Create all RPC plugin subscriptions.
  *
  * @param sess Session to use for creating subscriptions.
- * @param rpc_ctx RPC context to use for callbacks.
+ * @param ctx Plugin context.
  *
  */
-void createRpcSubscriptions(sr::Session& sess, std::shared_ptr<ietf::sys::RPCCtx> rpc_ctx) { }
+void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }

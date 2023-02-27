@@ -25,7 +25,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        PlatformOsNameOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        PlatformOsNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/platform/os-name.
@@ -44,7 +44,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
     /**
@@ -58,7 +58,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        PlatformOsReleaseOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        PlatformOsReleaseOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/platform/os-release.
@@ -77,7 +77,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
     /**
@@ -91,7 +91,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        PlatformOsVersionOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        PlatformOsVersionOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/platform/os-version.
@@ -110,7 +110,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
     /**
@@ -124,7 +124,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        PlatformMachineOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        PlatformMachineOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/platform/machine.
@@ -143,7 +143,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
     /**
@@ -157,7 +157,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        ClockCurrentDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        ClockCurrentDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/clock/current-datetime.
@@ -176,7 +176,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
     /**
@@ -190,7 +190,7 @@ namespace sub::oper {
          * @param ctx Plugin operational context.
          *
          */
-        ClockBootDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx);
+        ClockBootDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated operational get operator() for path /ietf-system:system-state/clock/boot-datetime.
@@ -209,7 +209,7 @@ namespace sub::oper {
             std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output);
 
     private:
-        std::shared_ptr<ietf::sys::OperCtx> m_ctx;
+        std::shared_ptr<ietf::sys::OperContext> m_ctx;
     };
 
 }

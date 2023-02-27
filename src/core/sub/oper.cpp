@@ -1,5 +1,4 @@
 #include "oper.hpp"
-#include "sysrepo.h"
 
 namespace ietf::sys {
 namespace sub::oper {
@@ -9,7 +8,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    PlatformOsNameOperGetCb::PlatformOsNameOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    PlatformOsNameOperGetCb::PlatformOsNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform/os-name.
@@ -38,7 +37,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    PlatformOsReleaseOperGetCb::PlatformOsReleaseOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    PlatformOsReleaseOperGetCb::PlatformOsReleaseOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform/os-release.
@@ -67,7 +66,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    PlatformOsVersionOperGetCb::PlatformOsVersionOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    PlatformOsVersionOperGetCb::PlatformOsVersionOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform/os-version.
@@ -96,7 +95,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    PlatformMachineOperGetCb::PlatformMachineOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    PlatformMachineOperGetCb::PlatformMachineOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform/machine.
@@ -125,7 +124,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    ClockCurrentDatetimeOperGetCb::ClockCurrentDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    ClockCurrentDatetimeOperGetCb::ClockCurrentDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/clock/current-datetime.
@@ -154,7 +153,7 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    ClockBootDatetimeOperGetCb::ClockBootDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperCtx> ctx) { m_ctx = ctx; }
+    ClockBootDatetimeOperGetCb::ClockBootDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/clock/boot-datetime.

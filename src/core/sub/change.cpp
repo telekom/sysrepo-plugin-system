@@ -8,7 +8,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    ContactModuleChangeCb::ContactModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    ContactModuleChangeCb::ContactModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/contact.
@@ -37,7 +37,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    HostnameModuleChangeCb::HostnameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    HostnameModuleChangeCb::HostnameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/hostname.
@@ -66,7 +66,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    LocationModuleChangeCb::LocationModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    LocationModuleChangeCb::LocationModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/location.
@@ -95,7 +95,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    ClockTimezoneNameModuleChangeCb::ClockTimezoneNameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    ClockTimezoneNameModuleChangeCb::ClockTimezoneNameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-name.
@@ -124,7 +124,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    ClockTimezoneUtcOffsetModuleChangeCb::ClockTimezoneUtcOffsetModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    ClockTimezoneUtcOffsetModuleChangeCb::ClockTimezoneUtcOffsetModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-utc-offset.
@@ -153,7 +153,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    NtpEnabledModuleChangeCb::NtpEnabledModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    NtpEnabledModuleChangeCb::NtpEnabledModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/ntp/enabled.
@@ -182,7 +182,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    NtpServerModuleChangeCb::NtpServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    NtpServerModuleChangeCb::NtpServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/ntp/server[name='%s'].
@@ -211,7 +211,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    DnsSearchModuleChangeCb::DnsSearchModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    DnsSearchModuleChangeCb::DnsSearchModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/search.
@@ -240,7 +240,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    DnsServerModuleChangeCb::DnsServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    DnsServerModuleChangeCb::DnsServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/server[name='%s'].
@@ -269,7 +269,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    DnsTimeoutModuleChangeCb::DnsTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    DnsTimeoutModuleChangeCb::DnsTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/options/timeout.
@@ -298,7 +298,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    DnsAttemptsModuleChangeCb::DnsAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    DnsAttemptsModuleChangeCb::DnsAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/options/attempts.
@@ -327,7 +327,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    RadiusServerModuleChangeCb::RadiusServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    RadiusServerModuleChangeCb::RadiusServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/server[name='%s'].
@@ -356,7 +356,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    RadiusTimeoutModuleChangeCb::RadiusTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    RadiusTimeoutModuleChangeCb::RadiusTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/options/timeout.
@@ -385,7 +385,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    RadiusAttemptsModuleChangeCb::RadiusAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    RadiusAttemptsModuleChangeCb::RadiusAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/options/attempts.
@@ -414,7 +414,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    AuthUserAuthenticationOrderModuleChangeCb::AuthUserAuthenticationOrderModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx)
+    AuthUserAuthenticationOrderModuleChangeCb::AuthUserAuthenticationOrderModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx)
     {
         m_ctx = ctx;
     }
@@ -446,7 +446,7 @@ namespace sub::change {
      * @param ctx Plugin module change context.
      *
      */
-    AuthUserModuleChangeCb::AuthUserModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx) { m_ctx = ctx; }
+    AuthUserModuleChangeCb::AuthUserModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
 
     /**
      * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/authentication/user[name='%s'].

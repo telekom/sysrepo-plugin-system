@@ -1,70 +1,56 @@
 #pragma once
 
-#include "sysrepo-cpp/Subscription.hpp"
 #include <sysrepo-cpp/Session.hpp>
 
 namespace ietf::sys {
 /**
  * @brief Operational data context.
  */
-class OperCtx {
+class OperContext {
 public:
     /**
      * sysrepo-plugin-generator: Generated default constructor for operational context.
      */
-    OperCtx() = default;
-
-    /**
-     * Add a subscription to the list of subscriptions.
-     *
-     * @param sess Session to use for creating the subscription.
-     * @param xpath XPath to subscribe to.
-     * @param callback Callback to use for the subscription.
-     *
-     */
-    void addSubscription(sysrepo::Session& sess, const std::string& xpath, sysrepo::OperGetCb callback);
-
-private:
-    std::optional<sysrepo::Subscription> m_sub;
+    OperContext() = default;
 };
 
 /**
  * @brief Module changes data context.
  */
-class ModuleChangeCtx {
+class ModuleChangeContext {
 public:
     /**
      * sysrepo-plugin-generator: Generated default constructor for module change context.
      */
-    ModuleChangeCtx() = default;
+    ModuleChangeContext() = default;
 };
 
 /**
  * @brief RPC data context.
  */
-class RPCCtx {
+class RpcContext {
 public:
     /**
      * sysrepo-plugin-generator: Generated default constructor for RPC context.
      */
-    RPCCtx() = default;
+    RpcContext() = default;
 };
 
 /**
  * @brief Notification data context.
  */
-class NotifCtx {
+class NotifContext {
 public:
     /**
      * sysrepo-plugin-generator: Generated default constructor for notification context.
      */
-    NotifCtx() = default;
+    NotifContext() = default;
 };
 
 /**
  * @brief Plugin context.
  */
-class PluginCtx {
+class PluginContext {
 public:
     /**
      * sysrepo-plugin-generator: Generated constructor for plugin context.
@@ -72,7 +58,7 @@ public:
      * @param sess Plugin session from the plugin init callback.
      *
      */
-    PluginCtx(sysrepo::Session sess);
+    PluginContext(sysrepo::Session sess);
 
     /**
      * sysrepo-plugin-generator: Generated getter for the plugin session.
@@ -83,12 +69,20 @@ public:
     sysrepo::Session& getSession();
 
     /**
+     * sysrepo-plugin-generator: Generated getter for the subscription handle.
+     *
+     * @return Subscription handle.
+     *
+     */
+    std::optional<sysrepo::Subscription>& getSubscriptionHandle();
+
+    /**
      * sysrepo-plugin-generator: Generated getter for the operational data context.
      *
      * @return Operational data context.
      *
      */
-    std::shared_ptr<OperCtx>& getOperCtx();
+    std::shared_ptr<OperContext> getOperContext() const;
 
     /**
      * sysrepo-plugin-generator: Generated getter for the module change context.
@@ -96,7 +90,7 @@ public:
      * @return Module change context.
      *
      */
-    std::shared_ptr<ModuleChangeCtx>& getModuleChangeCtx();
+    std::shared_ptr<ModuleChangeContext> getModuleChangeContext() const;
 
     /**
      * sysrepo-plugin-generator: Generated getter for the RPC context.
@@ -104,7 +98,7 @@ public:
      * @return RPC context.
      *
      */
-    std::shared_ptr<RPCCtx>& getRPCCtx();
+    std::shared_ptr<RpcContext> getRpcContext() const;
 
     /**
      * sysrepo-plugin-generator: Generated getter for the notification context.
@@ -112,28 +106,23 @@ public:
      * @return Notification context.
      *
      */
-    std::shared_ptr<NotifCtx>& getNotifCtx();
-
-    /**
-     * sysrepo-plugin-generator: Generated method for adding an operational data subscription.
-     *
-     * @param sub Operational data subscription.
-     *
-     */
-    void addOperSub(sysrepo::Subscription sub);
+    std::shared_ptr<NotifContext> getNotifContext() const;
 
     /**
      * sysrepo-plugin-generator: Generated default destructor for plugin context.
      */
-    ~PluginCtx() = default;
+    ~PluginContext() = default;
 
 private:
     sysrepo::Session m_sess; ///< Plugin session from the plugin init callback.
 
     // Contexts
-    std::shared_ptr<OperCtx> m_operCtx; ///< Operational data context.
-    std::shared_ptr<ModuleChangeCtx> m_moduleChangeCtx; ///< Module change context.
-    std::shared_ptr<RPCCtx> m_rpcCtx; ///< RPC context.
-    std::shared_ptr<NotifCtx> m_notifCtx; ///< Notification context.
+    std::shared_ptr<OperContext> m_operCtx; ///< Operational data context.
+    std::shared_ptr<ModuleChangeContext> m_changeCtx; ///< Module change context.
+    std::shared_ptr<RpcContext> m_rpcCtx; ///< RPC context.
+    std::shared_ptr<NotifContext> m_notifCtx; ///< Notification context.
+
+    // Subcription handle
+    std::optional<sysrepo::Subscription> m_subHandle;
 };
 }

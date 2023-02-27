@@ -23,7 +23,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        ContactModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        ContactModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/contact.
@@ -43,7 +43,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -57,7 +57,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        HostnameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        HostnameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/hostname.
@@ -77,7 +77,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -91,7 +91,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        LocationModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        LocationModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/location.
@@ -111,7 +111,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -125,7 +125,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        ClockTimezoneNameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        ClockTimezoneNameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-name.
@@ -145,7 +145,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -159,7 +159,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        ClockTimezoneUtcOffsetModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        ClockTimezoneUtcOffsetModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-utc-offset.
@@ -179,7 +179,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -193,7 +193,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        NtpEnabledModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        NtpEnabledModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/ntp/enabled.
@@ -213,7 +213,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -227,7 +227,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        NtpServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        NtpServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/ntp/server[name='%s'].
@@ -247,7 +247,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -261,7 +261,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        DnsSearchModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        DnsSearchModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/search.
@@ -281,7 +281,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -295,7 +295,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        DnsServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        DnsServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/server[name='%s'].
@@ -315,7 +315,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -329,7 +329,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        DnsTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        DnsTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/options/timeout.
@@ -349,7 +349,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -363,7 +363,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        DnsAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        DnsAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/dns-resolver/options/attempts.
@@ -383,7 +383,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -397,7 +397,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        RadiusServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        RadiusServerModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/server[name='%s'].
@@ -417,7 +417,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -431,7 +431,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        RadiusTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        RadiusTimeoutModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/options/timeout.
@@ -451,7 +451,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -465,7 +465,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        RadiusAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        RadiusAttemptsModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/radius/options/attempts.
@@ -485,7 +485,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -499,7 +499,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        AuthUserAuthenticationOrderModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        AuthUserAuthenticationOrderModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/authentication/user-authentication-order.
@@ -519,7 +519,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
     /**
@@ -533,7 +533,7 @@ namespace sub::change {
          * @param ctx Plugin module change context.
          *
          */
-        AuthUserModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeCtx> ctx);
+        AuthUserModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx);
 
         /**
          * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/authentication/user[name='%s'].
@@ -553,7 +553,7 @@ namespace sub::change {
             sr::Event event, uint32_t requestId);
 
     private:
-        std::shared_ptr<ietf::sys::ModuleChangeCtx> m_ctx;
+        std::shared_ptr<ietf::sys::ModuleChangeContext> m_ctx;
     };
 
 }

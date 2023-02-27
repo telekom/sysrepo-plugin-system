@@ -2,33 +2,18 @@
 
 namespace ietf::sys {
 /**
- * Add a subscription to the list of subscriptions.
- *
- * @param sub Subscription to add.
- *
- */
-void OperCtx::addSubscription(sysrepo::Session& sess, const std::string& xpath, sysrepo::OperGetCb callback)
-{
-    if (m_sub) {
-        m_sub->onOperGet("ietf-system", callback, xpath);
-    } else {
-        m_sub = sess.onOperGet("ietf-system", callback, xpath);
-    }
-}
-
-/**
  * sysrepo-plugin-generator: Generated constructor for plugin context.
  *
  * @param sess Plugin session from the plugin init callback.
  *
  */
-PluginCtx::PluginCtx(sysrepo::Session sess)
+PluginContext::PluginContext(sysrepo::Session sess)
     : m_sess(sess)
 {
-    m_operCtx = std::make_shared<OperCtx>();
-    m_moduleChangeCtx = std::make_shared<ModuleChangeCtx>();
-    m_rpcCtx = std::make_shared<RPCCtx>();
-    m_notifCtx = std::make_shared<NotifCtx>();
+    m_operCtx = std::make_shared<OperContext>();
+    m_changeCtx = std::make_shared<ModuleChangeContext>();
+    m_rpcCtx = std::make_shared<RpcContext>();
+    m_notifCtx = std::make_shared<NotifContext>();
 }
 
 /**
@@ -37,7 +22,15 @@ PluginCtx::PluginCtx(sysrepo::Session sess)
  * @return Plugin session from the init callback.
  *
  */
-sysrepo::Session& PluginCtx::getSession() { return m_sess; }
+sysrepo::Session& PluginContext::getSession() { return m_sess; }
+
+/**
+ * sysrepo-plugin-generator: Generated getter for the subscription handle.
+ *
+ * @return Subscription handle.
+ *
+ */
+std::optional<sysrepo::Subscription>& PluginContext::getSubscriptionHandle() { return m_subHandle; }
 
 /**
  * sysrepo-plugin-generator: Generated getter for the operational data context.
@@ -45,7 +38,7 @@ sysrepo::Session& PluginCtx::getSession() { return m_sess; }
  * @return Operational data context.
  *
  */
-std::shared_ptr<OperCtx>& PluginCtx::getOperCtx() { return m_operCtx; }
+std::shared_ptr<OperContext> PluginContext::getOperContext() const { return m_operCtx; }
 
 /**
  * sysrepo-plugin-generator: Generated getter for the module change context.
@@ -53,7 +46,7 @@ std::shared_ptr<OperCtx>& PluginCtx::getOperCtx() { return m_operCtx; }
  * @return Module change context.
  *
  */
-std::shared_ptr<ModuleChangeCtx>& PluginCtx::getModuleChangeCtx() { return m_moduleChangeCtx; }
+std::shared_ptr<ModuleChangeContext> PluginContext::getModuleChangeContext() const { return m_changeCtx; }
 
 /**
  * sysrepo-plugin-generator: Generated getter for the RPC context.
@@ -61,7 +54,7 @@ std::shared_ptr<ModuleChangeCtx>& PluginCtx::getModuleChangeCtx() { return m_mod
  * @return RPC context.
  *
  */
-std::shared_ptr<RPCCtx>& PluginCtx::getRPCCtx() { return m_rpcCtx; }
+std::shared_ptr<RpcContext> PluginContext::getRpcContext() const { return m_rpcCtx; }
 
 /**
  * sysrepo-plugin-generator: Generated getter for the notification context.
@@ -69,6 +62,6 @@ std::shared_ptr<RPCCtx>& PluginCtx::getRPCCtx() { return m_rpcCtx; }
  * @return Notification context.
  *
  */
-std::shared_ptr<NotifCtx>& PluginCtx::getNotifCtx() { return m_notifCtx; }
+std::shared_ptr<NotifContext> PluginContext::getNotifContext() const { return m_notifCtx; }
 
 }
