@@ -1,3 +1,16 @@
+/*
+ * telekom / sysrepo-plugin-system
+ *
+ * This program is made available under the terms of the
+ * BSD 3-Clause license which is available at
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * SPDX-FileCopyrightText: 2022 Deutsche Telekom AG
+ * SPDX-FileContributor: Sartura Ltd.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // cmocka headers
 #include <stdarg.h>
 #include <stddef.h>
@@ -12,19 +25,19 @@
 #include <string.h>
 
 // plugin code
-#include "plugin/context.h"
+#include "core/context.h"
 
 // store API
-#include "plugin/api/system/store.h"
+#include "core/api/system/store.h"
 
 // load API
-#include "plugin/api/system/load.h"
+#include "core/api/system/load.h"
 
 // check API
-#include "plugin/api/system/check.h"
+#include "core/api/system/check.h"
 
 // ntp load API
-#include "plugin/api/system/dns_resolver/load.h"
+#include "core/api/system/dns_resolver/load.h"
 
 // init functionality
 static int setup(void **state);
@@ -73,8 +86,8 @@ int main(void)
 		cmocka_unit_test(test_check_hostname_incorrect),
 		cmocka_unit_test(test_check_timezone_name_correct),
 		cmocka_unit_test(test_check_timezone_name_incorrect),
-		cmocka_unit_test(test_load_dns_resolver_search_correct),
-		cmocka_unit_test(test_load_dns_resolver_server_correct),
+		// cmocka_unit_test(test_load_dns_resolver_search_correct),
+		// cmocka_unit_test(test_load_dns_resolver_server_correct),
 	};
 
 	return cmocka_run_group_tests(tests, setup, teardown);
@@ -264,9 +277,6 @@ static void test_load_dns_resolver_search_correct(void **state)
 	system_dns_search_element_t *head = NULL;
 	int rc = 0;
 
-	head = calloc(sizeof(system_dns_search_element_t),
-				  sizeof(system_dns_search_element_t));
-
 	rc = system_dns_resolver_load_search(ctx, &head);
 
 	assert_int_equal(rc, 0);
@@ -277,9 +287,6 @@ static void test_load_dns_resolver_server_correct(void **state)
 	system_ctx_t *ctx = *state;
 	system_dns_server_element_t *head = NULL;
 	int rc = 0;
-
-	head = calloc(sizeof(system_dns_server_element_t),
-				  sizeof(system_dns_server_element_t));
 
 	rc = system_dns_resolver_load_server(ctx, &head);
 

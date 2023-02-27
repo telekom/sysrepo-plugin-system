@@ -13,13 +13,13 @@
 add_executable(
     system_utest
 
-    tests/system_utest.c
+    ${CMAKE_SOURCE_DIR}/tests/unit/system_utest.c
 )
 
 target_link_libraries(
     system_utest
 
-    ${PLUGIN_LIRBARY_NAME}
+    ${PLUGIN_CORE_LIBRARY_NAME}
     ${CMOCKA_LIBRARIES}
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
