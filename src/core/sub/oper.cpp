@@ -70,6 +70,15 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        struct utsname uname_data = { 0 };
+
+        if (uname(&uname_data) < 0) {
+            return sr::ErrorCode::Internal;
+        }
+
+        output->newPath("os-release", uname_data.release);
+
         return error;
     }
 
