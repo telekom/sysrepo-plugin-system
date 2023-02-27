@@ -119,19 +119,15 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        struct utsname uname_data = { 0 };
-
-        if (uname(&uname_data) < 0) {
-            return sr::ErrorCode::Internal;
-        }
+        auto platform_info = ietf::sys::getPlatformInfo();
 
         auto platform = output->newPath("platform");
 
         if (platform) {
-            platform->newPath("os-name", uname_data.sysname);
-            platform->newPath("os-release", uname_data.release);
-            platform->newPath("os-version", uname_data.version);
-            platform->newPath("machine", uname_data.machine);
+            platform->newPath("os-name", platform_info.OsName);
+            platform->newPath("os-release", platform_info.OsRelease);
+            platform->newPath("os-version", platform_info.OsVersion);
+            platform->newPath("machine", platform_info.Machine);
         }
 
         return error;
