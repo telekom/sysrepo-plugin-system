@@ -1,6 +1,40 @@
 #include "rpc.hpp"
+#include "libyang-cpp/Enum.hpp"
+
+// system() API
+#include <cstdlib>
+#include <stdexcept>
 
 namespace ietf::sys {
+
+/**
+ * @brief Set current system datetime.
+ *
+ * @param datetime Datetime to set.
+ *
+ */
+void setCurrentDatetime(const std::string& datetime)
+{
+    struct tm t = { 0 };
+    time_t time_to_set = 0;
+    struct timespec stime = { 0 };
+
+    if (strptime(datetime.c_str(), "%FT%TZ", &t) == 0) {
+        throw std::runtime_error("Failed to parse datetime");
+    }
+
+    time_to_set = mktime(&t);
+    if (time_to_set == -1) {
+        throw std::runtime_error("Failed to convert datetime to time_t");
+    }
+
+    stime.tv_sec = time_to_set;
+
+    if (clock_settime(CLOCK_REALTIME, &stime) == -1) {
+        throw std::runtime_error("Failed to set system time");
+    }
+}
+
 namespace sub::rpc {
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -29,6 +63,19 @@ namespace sub::rpc {
         sr::Event event, uint32_t requestId, ly::DataNode output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        auto current_datetime = input.findPath("current-datetime");
+
+        if (current_datetime) {
+            auto datetime = std::get<std::string>(current_datetime->asTerm().value());
+
+            try {
+                ietf::sys::setCurrentDatetime(datetime);
+            } catch (const std::runtime_error& err) {
+                error = sr::ErrorCode::OperationFailed;
+            }
+        }
+
         return error;
     }
 
@@ -59,6 +106,9 @@ namespace sub::rpc {
         sr::Event event, uint32_t requestId, ly::DataNode output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        std::system("reboot");
+
         return error;
     }
 
@@ -89,6 +139,9 @@ namespace sub::rpc {
         sr::Event event, uint32_t requestId, ly::DataNode output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        std::system("poweroff");
+
         return error;
     }
 

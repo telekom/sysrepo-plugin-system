@@ -24,7 +24,7 @@ struct ModuleChangeCallback {
     sysrepo::ModuleChangeCb callback;
 };
 
-struct RPCCallback {
+struct RpcCallback {
     std::string xpath;
     sysrepo::RpcActionCb callback;
 };
@@ -157,4 +157,21 @@ void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext
  * @param ctx Plugin context.
  *
  */
-void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }
+void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
+{
+    const auto rpc_callbacks = {
+        RpcCallback { "/ietf-system:system-restart", ietf::sys::sub::rpc::SystemRestartRpcCb(ctx.getRpcContext()) },
+        RpcCallback { "/ietf-system:system-shutdown", ietf::sys::sub::rpc::SystemShutdownRpcCb(ctx.getRpcContext()) },
+        RpcCallback { "/ietf-system:set-current-datetime", ietf::sys::sub::rpc::SetCurrentDatetimeRpcCb(ctx.getRpcContext()) },
+    };
+
+    auto& sub_handle = ctx.getSubscriptionHandle();
+
+    for (auto& cb : rpc_callbacks) {
+        if (sub_handle.has_value()) {
+            sub_handle->onRPCAction(cb.xpath, cb.callback);
+        } else {
+            sub_handle = sess.onRPCAction(cb.xpath, cb.callback);
+        }
+    }
+}
