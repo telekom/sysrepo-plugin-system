@@ -116,10 +116,7 @@ void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext&
         //     "/ietf-system:system-state/platform/os-version", ietf::sys::sub::oper::PlatformOsVersionOperGetCb(ctx.getOperContext()) },
         // OperationalCallback { "/ietf-system:system-state/platform/machine", ietf::sys::sub::oper::PlatformMachineOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::PlatformOperGetCb(ctx.getOperContext()) },
-        OperationalCallback {
-            "/ietf-system:system-state/clock/current-datetime", ietf::sys::sub::oper::ClockCurrentDatetimeOperGetCb(ctx.getOperContext()) },
-        OperationalCallback {
-            "/ietf-system:system-state/clock/boot-datetime", ietf::sys::sub::oper::ClockBootDatetimeOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::ClockOperGetCb(ctx.getOperContext()) },
     };
 
     auto& sub_handle = ctx.getSubscriptionHandle();

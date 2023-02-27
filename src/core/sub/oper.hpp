@@ -183,6 +183,7 @@ namespace sub::oper {
      * @brief Oper get functor for path /ietf-system:system-state/clock.
      */
     class ClockOperGetCb {
+    public:
         /**
          * Default constructor.
          *

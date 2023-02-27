@@ -119,11 +119,11 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto platform_info = ietf::sys::getPlatformInfo();
-
         auto platform = output->newPath("platform");
 
         if (platform) {
+            auto platform_info = ietf::sys::getPlatformInfo();
+
             platform->newPath("os-name", platform_info.OsName);
             platform->newPath("os-release", platform_info.OsRelease);
             platform->newPath("os-version", platform_info.OsVersion);
@@ -311,6 +311,16 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        auto clock = output->newPath("clock");
+
+        if (clock) {
+            auto clock_info = ietf::sys::getClockInfo();
+
+            clock->newPath("current-datetime", clock_info.CurrentDatetime);
+            clock->newPath("boot-datetime", clock_info.BootDatetime);
+        }
+
         return error;
     }
 
