@@ -56,6 +56,14 @@ void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext
  */
 void createRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx);
 
+/**
+ * @brief Plugin init callback.
+ *
+ * @param session Plugin session.
+ * @param priv Private data.
+ *
+ * @return Error code (SR_ERR_OK on success).
+ */
 int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 {
     sr::ErrorCode error = sysrepo::ErrorCode::Ok;
@@ -74,6 +82,13 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     return static_cast<int>(error);
 }
 
+/**
+ * @brief Plugin cleanup callback.
+ *
+ * @param session Plugin session.
+ * @param priv Private data.
+ *
+ */
 void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 {
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup called");
@@ -93,7 +108,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
  */
 void createOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
-    std::list<OperationalCallback> oper_callbacks = {
+    const auto oper_callbacks = {
         OperationalCallback { "/ietf-system:system-state/platform/os-name", ietf::sys::sub::oper::PlatformOsNameOperGetCb(ctx.getOperContext()) },
         OperationalCallback {
             "/ietf-system:system-state/platform/os-release", ietf::sys::sub::oper::PlatformOsReleaseOperGetCb(ctx.getOperContext()) },
