@@ -3,7 +3,6 @@
 #include <sysrepo.h>
 
 extern "C" {
-
 /**
  * @brief Plugin init callback.
  *
