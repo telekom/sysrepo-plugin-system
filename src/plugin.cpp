@@ -135,6 +135,8 @@ void createModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext
 {
     const auto change_callbacks = {
         ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(ctx.getModuleChangeContext()) },
+        ModuleChangeCallback {
+            "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(ctx.getModuleChangeContext()) },
     };
 
     auto& sub_handle = ctx.getSubscriptionHandle();
