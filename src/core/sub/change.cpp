@@ -1,5 +1,13 @@
 #include "change.hpp"
 
+#include "core/common.hpp"
+
+// sethostname() and gethostname()
+#include <unistd.h>
+
+// logging
+#include <sysrepo.h>
+
 namespace ietf::sys {
 namespace sub::change {
     /**
@@ -57,6 +65,42 @@ namespace sub::change {
         std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        switch (event) {
+        case sysrepo::Event::Update:
+            break;
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                switch (change.operation) {
+                case sysrepo::ChangeOperation::Created:
+                case sysrepo::ChangeOperation::Modified: {
+                    // modified hostname - get current value and use sethostname()
+                    auto value = change.node.asTerm().value();
+                    auto hostname = std::get<std::string>(value);
+
+                    if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
+                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "sethostname() failed with error code %d", err);
+                        error = sr::ErrorCode::Internal;
+                    }
+                    break;
+                }
+                case sysrepo::ChangeOperation::Deleted:
+                    break;
+                case sysrepo::ChangeOperation::Moved:
+                    break;
+                }
+            }
+            break;
+        case sysrepo::Event::Done:
+            break;
+        case sysrepo::Event::Abort:
+            break;
+        case sysrepo::Event::Enabled:
+            break;
+        case sysrepo::Event::RPC:
+            break;
+        }
+
         return error;
     }
 
