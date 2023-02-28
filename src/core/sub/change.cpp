@@ -81,7 +81,7 @@ namespace sub::change {
                 case sysrepo::ChangeOperation::Modified: {
                     // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto hostname = static_cast<Hostname>(std::get<std::string>(value));
+                    auto hostname = std::get<ietf::sys::Hostname>(value);
 
                     try {
                         API::System::setHostname(hostname);
