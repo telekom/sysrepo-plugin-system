@@ -37,15 +37,15 @@ struct AuthorizedKey {
 using AuthorizedKeyList = std::vector<AuthorizedKey>;
 
 /**
- * @brief Authentication user helper struct.
+ * @brief Local user helper struct.
  */
-struct AuthUser {
+struct LocalUser {
     std::string Name; ///< User name.
     std::string Password; ///< User password hash.
     std::optional<AuthorizedKeyList> AuthorizedKeys; ///< User authorized keys.
 };
 
-using AuthUserList = std::vector<AuthUser>;
+using LocalUserList = std::vector<LocalUser>;
 
 // other type aliases
 using Hostname = std::string;

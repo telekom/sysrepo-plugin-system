@@ -1,20 +1,28 @@
 #include "api.hpp"
 #include "core/context.hpp"
 #include "core/common.hpp"
+#include "core/types.hpp"
 
 // Platform information
 #include <stdexcept>
+#include <memory>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 
 // system() API
 #include <cstdlib>
 #include <stdexcept>
+#include <cstring>
 
 // sethostname() and gethostname()
 #include <unistd.h>
 
 #include <filesystem>
+
+extern "C" {
+// use umgmt C API for auth module
+#include <umgmt.h>
+}
 
 namespace ietf::sys {
 namespace API {
@@ -101,6 +109,53 @@ namespace API {
         } catch (fs::filesystem_error& err) {
             throw std::runtime_error("Failed to create /etc/localtime symlink.");
         }
+    }
+
+    /**
+     * @brief Get system local users.
+     *
+     * @return Local users on the system.
+     */
+    LocalUserList System::getLocalUserList()
+    {
+        LocalUserList users;
+        um_db_t* db = nullptr;
+
+        int rc = 0;
+
+        db = um_db_new();
+        if (db == nullptr) {
+            throw std::runtime_error("Failed to initialize database.");
+        }
+
+        if (rc = um_db_load(db); rc != 0) {
+            throw std::runtime_error("Failed to load user database.");
+        }
+
+        auto user_iter = um_db_get_user_list_head(db);
+        while (user_iter) {
+            // add local user
+            const um_user_t* user = user_iter->user;
+
+            if (um_user_get_uid(user) == 0 || (um_user_get_uid(user) >= 1000 && um_user_get_uid(user) < 65534)) {
+                LocalUser temp_user;
+
+                temp_user.Name = (char*)um_user_get_name(user);
+
+                if (um_user_get_password_hash(user) && strcmp(um_user_get_password_hash(user), "*") && strcmp(um_user_get_password_hash(user), "!")) {
+                    temp_user.Password = (char*)um_user_get_password_hash(user);
+                }
+
+                users.push_back(temp_user);
+            }
+            user_iter = const_cast<um_user_element_t*>(user_iter->next);
+        }
+
+        if (db) {
+            um_db_free(db);
+        }
+
+        return users;
     }
 
     /**

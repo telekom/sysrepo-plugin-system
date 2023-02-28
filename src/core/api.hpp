@@ -36,6 +36,13 @@ namespace API {
          * @param timezoneName Timezone name.
          */
         static void setTimezoneName(const TimezoneName& timezone_name);
+
+        /**
+         * @brief Get system local users.
+         *
+         * @return Local users on the system.
+         */
+        static LocalUserList getLocalUserList();
     };
 
     /**

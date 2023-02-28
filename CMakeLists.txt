@@ -24,11 +24,12 @@ find_package(SYSREPOCPP REQUIRED)
 find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
+find_package(UMGMT REQUIRED)
 
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
-    ${SRPCPP_INCLUDE_DIRS}
+    ${UMGMT_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -103,6 +104,7 @@ target_link_libraries(
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
+    ${UMGMT_LIBRARIES}
 )
 
 # plugin as a library
@@ -121,4 +123,5 @@ target_link_libraries(
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
+    ${UMGMT_LIBRARIES}
 )
