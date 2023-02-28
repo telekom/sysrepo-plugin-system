@@ -31,7 +31,7 @@ struct ClockInfo {
 struct AuthorizedKey {
     std::string Name; ///< Key name.
     std::string Algorithm; ///< Key algorithm.
-    std::vector<std::byte> Data; ///< Key data.
+    std::string Data; ///< Key data.
 };
 
 using AuthorizedKeyList = std::vector<AuthorizedKey>;

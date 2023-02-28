@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include <filesystem>
+#include <fstream>
 
 extern "C" {
 // use umgmt C API for auth module
@@ -167,7 +168,35 @@ namespace API {
      */
     AuthorizedKeyList System::getAuthorizedKeyList(const std::string& username)
     {
+        namespace fs = std::filesystem;
+
         AuthorizedKeyList keys;
+
+        fs::path ssh_dir;
+
+        if (username == "root") {
+            ssh_dir = fs::path("/root/.ssh");
+        } else {
+            ssh_dir = fs::path("/home/" + username + "/.ssh");
+        }
+
+        for (const auto& entry : fs::directory_iterator(ssh_dir)) {
+            if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".pub") {
+                std::ifstream file(entry.path());
+                std::string algorithm, data;
+
+                if (file.is_open()) {
+                    // read algorithm and key-data
+                    file >> algorithm >> data;
+                    keys.push_back(AuthorizedKey { .Algorithm = algorithm, .Data = data });
+                } else {
+                    throw std::runtime_error("Failed to open authorized key file.");
+                }
+
+                file.close();
+            }
+        }
+
         return keys;
     }
 
