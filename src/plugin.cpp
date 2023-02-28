@@ -14,19 +14,28 @@
 
 namespace sr = sysrepo;
 
+/**
+ * @brief Operational callback struct.
+ */
 struct OperationalCallback {
-    std::string xpath;
-    sysrepo::OperGetCb callback;
+    std::string xpath; ///< XPath of the data.
+    sysrepo::OperGetCb callback; ///< Callback function.
 };
 
+/**
+ * @brief Module change callback struct.
+ */
 struct ModuleChangeCallback {
-    std::string xpath;
-    sysrepo::ModuleChangeCb callback;
+    std::string xpath; ///< XPath of the data.
+    sysrepo::ModuleChangeCb callback; ///< Callback function.
 };
 
+/**
+ * @brief RPC callback struct.
+ */
 struct RpcCallback {
-    std::string xpath;
-    sysrepo::RpcActionCb callback;
+    std::string xpath; ///< XPath of the data.
+    sysrepo::RpcActionCb callback; ///< Callback function.
 };
 
 /**
@@ -111,8 +120,8 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto oper_callbacks = {
-        OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::PlatformOperGetCb(ctx.getOperContext()) },
-        OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::ClockOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(ctx.getOperContext()) },
     };
 
     auto& sub_handle = ctx.getSubscriptionHandle();

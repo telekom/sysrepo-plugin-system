@@ -1,107 +1,28 @@
 #include "oper.hpp"
 
+#include "core/types.hpp"
+#include "core/api.hpp"
+
 // Platform information
 #include <stdexcept>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 
 namespace ietf::sys {
-
-/**
- * @brief Platform information helper struct.
- */
-struct PlatformInfo {
-    std::string OsName; ///< OS name.
-    std::string OsRelease; ///< OS release.
-    std::string OsVersion; ///< OS version.
-    std::string Machine; ///< Machine.
-};
-
-/**
- * @brief Clock information helper struct.
- */
-struct ClockInfo {
-    std::string BootDatetime; ///< Boot datetime.
-    std::string CurrentDatetime; ///< Current datetime.
-};
-
-/**
- * @brief Get platform information.
- *
- * @return Platform information.
- */
-PlatformInfo getPlatformInfo()
-{
-    struct utsname uname_data = { 0 };
-
-    if (uname(&uname_data) < 0) {
-        throw std::runtime_error("Failed to get platform information.");
-    }
-
-    return {
-        .OsName = uname_data.sysname,
-        .OsRelease = uname_data.release,
-        .OsVersion = uname_data.version,
-        .Machine = uname_data.machine,
-    };
-}
-
-/**
- * @brief Get clock information.
- *
- * @return Clock information.
- */
-ClockInfo getClockInfo()
-{
-    time_t now = 0;
-    struct tm* ts = { 0 };
-    struct sysinfo s_info = { 0 };
-    time_t uptime_seconds = 0;
-
-    char current_datetime[256];
-    char boot_datetime[256];
-
-    now = time(NULL);
-
-    ts = localtime(&now);
-    if (ts == NULL) {
-        throw std::runtime_error("Failed to get current datetime.");
-    }
-
-    strftime(current_datetime, sizeof(current_datetime), "%FT%TZ", ts);
-
-    if (sysinfo(&s_info) != 0) {
-        throw std::runtime_error("Failed to get system uptime.");
-    }
-
-    uptime_seconds = s_info.uptime;
-
-    time_t diff = now - uptime_seconds;
-
-    ts = localtime(&diff);
-    if (ts == NULL) {
-        throw std::runtime_error("Failed to get boot datetime.");
-    }
-
-    strftime(boot_datetime, sizeof(boot_datetime), "%FT%TZ", ts);
-
-    return {
-        .BootDatetime = boot_datetime,
-        .CurrentDatetime = current_datetime,
-    };
-}
-
 namespace sub::oper {
+    // use API namespace in operational callbacks
+    namespace API = ietf::sys::API;
+
     /**
-     * Default constructor.
+     * sysrepo-plugin-generator: Generated default constructor.
      *
      * @param ctx Plugin operational context.
      *
      */
-    PlatformOperGetCb::PlatformOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+    ContactOperGetCb::ContactOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
-     * operator() for path /ietf-system:system-state/platform.
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/contact.
      *
      * @param session An implicit session for the callback.
      * @param subscriptionId ID the subscription associated with the callback.
@@ -113,23 +34,1353 @@ namespace sub::oper {
      * @return Error code.
      *
      */
-    sr::ErrorCode PlatformOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+    sr::ErrorCode ContactOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    HostnameOperGetCb::HostnameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/hostname.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode HostnameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
         std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto platform = output->newPath("platform");
+        auto hostname = API::System::getHostname();
 
-        if (platform) {
-            auto platform_info = ietf::sys::getPlatformInfo();
+        output->newPath("hostname", hostname);
 
-            platform->newPath("os-name", platform_info.OsName);
-            platform->newPath("os-release", platform_info.OsRelease);
-            platform->newPath("os-version", platform_info.OsVersion);
-            platform->newPath("machine", platform_info.Machine);
-        }
+        return error;
+    }
 
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    LocationOperGetCb::LocationOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/location.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode LocationOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    ClockTimezoneNameOperGetCb::ClockTimezoneNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/clock/timezone-name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode ClockTimezoneNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    ClockTimezoneUtcOffsetOperGetCb::ClockTimezoneUtcOffsetOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/clock/timezone-utc-offset.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode ClockTimezoneUtcOffsetOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    ClockOperGetCb::ClockOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/clock.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode ClockOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpEnabledOperGetCb::NtpEnabledOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/enabled.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpEnabledOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerNameOperGetCb::NtpServerNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerUdpAddressOperGetCb::NtpServerUdpAddressOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/udp/address.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerUdpAddressOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerUdpPortOperGetCb::NtpServerUdpPortOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/udp/port.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerUdpPortOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerUdpOperGetCb::NtpServerUdpOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/udp.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerUdpOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerAssociationTypeOperGetCb::NtpServerAssociationTypeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/association-type.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerAssociationTypeOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerIburstOperGetCb::NtpServerIburstOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/iburst.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerIburstOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerPreferOperGetCb::NtpServerPreferOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s']/prefer.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerPreferOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpServerOperGetCb::NtpServerOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp/server[name='%s'].
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpServerOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    NtpOperGetCb::NtpOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/ntp.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode NtpOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsSearchOperGetCb::DnsSearchOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/search.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsSearchOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsServerNameOperGetCb::DnsServerNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/server[name='%s']/name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsServerNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsServerUdpAndTcpAddressOperGetCb::DnsServerUdpAndTcpAddressOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/server[name='%s']/udp-and-tcp/address.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsServerUdpAndTcpAddressOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsServerUdpAndTcpPortOperGetCb::DnsServerUdpAndTcpPortOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/server[name='%s']/udp-and-tcp/port.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsServerUdpAndTcpPortOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsServerUdpAndTcpOperGetCb::DnsServerUdpAndTcpOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/server[name='%s']/udp-and-tcp.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsServerUdpAndTcpOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsServerOperGetCb::DnsServerOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/server[name='%s'].
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsServerOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsOptionsTimeoutOperGetCb::DnsOptionsTimeoutOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/options/timeout.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsOptionsTimeoutOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsOptionsAttemptsOperGetCb::DnsOptionsAttemptsOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/options/attempts.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsOptionsAttemptsOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsOptionsOperGetCb::DnsOptionsOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver/options.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsOptionsOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    DnsOperGetCb::DnsOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/dns-resolver.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode DnsOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerNameOperGetCb::RadiusServerNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerUdpAddressOperGetCb::RadiusServerUdpAddressOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/udp/address.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerUdpAddressOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerUdpAuthenticationPortOperGetCb::RadiusServerUdpAuthenticationPortOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx)
+    {
+        m_ctx = ctx;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/udp/authentication-port.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerUdpAuthenticationPortOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerUdpSharedSecretOperGetCb::RadiusServerUdpSharedSecretOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/udp/shared-secret.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerUdpSharedSecretOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerUdpOperGetCb::RadiusServerUdpOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/udp.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerUdpOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerAuthenticationTypeOperGetCb::RadiusServerAuthenticationTypeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s']/authentication-type.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerAuthenticationTypeOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusServerOperGetCb::RadiusServerOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/server[name='%s'].
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusServerOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusOptionsTimeoutOperGetCb::RadiusOptionsTimeoutOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/options/timeout.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusOptionsTimeoutOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusOptionsAttemptsOperGetCb::RadiusOptionsAttemptsOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/options/attempts.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusOptionsAttemptsOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusOptionsOperGetCb::RadiusOptionsOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius/options.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusOptionsOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    RadiusOperGetCb::RadiusOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/radius.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode RadiusOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserAuthenticationOrderOperGetCb::AuthUserAuthenticationOrderOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user-authentication-order.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthenticationOrderOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserNameOperGetCb::AuthUserNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserPasswordOperGetCb::AuthUserPasswordOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/password.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserPasswordOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserAuthorizedKeyNameOperGetCb::AuthUserAuthorizedKeyNameOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/name.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthorizedKeyNameOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserAuthorizedKeyAlgorithmOperGetCb::AuthUserAuthorizedKeyAlgorithmOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/algorithm.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthorizedKeyAlgorithmOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserAuthorizedKeyKeyDataOperGetCb::AuthUserAuthorizedKeyKeyDataOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s']/key-data.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthorizedKeyKeyDataOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserAuthorizedKeyOperGetCb::AuthUserAuthorizedKeyOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s']/authorized-key[name='%s'].
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthorizedKeyOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthUserOperGetCb::AuthUserOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication/user[name='%s'].
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    AuthOperGetCb::AuthOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system/authentication.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    SystemOperGetCb::SystemOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode SystemOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
         return error;
     }
 
@@ -159,15 +1410,6 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        struct utsname uname_data = { 0 };
-
-        if (uname(&uname_data) < 0) {
-            return sr::ErrorCode::Internal;
-        }
-
-        output->newPath("os-name", uname_data.sysname);
-
         return error;
     }
 
@@ -197,15 +1439,6 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        struct utsname uname_data = { 0 };
-
-        if (uname(&uname_data) < 0) {
-            return sr::ErrorCode::Internal;
-        }
-
-        output->newPath("os-release", uname_data.release);
-
         return error;
     }
 
@@ -235,15 +1468,6 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        struct utsname uname_data = { 0 };
-
-        if (uname(&uname_data) < 0) {
-            return sr::ErrorCode::Internal;
-        }
-
-        output->newPath("os-version", uname_data.version);
-
         return error;
     }
 
@@ -273,28 +1497,19 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        struct utsname uname_data = { 0 };
-
-        if (uname(&uname_data) < 0) {
-            return sr::ErrorCode::Internal;
-        }
-
-        output->newPath("machine", uname_data.machine);
-
         return error;
     }
 
     /**
-     * Default constructor.
+     * sysrepo-plugin-generator: Generated default constructor.
      *
      * @param ctx Plugin operational context.
      *
      */
-    ClockOperGetCb::ClockOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+    StatePlatformOperGetCb::StatePlatformOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
-     * Operational get operator() for path /ietf-system:system-state/clock.
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform.
      *
      * @param session An implicit session for the callback.
      * @param subscriptionId ID the subscription associated with the callback.
@@ -306,19 +1521,21 @@ namespace sub::oper {
      * @return Error code.
      *
      */
-    sr::ErrorCode ClockOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+    sr::ErrorCode StatePlatformOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
         std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto clock = output->newPath("clock");
+        auto platform = output->newPath("platform");
 
-        if (clock) {
-            auto clock_info = ietf::sys::getClockInfo();
+        if (platform) {
+            auto platform_info = API::SystemState::getPlatformInfo();
 
-            clock->newPath("current-datetime", clock_info.CurrentDatetime);
-            clock->newPath("boot-datetime", clock_info.BootDatetime);
+            platform->newPath("os-name", platform_info.OsName);
+            platform->newPath("os-release", platform_info.OsRelease);
+            platform->newPath("os-version", platform_info.OsVersion);
+            platform->newPath("machine", platform_info.Machine);
         }
 
         return error;
@@ -375,6 +1592,74 @@ namespace sub::oper {
      *
      */
     sr::ErrorCode ClockBootDatetimeOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    StateClockOperGetCb::StateClockOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/clock.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode StateClockOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
+        std::optional<ly::DataNode>& output)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        auto clock = output->newPath("clock");
+
+        if (clock) {
+            auto clock_info = API::SystemState::getClockInfo();
+
+            clock->newPath("current-datetime", clock_info.CurrentDatetime);
+            clock->newPath("boot-datetime", clock_info.BootDatetime);
+        }
+
+        return error;
+    }
+
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin operational context.
+     *
+     */
+    StateOperGetCb::StateOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode StateOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
         std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
         std::optional<ly::DataNode>& output)
     {
