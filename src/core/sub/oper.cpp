@@ -1334,6 +1334,15 @@ namespace sub::oper {
 
         auto users = API::System::getLocalUserList();
 
+        // traverse users and collect authorized-key lists
+        for (auto& user : users) {
+            try {
+                user.AuthorizedKeys = API::System::getAuthorizedKeyList(user.Name);
+            } catch (...) {
+            }
+        }
+
+        // create YANG subtree
         for (const auto& user : users) {
             std::stringstream path_buffer;
 
@@ -1343,6 +1352,21 @@ namespace sub::oper {
             if (user_node) {
                 if (user.Password) {
                     user_node->newPath("password", user.Password);
+                }
+
+                // create authorized-key subtree
+                if (user.AuthorizedKeys) {
+                    for (const auto& key : user.AuthorizedKeys.value()) {
+                        std::stringstream key_path_buffer;
+
+                        key_path_buffer << "authorized-key[name='" << key.Name << "']";
+
+                        auto key_node = user_node->newPath(key_path_buffer.str());
+                        if (key_node) {
+                            key_node->newPath("algorithm", key.Algorithm);
+                            key_node->newPath("key-data", key.Data);
+                        }
+                    }
                 }
             } else {
                 error = sr::ErrorCode::Internal;
