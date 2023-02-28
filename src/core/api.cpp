@@ -188,7 +188,7 @@ namespace API {
                 if (file.is_open()) {
                     // read algorithm and key-data
                     file >> algorithm >> data;
-                    keys.push_back(AuthorizedKey { .Algorithm = algorithm, .Data = data });
+                    keys.push_back(AuthorizedKey { .Name = entry.path().filename(), .Algorithm = algorithm, .Data = data });
                 } else {
                     throw std::runtime_error("Failed to open authorized key file.");
                 }
