@@ -1,6 +1,7 @@
 #include "change.hpp"
 
 #include "core/common.hpp"
+#include "core/api.hpp"
 
 // sethostname() and gethostname()
 #include <unistd.h>
@@ -11,8 +12,12 @@
 // path handling
 #include <filesystem>
 
+// use system API
+namespace API = ietf::sys::API;
+
 namespace ietf::sys {
 namespace sub::change {
+
     /**
      * sysrepo-plugin-generator: Generated default constructor.
      *
@@ -70,8 +75,6 @@ namespace sub::change {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
         switch (event) {
-        case sysrepo::Event::Update:
-            break;
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
                 switch (change.operation) {
@@ -79,11 +82,14 @@ namespace sub::change {
                 case sysrepo::ChangeOperation::Modified: {
                     // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto hostname = std::get<std::string>(value);
+                    auto hostname = static_cast<Hostname>(std::get<std::string>(value));
 
-                    if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
-                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "sethostname() failed with error code %d", err);
-                        error = sr::ErrorCode::Internal;
+                    try {
+                        API::System::setHostname(hostname);
+
+                    } catch (const std::runtime_error& err) {
+                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                        error = sr::ErrorCode::OperationFailed;
                     }
                     break;
                 }
@@ -94,13 +100,7 @@ namespace sub::change {
                 }
             }
             break;
-        case sysrepo::Event::Done:
-            break;
-        case sysrepo::Event::Abort:
-            break;
-        case sysrepo::Event::Enabled:
-            break;
-        case sysrepo::Event::RPC:
+        default:
             break;
         }
 
@@ -164,8 +164,6 @@ namespace sub::change {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
         switch (event) {
-        case sysrepo::Event::Update:
-            break;
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
                 switch (change.operation) {
@@ -220,13 +218,7 @@ namespace sub::change {
                 }
             }
             break;
-        case sysrepo::Event::Done:
-            break;
-        case sysrepo::Event::Abort:
-            break;
-        case sysrepo::Event::Enabled:
-            break;
-        case sysrepo::Event::RPC:
+        default:
             break;
         }
 

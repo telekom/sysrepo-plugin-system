@@ -14,14 +14,21 @@ namespace API {
          *
          * @return Hostname.
          */
-        static std::string getHostname();
+        static Hostname getHostname();
+
+        /**
+         * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
+         *
+         * @param hostname Hostname.
+         */
+        static void setHostname(const Hostname& hostname);
 
         /**
          * @brief Get system timezone name from /etc/localtime.
          *
          * @return Timezone name.
          */
-        static std::string getTimezoneName();
+        static TimezoneName getTimezoneName();
     };
 
     /**

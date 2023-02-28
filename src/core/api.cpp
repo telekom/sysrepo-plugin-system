@@ -7,6 +7,9 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 
+// sethostname() and gethostname()
+#include <unistd.h>
+
 #include <filesystem>
 
 namespace ietf::sys {
@@ -25,6 +28,18 @@ namespace API {
         }
 
         return hostname;
+    }
+
+    /**
+     * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
+     *
+     * @param hostname Hostname.
+     */
+    void System::setHostname(const Hostname& hostname)
+    {
+        if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
+            throw std::runtime_error("Failed to set hostname.");
+        }
     }
 
     /**

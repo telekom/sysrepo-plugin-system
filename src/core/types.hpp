@@ -22,4 +22,8 @@ struct ClockInfo {
     std::string CurrentDatetime; ///< Current datetime.
 };
 
+// other type aliases
+using Hostname = std::string;
+using TimezoneName = std::string;
+
 }
