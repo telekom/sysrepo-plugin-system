@@ -40,6 +40,9 @@ set(
     src/core/sub/oper.hpp
     src/core/sub/rpc.hpp
     src/core/yang/tree.hpp
+    src/core/api.hpp
+    src/core/types.hpp
+    src/core/common.hpp
 )
 
 set(
@@ -50,6 +53,7 @@ set(
     src/core/sub/oper.cpp
     src/core/sub/rpc.cpp
     src/core/yang/tree.cpp
+    src/core/api.cpp
 )
 
 set(
