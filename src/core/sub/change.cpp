@@ -85,7 +85,6 @@ namespace sub::change {
 
                     try {
                         API::System::setHostname(hostname);
-
                     } catch (const std::runtime_error& err) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                         error = sr::ErrorCode::OperationFailed;
