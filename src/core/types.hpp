@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
+#include <vector>
+#include <optional>
 
 namespace ietf::sys {
 
@@ -21,6 +24,28 @@ struct ClockInfo {
     std::string BootDatetime; ///< Boot datetime.
     std::string CurrentDatetime; ///< Current datetime.
 };
+
+/**
+ * @brief Authorized key helper struct.
+ */
+struct AuthorizedKey {
+    std::string Name; ///< Key name.
+    std::string Algorithm; ///< Key algorithm.
+    std::vector<std::byte> Data; ///< Key data.
+};
+
+using AuthorizedKeyList = std::vector<AuthorizedKey>;
+
+/**
+ * @brief Authentication user helper struct.
+ */
+struct AuthUser {
+    std::string Name; ///< User name.
+    std::string Password; ///< User password hash.
+    std::optional<AuthorizedKeyList> AuthorizedKeys; ///< User authorized keys.
+};
+
+using AuthUserList = std::vector<AuthUser>;
 
 // other type aliases
 using Hostname = std::string;
