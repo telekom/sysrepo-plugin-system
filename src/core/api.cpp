@@ -60,6 +60,46 @@ namespace API {
     }
 
     /**
+     * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
+     *
+     * @param timezoneName Timezone name.
+     */
+    void System::setTimezoneName(const TimezoneName& timezone_name)
+    {
+        namespace fs = std::filesystem;
+
+        // change timezone-name
+        auto tz_dir = fs::path(ietf::sys::TIMEZONE_DIR_PATH);
+        auto tz_file = tz_dir / timezone_name;
+
+        // check if the file exists
+        auto status = fs::status(tz_file);
+        if (!fs::exists(status)) {
+            throw std::runtime_error("Timezone file does not exist.");
+        }
+
+        // check for /etc/localtime symlink
+        auto localtime = fs::path("/etc/localtime");
+        if (fs::exists(localtime)) {
+            // remove the symlink
+            try {
+                if (auto err = fs::remove(localtime); err != 0) {
+                    throw std::runtime_error("Failed to remove /etc/localtime symlink.");
+                }
+            } catch (fs::filesystem_error& err) {
+                throw std::runtime_error("Failed to remove /etc/localtime symlink.");
+            }
+        }
+
+        // symlink removed; create a new one
+        try {
+            fs::create_symlink(tz_file, localtime);
+        } catch (fs::filesystem_error& err) {
+            throw std::runtime_error("Failed to create /etc/localtime symlink.");
+        }
+    }
+
+    /**
      * @brief Get platform information.
      *
      * @return Platform information.

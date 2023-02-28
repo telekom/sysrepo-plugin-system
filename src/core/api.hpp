@@ -29,6 +29,13 @@ namespace API {
          * @return Timezone name.
          */
         static TimezoneName getTimezoneName();
+
+        /**
+         * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
+         *
+         * @param timezoneName Timezone name.
+         */
+        static void setTimezoneName(const TimezoneName& timezone_name);
     };
 
     /**

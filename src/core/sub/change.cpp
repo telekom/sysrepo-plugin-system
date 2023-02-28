@@ -168,44 +168,16 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-                    namespace fs = std::filesystem;
 
                     // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto timezone_name = std::get<std::string>(value);
+                    auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
 
-                    // change timezone-name
-                    auto tz_dir = fs::path("/usr/share/zoneinfo");
-                    auto tz_file = tz_dir / timezone_name;
-
-                    // check if the file exists
-                    auto status = fs::status(tz_file);
-                    if (!fs::exists(status)) {
-                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "timezone file %s does not exist", tz_file.c_str());
-                        return sr::ErrorCode::InvalidArgument;
-                    }
-
-                    // check for /etc/localtime symlink
-                    auto localtime = fs::path("/etc/localtime");
-                    if (fs::exists(localtime)) {
-                        // remove the symlink
-                        try {
-                            if (auto err = fs::remove(localtime); err != 0) {
-                                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to remove /etc/localtime symlink");
-                                return sr::ErrorCode::Internal;
-                            }
-                        } catch (fs::filesystem_error& err) {
-                            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to remove /etc/localtime symlink");
-                            return sr::ErrorCode::Internal;
-                        }
-                    }
-
-                    // symlink removed; create a new one
                     try {
-                        fs::create_symlink(tz_file, localtime);
-                    } catch (fs::filesystem_error& err) {
-                        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "failed to create /etc/localtime symlink");
-                        return sr::ErrorCode::Internal;
+                        API::System::setTimezoneName(timezone_name);
+                    } catch (const std::runtime_error& err) {
+                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                        error = sr::ErrorCode::OperationFailed;
                     }
 
                     break;
