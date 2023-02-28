@@ -1,9 +1,12 @@
 #include "oper.hpp"
 
+#include "core/common.hpp"
 #include "core/types.hpp"
 #include "core/api.hpp"
+#include "sysrepo.h"
 
 // Platform information
+#include <sstream>
 #include <stdexcept>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
@@ -1328,6 +1331,25 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        auto users = API::System::getLocalUserList();
+
+        for (const auto& user : users) {
+            std::stringstream path_buffer;
+
+            path_buffer << "user[name='" << user.Name << "']";
+
+            auto user_node = output->newPath(path_buffer.str());
+            if (user_node) {
+                if (user.Password) {
+                    user_node->newPath("password", user.Password);
+                }
+            } else {
+                error = sr::ErrorCode::Internal;
+                break;
+            }
+        }
+
         return error;
     }
 

@@ -41,7 +41,7 @@ using AuthorizedKeyList = std::vector<AuthorizedKey>;
  */
 struct LocalUser {
     std::string Name; ///< User name.
-    std::string Password; ///< User password hash.
+    std::optional<std::string> Password; ///< User password hash.
     std::optional<AuthorizedKeyList> AuthorizedKeys; ///< User authorized keys.
 };
 
