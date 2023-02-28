@@ -131,6 +131,11 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        auto tz_name = API::System::getTimezoneName();
+
+        output->newPath("timezone-name", tz_name);
+
         return error;
     }
 

@@ -121,6 +121,7 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
 {
     const auto oper_callbacks = {
         OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(ctx.getOperContext()) },
     };

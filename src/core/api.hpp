@@ -15,6 +15,13 @@ namespace API {
          * @return Hostname.
          */
         static std::string getHostname();
+
+        /**
+         * @brief Get system timezone name from /etc/localtime.
+         *
+         * @return Timezone name.
+         */
+        static std::string getTimezoneName();
     };
 
     /**

@@ -7,6 +7,8 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 
+#include <filesystem>
+
 namespace ietf::sys {
 namespace API {
     /**
@@ -23,6 +25,23 @@ namespace API {
         }
 
         return hostname;
+    }
+
+    /**
+     * @brief Get system timezone name from /etc/localtime.
+     *
+     * @return Timezone name.
+     */
+    std::string System::getTimezoneName()
+    {
+        if (std::filesystem::exists(ietf::sys::TIMEZONE_FILE_PATH) && std::filesystem::is_symlink(ietf::sys::TIMEZONE_FILE_PATH)) {
+            auto link_path = std::filesystem::read_symlink(ietf::sys::TIMEZONE_FILE_PATH);
+            auto dir = std::filesystem::path(ietf::sys::TIMEZONE_DIR_PATH);
+            auto rel_path = std::filesystem::relative(link_path, dir);
+            return rel_path;
+        } else {
+            throw std::runtime_error("Failed to get timezone name.");
+        }
     }
 
     /**
