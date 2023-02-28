@@ -12,11 +12,10 @@
 // path handling
 #include <filesystem>
 
-// use system API
-namespace API = ietf::sys::API;
-
 namespace ietf::sys {
 namespace sub::change {
+    // use system API
+    namespace API = ietf::sys::API;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
