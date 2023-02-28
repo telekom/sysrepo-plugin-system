@@ -199,11 +199,21 @@ namespace API {
     /**
      * @brief Restart system.
      */
-    void RPC::restartSystem() { std::system("reboot"); }
+    void RPC::restartSystem()
+    {
+        if (auto rc = std::system("reboot"); rc != 0) {
+            throw std::runtime_error("Failed to restart system.");
+        }
+    }
 
     /**
      * @brief Shutdown system.
      */
-    void RPC::shutdownSystem() { std::system("poweroff"); }
+    void RPC::shutdownSystem()
+    {
+        if (auto rc = std::system("poweroff"); rc != 0) {
+            throw std::runtime_error("Failed to shutdown system.");
+        }
+    }
 }
 }

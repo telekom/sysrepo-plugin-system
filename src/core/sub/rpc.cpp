@@ -81,7 +81,11 @@ namespace sub::rpc {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        API::RPC::restartSystem();
+        try {
+            API::RPC::restartSystem();
+        } catch (const std::runtime_error& err) {
+            error = sr::ErrorCode::OperationFailed;
+        }
 
         return error;
     }
@@ -114,7 +118,11 @@ namespace sub::rpc {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        API::RPC::shutdownSystem();
+        try {
+            API::RPC::shutdownSystem();
+        } catch (const std::runtime_error& err) {
+            error = sr::ErrorCode::OperationFailed;
+        }
 
         return error;
     }
