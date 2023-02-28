@@ -43,6 +43,15 @@ namespace API {
          * @return Local users on the system.
          */
         static LocalUserList getLocalUserList();
+
+        /**
+         * @brief Get local user authorized keys.
+         *
+         * @param username Username.
+         *
+         * @return Authorized keys.
+         */
+        static AuthorizedKeyList getAuthorizedKeyList(const std::string& username);
     };
 
     /**

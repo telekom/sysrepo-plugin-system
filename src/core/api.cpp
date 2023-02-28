@@ -159,6 +159,19 @@ namespace API {
     }
 
     /**
+     * @brief Get local user authorized keys.
+     *
+     * @param username Username.
+     *
+     * @return Authorized keys.
+     */
+    AuthorizedKeyList System::getAuthorizedKeyList(const std::string& username)
+    {
+        AuthorizedKeyList keys;
+        return keys;
+    }
+
+    /**
      * @brief Get platform information.
      *
      * @return Platform information.
