@@ -1365,6 +1365,9 @@ namespace sub::oper {
                         if (key_node) {
                             key_node->newPath("algorithm", key.Algorithm);
                             key_node->newPath("key-data", key.Data);
+                        } else {
+                            error = sr::ErrorCode::Internal;
+                            break;
                         }
                     }
                 }
