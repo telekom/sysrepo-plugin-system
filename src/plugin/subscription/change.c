@@ -213,7 +213,7 @@ error_out:
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_ntp_server(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
@@ -368,7 +368,7 @@ out:
 
 	system_ntp_server_list_free(&ctx->temp_ntp_servers);
 
-	return SR_ERR_CALLBACK_FAILED;
+	return error;
 }
 
 int system_subscription_change_dns_resolver_search(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
