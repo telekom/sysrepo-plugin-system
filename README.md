@@ -37,6 +37,11 @@ The following software is additionally required on the target system:
 * systemd
 * ntpd
 
+### Branches
+The project uses 2 main branches `main` and `devel`. Other branches should not be cloned. In `main` there are files of the last official release. Any latest improvements and changes, which were tested at least briefly are found in `devel`. On every new release, `devel` is merged into `main`.
+
+This means that when only stable official releases are to be used, either `main` can be used or specific releases downloaded. If all the latest bugfixes should be applied, `devel` branch is the one to be used. Note that whenever a new issue is created and it occurs on the `main` branch, the first response will likely be to use `devel` before any further provided support. Also, when creating a **Pull Request**, the target branch should always be set to `devel`.
+
 ### Build
 
 First clone the repository:
