@@ -4,28 +4,6 @@
 
 namespace ietf::sys {
 namespace API {
-    /**
-     * @brief System container API.
-     */
-    class System {
-    public:
-        /**
-         * @brief Get system local users.
-         *
-         * @return Local users on the system.
-         */
-        static LocalUserList getLocalUserList();
-
-        /**
-         * @brief Get local user authorized keys.
-         *
-         * @param username Username.
-         *
-         * @return Authorized keys.
-         */
-        static AuthorizedKeyList getAuthorizedKeyList(const std::string& username);
-    };
-
     class RPC {
     public:
         /**

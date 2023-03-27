@@ -11,6 +11,7 @@
 // system
 #include <core/system/hostname.hpp>
 #include <core/system/timezone-name.hpp>
+#include <core/system/auth.hpp>
 
 // Platform information
 #include <sstream>
@@ -21,7 +22,6 @@
 namespace ietf::sys {
 namespace sub::oper {
     // use API namespace in operational callbacks
-    namespace API = ietf::sys::API;
     namespace sys_state = ietf::sys::state;
     namespace sys = ietf::sys;
 
@@ -1341,12 +1341,12 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto users = API::System::getLocalUserList();
+        auto users = sys::auth::getLocalUserList();
 
         // traverse users and collect authorized-key lists
         for (auto& user : users) {
             try {
-                user.AuthorizedKeys = API::System::getAuthorizedKeyList(user.Name);
+                user.AuthorizedKeys = sys::auth::getAuthorizedKeyList(user.Name);
             } catch (...) {
             }
         }

@@ -6,6 +6,7 @@
 // system API
 #include <core/system/hostname.hpp>
 #include <core/system/timezone-name.hpp>
+#include <core/system/auth.hpp>
 
 // sethostname() and gethostname()
 #include <unistd.h>
@@ -19,7 +20,6 @@
 namespace ietf::sys {
 namespace sub::change {
     // use system API
-    namespace API = ietf::sys::API;
     namespace sys = ietf::sys;
 
     /**
