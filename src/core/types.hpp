@@ -30,6 +30,5 @@ struct LocalUser {
 using LocalUserList = std::vector<LocalUser>;
 
 // other type aliases
-using TimezoneName = std::string;
 
 }

@@ -10,6 +10,7 @@
 
 // system
 #include <core/system/hostname.hpp>
+#include <core/system/timezone-name.hpp>
 
 // Platform information
 #include <sstream>
@@ -143,7 +144,7 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto tz_name = API::System::getTimezoneName();
+        auto tz_name = sys::getTimezoneName();
 
         output->newPath("timezone-name", tz_name);
 

@@ -51,6 +51,7 @@ set(
 
     # system
     src/core/system/hostname.hpp
+    src/core/system/timezone-name.hpp
 )
 
 set(
@@ -69,6 +70,7 @@ set(
 
     # system
     src/core/system/hostname.cpp
+    src/core/system/timezone-name.cpp
 )
 
 set(

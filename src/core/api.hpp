@@ -10,20 +10,6 @@ namespace API {
     class System {
     public:
         /**
-         * @brief Get system timezone name from /etc/localtime.
-         *
-         * @return Timezone name.
-         */
-        static TimezoneName getTimezoneName();
-
-        /**
-         * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
-         *
-         * @param timezoneName Timezone name.
-         */
-        static void setTimezoneName(const TimezoneName& timezone_name);
-
-        /**
          * @brief Get system local users.
          *
          * @return Local users on the system.

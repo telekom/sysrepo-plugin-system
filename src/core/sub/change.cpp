@@ -3,7 +3,9 @@
 #include "core/common.hpp"
 #include "core/api.hpp"
 
+// system API
 #include <core/system/hostname.hpp>
+#include <core/system/timezone-name.hpp>
 
 // sethostname() and gethostname()
 #include <unistd.h>
@@ -176,7 +178,7 @@ namespace sub::change {
                     auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
 
                     try {
-                        API::System::setTimezoneName(timezone_name);
+                        sys::setTimezoneName(timezone_name);
                     } catch (const std::runtime_error& err) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                         error = sr::ErrorCode::OperationFailed;
