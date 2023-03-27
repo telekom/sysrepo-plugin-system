@@ -118,6 +118,9 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
 {
     const auto oper_callbacks = {
         OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(ctx.getOperContext()) },
+        OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system/authentication/user", ietf::sys::sub::oper::AuthUserOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(ctx.getOperContext()) },
