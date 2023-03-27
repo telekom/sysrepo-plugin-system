@@ -44,6 +44,15 @@ set(
     src/core/api.hpp
     src/core/types.hpp
     src/core/common.hpp
+
+    # system-state
+    src/core/system-state/platform.hpp
+    src/core/system-state/clock.hpp
+
+    # system
+    src/core/system/hostname.hpp
+    src/core/system/timezone-name.hpp
+    src/core/system/auth.hpp
 )
 
 set(
@@ -55,6 +64,15 @@ set(
     src/core/sub/rpc.cpp
     src/core/yang/tree.cpp
     src/core/api.cpp
+
+    # system-state
+    src/core/system-state/platform.cpp
+    src/core/system-state/clock.cpp
+
+    # system
+    src/core/system/hostname.cpp
+    src/core/system/timezone-name.cpp
+    src/core/system/auth.cpp
 )
 
 set(

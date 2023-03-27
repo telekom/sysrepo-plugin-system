@@ -1,9 +1,16 @@
 #include "oper.hpp"
 
 #include "core/common.hpp"
-#include "core/types.hpp"
 #include "core/api.hpp"
-#include "sysrepo.h"
+
+// system-state
+#include <core/system-state/platform.hpp>
+#include <core/system-state/clock.hpp>
+
+// system
+#include <core/system/hostname.hpp>
+#include <core/system/timezone-name.hpp>
+#include <core/system/auth.hpp>
 
 // Platform information
 #include <sstream>
@@ -14,7 +21,8 @@
 namespace ietf::sys {
 namespace sub::oper {
     // use API namespace in operational callbacks
-    namespace API = ietf::sys::API;
+    namespace sys_state = ietf::sys::state;
+    namespace sys = ietf::sys;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -72,7 +80,7 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto hostname = API::System::getHostname();
+        auto hostname = sys::getHostname();
 
         output->newPath("hostname", hostname);
 
@@ -135,7 +143,7 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto tz_name = API::System::getTimezoneName();
+        auto tz_name = sys::getTimezoneName();
 
         output->newPath("timezone-name", tz_name);
 
@@ -1332,12 +1340,12 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto users = API::System::getLocalUserList();
+        auto users = sys::auth::getLocalUserList();
 
         // traverse users and collect authorized-key lists
         for (auto& user : users) {
             try {
-                user.AuthorizedKeys = API::System::getAuthorizedKeyList(user.Name);
+                user.AuthorizedKeys = sys::auth::getAuthorizedKeyList(user.Name);
             } catch (...) {
             }
         }
@@ -1584,7 +1592,7 @@ namespace sub::oper {
         auto platform = output->newPath("platform");
 
         if (platform) {
-            auto platform_info = API::SystemState::getPlatformInfo();
+            auto platform_info = sys_state::getPlatformInfo();
 
             platform->newPath("os-name", platform_info.OsName);
             platform->newPath("os-release", platform_info.OsRelease);
@@ -1683,7 +1691,7 @@ namespace sub::oper {
         auto clock = output->newPath("clock");
 
         if (clock) {
-            auto clock_info = API::SystemState::getClockInfo();
+            auto clock_info = sys_state::getClockInfo();
 
             clock->newPath("current-datetime", clock_info.CurrentDatetime);
             clock->newPath("boot-datetime", clock_info.BootDatetime);

@@ -1,29 +1,10 @@
 #pragma once
 
-#include <cstddef>
 #include <string>
 #include <vector>
 #include <optional>
 
-namespace ietf::sys {
-
-/**
- * @brief Platform information helper struct.
- */
-struct PlatformInfo {
-    std::string OsName; ///< OS name.
-    std::string OsRelease; ///< OS release.
-    std::string OsVersion; ///< OS version.
-    std::string Machine; ///< Machine.
-};
-
-/**
- * @brief Clock information helper struct.
- */
-struct ClockInfo {
-    std::string BootDatetime; ///< Boot datetime.
-    std::string CurrentDatetime; ///< Current datetime.
-};
+namespace ietf::sys::auth {
 
 /**
  * @brief DNS search type.
@@ -71,6 +52,9 @@ struct AuthorizedKey {
     std::string Data; ///< Key data.
 };
 
+/**
+ * @brief Authorized key list type alias.
+ */
 using AuthorizedKeyList = std::vector<AuthorizedKey>;
 
 /**
@@ -82,10 +66,24 @@ struct LocalUser {
     std::optional<AuthorizedKeyList> AuthorizedKeys; ///< User authorized keys.
 };
 
+/**
+ * @brief Local user list type alias.
+ */
 using LocalUserList = std::vector<LocalUser>;
 
-// other type aliases
-using Hostname = std::string;
-using TimezoneName = std::string;
+/**
+ * @brief Get system local users.
+ *
+ * @return Local users on the system.
+ */
+LocalUserList getLocalUserList();
 
+/**
+ * @brief Get local user authorized keys.
+ *
+ * @param username Username.
+ *
+ * @return Authorized keys.
+ */
+AuthorizedKeyList getAuthorizedKeyList(const std::string& username);
 }
