@@ -48,6 +48,9 @@ set(
     # system-state
     src/core/system-state/platform.hpp
     src/core/system-state/clock.hpp
+
+    # system
+    src/core/system/hostname.hpp
 )
 
 set(
@@ -63,6 +66,9 @@ set(
     # system-state
     src/core/system-state/platform.cpp
     src/core/system-state/clock.cpp
+
+    # system
+    src/core/system/hostname.cpp
 )
 
 set(

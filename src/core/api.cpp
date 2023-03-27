@@ -28,34 +28,6 @@ extern "C" {
 namespace ietf::sys {
 namespace API {
     /**
-     * @brief Get system hostname.
-     *
-     * @return Hostname.
-     */
-    std::string System::getHostname()
-    {
-        char hostname[ietf::sys::HOSTNAME_MAX_LEN + 1] = { 0 };
-
-        if (gethostname(hostname, sizeof(hostname)) < 0) {
-            throw std::runtime_error("Failed to get hostname.");
-        }
-
-        return hostname;
-    }
-
-    /**
-     * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
-     *
-     * @param hostname Hostname.
-     */
-    void System::setHostname(const Hostname& hostname)
-    {
-        if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
-            throw std::runtime_error("Failed to set hostname.");
-        }
-    }
-
-    /**
      * @brief Get system timezone name from /etc/localtime.
      *
      * @return Timezone name.

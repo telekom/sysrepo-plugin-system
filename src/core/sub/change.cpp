@@ -3,6 +3,8 @@
 #include "core/common.hpp"
 #include "core/api.hpp"
 
+#include <core/system/hostname.hpp>
+
 // sethostname() and gethostname()
 #include <unistd.h>
 
@@ -16,6 +18,7 @@ namespace ietf::sys {
 namespace sub::change {
     // use system API
     namespace API = ietf::sys::API;
+    namespace sys = ietf::sys;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -81,10 +84,10 @@ namespace sub::change {
                 case sysrepo::ChangeOperation::Modified: {
                     // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto hostname = std::get<ietf::sys::Hostname>(value);
+                    auto hostname = std::get<sys::Hostname>(value);
 
                     try {
-                        API::System::setHostname(hostname);
+                        sys::setHostname(hostname);
                     } catch (const std::runtime_error& err) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                         error = sr::ErrorCode::OperationFailed;

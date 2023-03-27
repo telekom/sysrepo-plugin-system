@@ -10,20 +10,6 @@ namespace API {
     class System {
     public:
         /**
-         * @brief Get system hostname.
-         *
-         * @return Hostname.
-         */
-        static Hostname getHostname();
-
-        /**
-         * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
-         *
-         * @param hostname Hostname.
-         */
-        static void setHostname(const Hostname& hostname);
-
-        /**
          * @brief Get system timezone name from /etc/localtime.
          *
          * @return Timezone name.

@@ -8,6 +8,9 @@
 #include <core/system-state/platform.hpp>
 #include <core/system-state/clock.hpp>
 
+// system
+#include <core/system/hostname.hpp>
+
 // Platform information
 #include <sstream>
 #include <stdexcept>
@@ -19,6 +22,7 @@ namespace sub::oper {
     // use API namespace in operational callbacks
     namespace API = ietf::sys::API;
     namespace sys_state = ietf::sys::state;
+    namespace sys = ietf::sys;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -76,7 +80,7 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto hostname = API::System::getHostname();
+        auto hostname = sys::getHostname();
 
         output->newPath("hostname", hostname);
 
