@@ -26,6 +26,40 @@ struct ClockInfo {
 };
 
 /**
+ * @brief DNS search type.
+ */
+using DnsSearch = std::string;
+
+/**
+ * @brief DNS search list type.
+ */
+using DnsSearchList = std::vector<DnsSearch>;
+
+/**
+ * @brief DNS server type.
+ */
+struct DnsServer {
+    std::string Name; ///< Server name.
+    std::string Address; ///< Server address.
+    std::int16_t Port; ///< Server port.
+
+    DnsServer()
+        : Port(53)
+    {
+    }
+};
+
+using DnsServerList = std::vector<DnsServer>;
+
+/**
+ * @brief DNS options helper struct.
+ */
+struct DnsOptions {
+    uint8_t Timeout; ///< Timeout.
+    uint8_t Attempts; ///< Attempts.
+};
+
+/**
  * @brief Authorized key helper struct.
  */
 struct AuthorizedKey {
