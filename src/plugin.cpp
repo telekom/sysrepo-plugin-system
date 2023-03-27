@@ -5,9 +5,6 @@
 #include "core/sub/change.hpp"
 #include "core/sub/oper.hpp"
 #include "core/sub/rpc.hpp"
-#include "sysrepo-cpp/Enum.hpp"
-#include "sysrepo-cpp/Subscription.hpp"
-#include "sysrepo.h"
 
 #include <sysrepo-cpp/Session.hpp>
 #include <sysrepo-cpp/utils/utils.hpp>
