@@ -60,13 +60,6 @@ namespace API {
     class SystemState {
     public:
         /**
-         * @brief Get platform information.
-         *
-         * @return Platform information.
-         */
-        static PlatformInfo getPlatformInfo();
-
-        /**
          * @brief Get clock information.
          *
          * @return Clock information.

@@ -3,7 +3,8 @@
 #include "core/common.hpp"
 #include "core/types.hpp"
 #include "core/api.hpp"
-#include "sysrepo.h"
+
+#include <core/system-state/platform.hpp>
 
 // Platform information
 #include <sstream>
@@ -15,6 +16,7 @@ namespace ietf::sys {
 namespace sub::oper {
     // use API namespace in operational callbacks
     namespace API = ietf::sys::API;
+    namespace sys_state = ietf::sys::state;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -1584,7 +1586,7 @@ namespace sub::oper {
         auto platform = output->newPath("platform");
 
         if (platform) {
-            auto platform_info = API::SystemState::getPlatformInfo();
+            auto platform_info = sys_state::getPlatformInfo();
 
             platform->newPath("os-name", platform_info.OsName);
             platform->newPath("os-release", platform_info.OsRelease);

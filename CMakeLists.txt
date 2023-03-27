@@ -44,6 +44,9 @@ set(
     src/core/api.hpp
     src/core/types.hpp
     src/core/common.hpp
+
+    # system-state
+    src/core/system-state/platform.hpp
 )
 
 set(
@@ -55,6 +58,9 @@ set(
     src/core/sub/rpc.cpp
     src/core/yang/tree.cpp
     src/core/api.cpp
+
+    # system-state
+    src/core/system-state/platform.cpp
 )
 
 set(
