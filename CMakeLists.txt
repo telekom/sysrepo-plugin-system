@@ -42,7 +42,6 @@ set(
     src/core/sub/rpc.hpp
     src/core/yang/tree.hpp
     src/core/api.hpp
-    src/core/types.hpp
     src/core/common.hpp
 
     # system-state
