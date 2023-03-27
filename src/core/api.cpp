@@ -1,7 +1,6 @@
 #include "api.hpp"
 #include "core/context.hpp"
 #include "core/common.hpp"
-#include "core/types.hpp"
 
 // Platform information
 #include <stdexcept>

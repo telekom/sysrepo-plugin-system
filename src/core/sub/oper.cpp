@@ -1,7 +1,6 @@
 #include "oper.hpp"
 
 #include "core/common.hpp"
-#include "core/types.hpp"
 #include "core/api.hpp"
 
 // system-state
