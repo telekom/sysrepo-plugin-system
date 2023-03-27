@@ -8,14 +8,6 @@
 namespace ietf::sys {
 
 /**
- * @brief Clock information helper struct.
- */
-struct ClockInfo {
-    std::string BootDatetime; ///< Boot datetime.
-    std::string CurrentDatetime; ///< Current datetime.
-};
-
-/**
  * @brief Authorized key helper struct.
  */
 struct AuthorizedKey {

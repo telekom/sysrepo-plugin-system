@@ -54,19 +54,6 @@ namespace API {
         static AuthorizedKeyList getAuthorizedKeyList(const std::string& username);
     };
 
-    /**
-     * @brief System state container API.
-     */
-    class SystemState {
-    public:
-        /**
-         * @brief Get clock information.
-         *
-         * @return Clock information.
-         */
-        static ClockInfo getClockInfo();
-    };
-
     class RPC {
     public:
         /**

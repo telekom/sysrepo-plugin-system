@@ -4,7 +4,9 @@
 #include "core/types.hpp"
 #include "core/api.hpp"
 
+// system-state
 #include <core/system-state/platform.hpp>
+#include <core/system-state/clock.hpp>
 
 // Platform information
 #include <sstream>
@@ -1685,7 +1687,7 @@ namespace sub::oper {
         auto clock = output->newPath("clock");
 
         if (clock) {
-            auto clock_info = API::SystemState::getClockInfo();
+            auto clock_info = sys_state::getClockInfo();
 
             clock->newPath("current-datetime", clock_info.CurrentDatetime);
             clock->newPath("boot-datetime", clock_info.BootDatetime);
