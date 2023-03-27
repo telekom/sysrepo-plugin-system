@@ -43,6 +43,9 @@ struct DnsServer {
     std::string Address; ///< Server address.
     std::int16_t Port; ///< Server port.
 
+    /**
+     * @brief Default constructor - sets the default DNS port.
+     */
     DnsServer()
         : Port(53)
     {
