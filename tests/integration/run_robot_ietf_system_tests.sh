@@ -16,22 +16,17 @@ python3 -m pip show SysrepoLibrary &> /dev/null || fail_module_check
 
 log "modules check passed"
 
-OUTPUTDIR=./out
-
 robot                      \
-    --outputdir $OUTPUTDIR \
     --output output.xml    \
     robot-ietf-system
 
 robot                         \
-    --outputdir $OUTPUTDIR    \
     --rerunfailed output.xml  \
     --output output_rerun.xml \
     robot-ietf-system
 
 rebot                                                         \
-    --outputdir $OUTPUTDIR                                    \
     --output output.xml                                       \
-    --merge $OUTPUTDIR/output.xml $OUTPUTDIR/output_rerun.xml \
+    --merge output.xml output_rerun.xml \
 
 exit 0
