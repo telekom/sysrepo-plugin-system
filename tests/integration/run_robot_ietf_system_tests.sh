@@ -20,13 +20,17 @@ robot                      \
     --output output.xml    \
     robot-ietf-system
 
-robot                         \
-    --rerunfailed output.xml  \
-    --output output_rerun.xml \
-    robot-ietf-system
+if [ $? -ne 0 ]; then
+    log "some tests failed, rerunning tests"
+    robot                         \
+        --rerunfailed output.xml  \
+        --output output_rerun.xml \
+        robot-ietf-system
 
-rebot                                                         \
-    --output output.xml                                       \
-    --merge output.xml output_rerun.xml \
+    log "merging output file"
+    rebot                                   \
+        --output output.xml                 \
+        --merge output.xml output_rerun.xml 
+fi
 
 exit 0
