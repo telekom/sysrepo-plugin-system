@@ -20,17 +20,20 @@ set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
 set(PLUGIN_EXECUTABLE_NAME ietf-system-plugin)
 set(PLUGIN_CORE_LIBRARY_NAME ietf-system-plugin-core)
 
+find_package(PkgConfig REQUIRED)
 find_package(SYSREPOCPP REQUIRED)
 find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(UMGMT REQUIRED)
+find_package(sdbus-c++ REQUIRED)
 
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
     ${UMGMT_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
+    ${SDBUS_CPP_INCLUDE_DIRS}
 )
 
 set(

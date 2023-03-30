@@ -38,4 +38,10 @@ using DnsSearch = std::string;
  */
 using DnsSearchList = std::vector<DnsSearch>;
 
+/**
+ * @brief Get the list of DNS search domains.
+ * @return List of DNS search domains.
+ */
+DnsSearchList getSearchList();
+
 }
