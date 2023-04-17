@@ -26,7 +26,8 @@ find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(UMGMT REQUIRED)
-find_package(sdbus-c++ REQUIRED)
+find_package(LIBSYSTEMD REQUIRED)
+find_package(LIBSDBUSCPP REQUIRED)
 
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
@@ -98,6 +99,13 @@ set(
     src/plugin.cpp
 )
 
+# check for systemd flag
+if(DEFINED SYSTEMD_IFINDEX)
+    add_compile_definitions(SYSTEMD_IFINDEX=${SYSTEMD_IFINDEX})
+else()
+    message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
+endif()
+
 # core library
 add_library(
     ${PLUGIN_CORE_LIBRARY_NAME}
@@ -127,6 +135,8 @@ target_link_libraries(
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
     ${UMGMT_LIBRARIES}
+    ${SDBUSCPP_LIBRARIES}
+    
 )
 
 # plugin as a library
@@ -140,7 +150,6 @@ target_link_libraries(
     ${PLUGIN_LIRBARY_NAME}
 
     ${PLUGIN_CORE_LIBRARY_NAME}
-
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
