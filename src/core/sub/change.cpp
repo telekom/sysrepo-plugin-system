@@ -176,17 +176,18 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-
-                    // modified hostname - get current value and use sethostname()
+                    
                     auto value = change.node.asTerm().value();
-                    auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
+                    auto timezone = std::get<std::string>(value);
 
-                    try {
-                        sys::setTimezoneName(timezone_name);
-                    } catch (const std::runtime_error& err) {
-                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                    try{
+                         Timezone t;
+                         t.setTimezone(timezone);
+                    }catch(std::runtime_error &e){
+                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
                         error = sr::ErrorCode::OperationFailed;
                     }
+
 
                     break;
                 }

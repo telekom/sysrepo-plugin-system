@@ -1,26 +1,30 @@
 #pragma once
 
 #include <string>
+#include <sdbus-c++/sdbus-c++.h>
 
 namespace ietf::sys {
 
-/**
- * @brief Hostname type alias.
- */
-using TimezoneName = std::string;
+// set and get types
+template <class GET, class ...SET> class SdBUS {
+public:
+    SdBUS(std::string destination, std::string objectPath, std::string interface, std::string setmethodname, std::string getmethodname);
 
-/**
- * @brief Get system timezone name from /etc/localtime.
- *
- * @return Timezone name.
- */
-TimezoneName getTimezoneName();
+protected:
+    bool exportToSdBus(SET ...data);
+    GET importFromSdBus();
 
-/**
- * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
- *
- * @param timezoneName Timezone name.
- */
-void setTimezoneName(const TimezoneName& timezone_name);
+private:
+    std::string dest, objPath, interface, sdbusSetMethod, sdbusGetMethod;
+};
+
+// it sends a string and a boolean, receives string
+class Timezone : public SdBUS<std::string , std::string, bool> {
+public:
+    Timezone();
+
+    bool setTimezone(std::string timezone);
+    std::string getTimezone();
+};
 
 }
