@@ -13,8 +13,6 @@
 // sethostname() and gethostname()
 #include <unistd.h>
 
-#include <core/system/dns.hpp>
-
 // logging
 #include <sysrepo.h>
 
@@ -104,7 +102,7 @@ namespace sub::change {
                     break;
                 case sysrepo::ChangeOperation::Moved:
                     break;
-                };
+                }
             }
             break;
         default:
@@ -318,7 +316,7 @@ namespace sub::change {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        dns::DnsSearchServerList dnsSearchServers(SYSTEMD_IFINDEX);
+        dns::DnsSearchServerList dnsSearchServers;
         // get all from bus
 
         switch (event) {
@@ -327,7 +325,7 @@ namespace sub::change {
             if (dnsSearchServers.importListFromSdBus()) {
                 SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
                 return sr::ErrorCode::OperationFailed;
-            };
+            }
 
             // if the call succseeded - continue
             for (auto& change : session.getChanges(subXPath->data())) {
@@ -340,7 +338,7 @@ namespace sub::change {
                     auto domain = std::get<std::string>(value);
 
                     // no value provided for search param - default true? or maybe another param?
-                    sys::dns::DnsSearchServer server(SYSTEMD_IFINDEX, domain, true);
+                    sys::dns::DnsSearchServer server(domain, true);
                     dnsSearchServers.addDnsSearchServer(server);
 
                     break;
@@ -353,7 +351,7 @@ namespace sub::change {
                     auto deletedValue = change.node.asTerm().value();
                     auto deletedDomain = std::get<std::string>(deletedValue);
 
-                    sys::dns::DnsSearchServer deleted(SYSTEMD_IFINDEX, deletedDomain, true);
+                    sys::dns::DnsSearchServer deleted(deletedDomain, true);
 
                     dnsSearchServers.removeDnsSearchServer(deleted);
 
@@ -479,9 +477,9 @@ namespace sub::change {
                     break;
                 }
             }
-            if (dnsList.exportListToSdBus() == true){
+            if (dnsList.exportListToSdBus() == true) {
                 return sr::ErrorCode::OperationFailed;
-            };
+            }
             break;
 
         default:

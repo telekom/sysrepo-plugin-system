@@ -117,7 +117,7 @@ DnsServer::DnsServer(int ifindex, std::string name, Address address, uint16_t po
     : Name { name }
     , address { address }
     , Port { port }
-    , _ifindex { ifindex } {
+    , m_ifindex { ifindex } {
 
     };
 
@@ -133,11 +133,11 @@ void DnsServer::setAddress(const Address& address) { this->address = address; }
 
 std::string DnsServer::getStringAddress() { return this->address.getStringAddr(); };
 
-int DnsServer::getIfindex() { return _ifindex; };
+int DnsServer::getIfindex() { return m_ifindex; };
 
 bool DnsServer::operator==(const DnsServer& other) const
 {
-    return ((this->Name == other.Name) && (this->address == other.address) && (this->Port == other.Port) && (this->_ifindex == other._ifindex));
+    return ((this->Name == other.Name) && (this->address == other.address) && (this->Port == other.Port) && (this->m_ifindex == other.m_ifindex));
 };
 
 // DnsSearchServer implementation
@@ -147,36 +147,39 @@ DnsSearchServer::DnsSearchServer()
     Domain.clear();
 }
 
-DnsSearchServer::DnsSearchServer(int ifindex, std::string domain, bool search)
+DnsSearchServer::DnsSearchServer(std::string domain, bool search)
     : Domain { domain }
     , Search { search }
-    , _ifindex { ifindex } {};
+    , m_ifindex { SYSTEMD_IFINDEX } {};
 
 std::string DnsSearchServer::getDomain() { return Domain; }
 
 bool DnsSearchServer::getSearch() { return Search; }
 
-int DnsSearchServer::getIfIndex() { return _ifindex; }
+int DnsSearchServer::getIfIndex() { return m_ifindex; }
 
 void DnsSearchServer::setDomain(std::string domain) { this->Domain = domain; }
 
 void DnsSearchServer::setSearch(bool search) { this->Search = search; }
 
-bool DnsSearchServer::operator==(const DnsSearchServer& other) const { return (this->Domain == other.Domain) && (this->_ifindex == other._ifindex); }
+bool DnsSearchServer::operator==(const DnsSearchServer& other) const
+{
+    return (this->Domain == other.Domain) && (this->m_ifindex == other.m_ifindex);
+}
 
 bool DnsSearchServer::operator!=(const DnsSearchServer& other) const
 {
-    return !((this->Domain == other.Domain) && (this->_ifindex == other._ifindex));
+    return !((this->Domain == other.Domain) && (this->m_ifindex == other.m_ifindex));
 }
 
 // DnsSearchServerList implementation
 
 DnsSearchServerList::DnsSearchServerList()
-    : _ifindex { SYSTEMD_IFINDEX } {};
+    : m_ifindex { SYSTEMD_IFINDEX } {};
 
 // not recomended, explicit definition of ifindex
 DnsSearchServerList::DnsSearchServerList(int ifindex)
-    : _ifindex { ifindex } {};
+    : m_ifindex { ifindex } {};
 
 bool DnsSearchServerList::addDnsSearchServer(DnsSearchServer srv)
 {
@@ -246,7 +249,7 @@ bool DnsSearchServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -282,10 +285,10 @@ bool DnsSearchServerList::importListFromSdBus()
     for (auto& vc : sdbusData) {
         // filter by ifindex
         int ifindex = vc.get<0>();
-        if (ifindex == _ifindex) {
+        if (ifindex == m_ifindex) {
             servers.push_back(
                 // store the ifindex ,domain, search
-                DnsSearchServer(ifindex, vc.get<1>(), vc.get<2>()));
+                DnsSearchServer(vc.get<1>(), vc.get<2>()));
         };
     };
 
@@ -297,9 +300,9 @@ bool DnsSearchServerList::importListFromSdBus()
 // DnsServerList initialization
 
 DnsServerList::DnsServerList()
-    : _ifindex { SYSTEMD_IFINDEX } {};
+    : m_ifindex { SYSTEMD_IFINDEX } {};
 DnsServerList::DnsServerList(int ifindex)
-    : _ifindex { ifindex } {};
+    : m_ifindex { ifindex } {};
 
 bool DnsServerList::importListFromSdBus()
 {
@@ -331,7 +334,7 @@ bool DnsServerList::importListFromSdBus()
         // SRPLG_LOG_ERR("GET NAME: ", "%s", vc.get<4>().c_str());
         // SRPLG_LOG_ERR("GET VERS: ", "%d", vc.get<1>());
         int ifindex = vc.get<0>();
-        if (ifindex == _ifindex) {
+        if (ifindex == m_ifindex) {
             int port = vc.get<3>();
             if (port == 0) {
                 port = 53;
@@ -361,7 +364,7 @@ bool DnsServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -375,7 +378,7 @@ bool DnsServerList::exportListToSdBus()
     return error;
 }
 
-int DnsServerList::getIfIndex() { return _ifindex; };
+int DnsServerList::getIfIndex() { return m_ifindex; };
 
 bool DnsServerList::addDnsServer(DnsServer srv)
 {

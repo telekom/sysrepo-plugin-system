@@ -45,7 +45,7 @@ private:
     std::string Name; ///< Arbitrary name of the DNS server.
     Address address; ///< Address of the DNS server.
     std::uint16_t Port; ///< Port of the DNS server.
-    int _ifindex;
+    int m_ifindex;
 
 public:
     DnsServer(int ifindex, std::string name, Address address, std::uint16_t port);
@@ -70,7 +70,7 @@ class DnsSearchServer {
 private:
     std::string Domain;
     bool Search;
-    int _ifindex;
+    int m_ifindex;
 
 public:
     /**
@@ -81,7 +81,7 @@ public:
     /**
      * @brief Constructor with all parameters
      */
-    DnsSearchServer(int ifindex, std::string domain, bool search);
+    DnsSearchServer(std::string domain, bool search);
 
     /**
      * @brief Return the ifindes
@@ -134,7 +134,7 @@ public:
 class DnsSearchServerList {
 
 private:
-    int _ifindex;
+    int m_ifindex;
     std::vector<DnsSearchServer> servers;
 
 public:
@@ -180,7 +180,7 @@ public:
 
 class DnsServerList {
 private:
-    int _ifindex;
+    int m_ifindex;
     std::vector<DnsServer> servers;
 
 public:
