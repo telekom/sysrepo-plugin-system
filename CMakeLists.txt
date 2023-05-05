@@ -47,6 +47,7 @@ set(
     src/core/yang/tree.hpp
     src/core/api.hpp
     src/core/common.hpp
+    src/core/sdbus.hpp
 
     # system-state
     src/core/system-state/platform.hpp
