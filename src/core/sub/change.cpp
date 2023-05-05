@@ -88,13 +88,14 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-                    // modified hostname - get current value and use sethostname()
+                    
                     auto value = change.node.asTerm().value();
-                    auto hostname = std::get<sys::Hostname>(value);
+                    auto hostname = std::get<std::string>(value);
 
-                    try {
-                        sys::setHostname(hostname);
-                    } catch (const std::runtime_error& err) {
+                     try {
+                        Hostname host;
+                        host.setHostname(hostname);
+                    }catch (const std::runtime_error& err) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                         error = sr::ErrorCode::OperationFailed;
                     }
@@ -176,18 +177,17 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-                    
+
                     auto value = change.node.asTerm().value();
                     auto timezone = std::get<std::string>(value);
 
-                    try{
-                         Timezone t;
-                         t.setTimezone(timezone);
-                    }catch(std::runtime_error &e){
+                    try {
+                        Timezone t;
+                        t.setTimezone(timezone);
+                    } catch (std::runtime_error& e) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
                         error = sr::ErrorCode::OperationFailed;
                     }
-
 
                     break;
                 }
@@ -418,15 +418,6 @@ namespace sub::change {
                 SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
                 return sr::ErrorCode::OperationFailed;
             }
-            // SRPLG_LOG_ERR("LIST : ", "%d", dnsList.getDnsServerVector().size());
-            // for (auto &obj : dnsList.getDnsServerVector())
-            // {
-            //     SRPLG_LOG_ERR("TEST ADDR: ", "%s", obj.getStringAddress().c_str());
-            //     SRPLG_LOG_ERR("TEST IFINDEX: ", "%d", obj.getIfindex());
-            //     SRPLG_LOG_ERR("TEST PORT: ", "%d", obj.getPort());
-            //     SRPLG_LOG_ERR("TEST VERSION: ", "%d", (int)obj.getAddress().getVersion());
-            //     SRPLG_LOG_ERR("TEST NAME: ", "%s", obj.getName().c_str());
-            // }
 
             for (sysrepo::Change change : session.getChanges(subXPath->data())) {
                 switch (change.operation) {
@@ -480,7 +471,7 @@ namespace sub::change {
                     break;
                 }
             }
-            if (dnsList.exportListToSdBus() == true){
+            if (dnsList.exportListToSdBus() == true) {
                 return sr::ErrorCode::OperationFailed;
             };
             break;

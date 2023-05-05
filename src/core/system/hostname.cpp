@@ -1,37 +1,24 @@
 #include "hostname.hpp"
 
-#include <core/common.hpp>
-
-// sethostname() and gethostname()
-#include <unistd.h>
-#include <stdexcept>
 
 namespace ietf::sys {
-/**
- * @brief Get hostname.
- *
- * @return Hostname.
- */
-Hostname getHostname()
-{
-    char hostname[ietf::sys::HOSTNAME_MAX_LEN + 1] = { 0 };
 
-    if (gethostname(hostname, sizeof(hostname)) < 0) {
-        throw std::runtime_error("Failed to get hostname.");
+    Hostname::Hostname() : SdBUS<std::string, std::string, bool>(
+        "org.freedesktop.hostname1",
+        "/org/freedesktop/hostname1",
+        "org.freedesktop.hostname1",
+        "SetStaticHostname",
+        "Hostname"
+    ){}
+
+    std::string Hostname::getHostname(){
+        return importFromSdBus();
     }
 
-    return hostname;
-}
-
-/**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
- *
- * @param hostname Hostname.
- */
-void setHostname(const Hostname& hostname)
-{
-    if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
-        throw std::runtime_error("Failed to set hostname.");
+    bool Hostname::setHostname(std::string hostname){
+        // boolean parameter is " Interactive ", maybe default true?
+        // exportToSdBus returns true if error
+        return (!exportToSdBus(hostname,true));
     }
-}
+
 }

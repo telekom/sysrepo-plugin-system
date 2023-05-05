@@ -80,9 +80,9 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto hostname = sys::getHostname();
+        // auto hostname = sys::getHostname();
 
-        output->newPath("hostname", hostname);
+        // output->newPath("hostname", hostname);
 
         return error;
     }
