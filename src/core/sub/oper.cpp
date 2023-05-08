@@ -1340,54 +1340,56 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto users = sys::auth::getLocalUserList();
+        auth::LocalUserList users;
 
-        // traverse users and collect authorized-key lists
-        for (auto& user : users) {
-            try {
-                user.AuthorizedKeys = sys::auth::getAuthorizedKeyList(user.Name);
-            } catch (...) {
+        try {
+            users.loadFromSystem();
+
+            for (auto& user : users) {
+                user.AuthorizedKeys->loadFromSystem(user.Name);
             }
-        }
 
-        // create YANG subtree
-        for (const auto& user : users) {
-            std::stringstream path_buffer;
+            // create YANG subtree
+            for (auto& user : users) {
+                std::stringstream path_buffer;
 
-            path_buffer << "user[name='" << user.Name << "']";
+                path_buffer << "user[name='" << user.Name << "']";
 
-            auto user_node = output->newPath(path_buffer.str());
-            if (user_node) {
-                if (user.Password) {
-                    user_node->newPath("password", user.Password);
-                }
+                auto user_node = output->newPath(path_buffer.str());
+                if (user_node) {
+                    if (user.Password) {
+                        user_node->newPath("password", user.Password);
+                    }
 
-                // create authorized-key subtree
-                if (user.AuthorizedKeys) {
-                    for (const auto& key : user.AuthorizedKeys.value()) {
-                        std::stringstream key_path_buffer;
+                    // create authorized-key subtree
+                    if (user.AuthorizedKeys) {
+                        for (auto& key : user.AuthorizedKeys.value()) {
+                            std::stringstream key_path_buffer;
 
-                        key_path_buffer << "authorized-key[name='" << key.Name << "']";
+                            key_path_buffer << "authorized-key[name='" << key.Name << "']";
 
-                        auto key_node = user_node->newPath(key_path_buffer.str());
-                        if (key_node) {
-                            key_node->newPath("algorithm", key.Algorithm);
-                            key_node->newPath("key-data", key.Data);
-                        } else {
-                            error = sr::ErrorCode::Internal;
-                            break;
+                            auto key_node = user_node->newPath(key_path_buffer.str());
+                            if (key_node) {
+                                key_node->newPath("algorithm", key.Algorithm);
+                                key_node->newPath("key-data", key.Data);
+                            } else {
+                                error = sr::ErrorCode::Internal;
+                                break;
+                            }
                         }
                     }
+                } else {
+                    error = sr::ErrorCode::Internal;
+                    break;
                 }
-            } else {
-                error = sr::ErrorCode::Internal;
-                break;
             }
+        } catch (const std::exception& e) {
+            std::cerr << "Error loading local users: " << e.what() << std::endl;
+            error = sr::ErrorCode::Internal;
         }
 
         return error;
     }
-
     /**
      * sysrepo-plugin-generator: Generated default constructor.
      *
@@ -1728,6 +1730,5 @@ namespace sub::oper {
         sr::ErrorCode error = sr::ErrorCode::Ok;
         return error;
     }
-
 }
 }

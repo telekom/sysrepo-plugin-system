@@ -1,6 +1,4 @@
 #include "auth.hpp"
-#include "umgmt/db.h"
-#include "umgmt/user.h"
 
 #include <stdexcept>
 #include <filesystem>

@@ -40,6 +40,16 @@ public:
     void storeToSystem(const std::string& username);
 
     /**
+     * @brief Get iterator to the beginning.
+     */
+    std::list<AuthorizedKey>::iterator begin() { return m_keys.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    std::list<AuthorizedKey>::iterator end() { return m_keys.end(); }
+
+    /**
      * @brief Get authorized keys.
      *
      * @return Authorized keys.
@@ -80,6 +90,16 @@ public:
     void storeToSystem();
 
     /**
+     * @brief Get iterator to the beginning.
+     */
+    std::list<LocalUser>::iterator begin() { return m_users.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    std::list<LocalUser>::iterator end() { return m_users.end(); }
+
+    /**
      * @brief Get local users.
      *
      * @return Local users.
@@ -89,25 +109,4 @@ public:
 private:
     std::list<LocalUser> m_users;
 };
-
-// /**
-//  * @brief Local user list type alias.
-//  */
-// using LocalUserList = std::vector<LocalUser>;
-
-/**
- * @brief Get system local users.
- *
- * @return Local users on the system.
- */
-LocalUserList getLocalUserList();
-
-/**
- * @brief Get local user authorized keys.
- *
- * @param username Username.
- *
- * @return Authorized keys.
- */
-AuthorizedKeyList getAuthorizedKeyList(const std::string& username);
 }
