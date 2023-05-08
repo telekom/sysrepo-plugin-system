@@ -2,6 +2,7 @@
 
 #include "core/common.hpp"
 #include "core/api.hpp"
+#include "libyang-cpp/Enum.hpp"
 
 // system API
 #include <core/system/hostname.hpp>
@@ -548,7 +549,30 @@ namespace sub::change {
         std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-        return error;
+
+        switch (event) {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.",
+                    change.node.printStr(libyang::DataFormat::JSON, libyang::PrintFlags::WithDefaultsAll)->data());
+
+                switch (change.operation) {
+                case sysrepo::ChangeOperation::Created:
+                case sysrepo::ChangeOperation::Modified: {
+                    break;
+                }
+                case sysrepo::ChangeOperation::Deleted:
+                    break;
+                case sysrepo::ChangeOperation::Moved:
+                    break;
+                }
+            }
+            break;
+        default:
+            break;
+        }
+
+        return sr::ErrorCode::CallbackFailed;
     }
 
 }
