@@ -18,6 +18,8 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 
+#include <sysrepo.h>
+
 namespace ietf::sys {
 namespace sub::oper {
     // use API namespace in operational callbacks
@@ -1346,6 +1348,7 @@ namespace sub::oper {
             users.loadFromSystem();
 
             for (auto& user : users) {
+                user.AuthorizedKeys = std::make_optional<auth::AuthorizedKeyList>();
                 user.AuthorizedKeys->loadFromSystem(user.Name);
             }
 
@@ -1384,7 +1387,9 @@ namespace sub::oper {
                 }
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error loading local users: " << e.what() << std::endl;
+            SRPLG_LOG_ERR(PLUGIN_NAME, "Error loading local users");
+            SRPLG_LOG_ERR(PLUGIN_NAME, "%s", e.what());
+            // std::cerr << "Error loading local users: " << e.what() << std::endl;
             error = sr::ErrorCode::Internal;
         }
 
