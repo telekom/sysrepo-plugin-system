@@ -1,4 +1,6 @@
 #include "auth.hpp"
+#include "umgmt/db.h"
+#include "umgmt/user.h"
 
 #include <stdexcept>
 #include <filesystem>
@@ -13,13 +15,105 @@ extern "C" {
 namespace ietf::sys::auth {
 
 /**
- * @brief Get system local users.
- *
- * @return Local users on the system.
+ * @brief Construct a new Authorized Key List object.
  */
-LocalUserList getLocalUserList()
+AuthorizedKeyList::AuthorizedKeyList() { }
+
+/**
+ * @brief Load authorized keys from the system.
+ *
+ * @param username Username of the keys owner.
+ */
+void AuthorizedKeyList::loadFromSystem(const std::string& username)
 {
-    LocalUserList users;
+    namespace fs = std::filesystem;
+
+    // store to temp list in case of exception
+    std::list<AuthorizedKey> keys;
+
+    fs::path ssh_dir;
+
+    if (username == "root") {
+        ssh_dir = fs::path("/root/.ssh");
+    } else {
+        ssh_dir = fs::path("/home/" + username + "/.ssh");
+    }
+
+    for (const auto& entry : fs::directory_iterator(ssh_dir)) {
+        if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".pub") {
+            std::ifstream file(entry.path());
+            std::string algorithm, data;
+
+            if (file.is_open()) {
+                // read algorithm and key-data
+                file >> algorithm >> data;
+                keys.push_back(AuthorizedKey { .Name = entry.path().filename(), .Algorithm = algorithm, .Data = data });
+            } else {
+                throw std::runtime_error("Failed to open authorized key file.");
+            }
+
+            file.close();
+        }
+    }
+
+    m_keys = keys;
+}
+
+/**
+ * @brief Store authorized keys to the system.
+ *
+ * @param username Username of the keys owner.
+ */
+void AuthorizedKeyList::storeToSystem(const std::string& username)
+{
+    namespace fs = std::filesystem;
+
+    fs::path ssh_dir;
+
+    if (username == "root") {
+        ssh_dir = fs::path("/root/.ssh");
+    } else {
+        ssh_dir = fs::path("/home/" + username + "/.ssh");
+    }
+
+    // create .ssh directory if not exists
+    if (!fs::exists(ssh_dir)) {
+        fs::create_directory(ssh_dir);
+    }
+
+    for (const auto& key : m_keys) {
+        std::ofstream file(ssh_dir / key.Name / ".pub");
+
+        if (file.is_open()) {
+            // write algorithm and key-data
+            file << key.Algorithm << " " << key.Data;
+        } else {
+            throw std::runtime_error("Failed to open authorized key file.");
+        }
+
+        file.close();
+    }
+}
+
+/**
+ * @brief Get authorized keys.
+ *
+ * @return Authorized keys.
+ */
+std::list<AuthorizedKey>& AuthorizedKeyList::getKeys() const { return const_cast<std::list<AuthorizedKey>&>(m_keys); }
+
+/**
+ * @brief Construct a new Local User List object.
+ */
+LocalUserList::LocalUserList() { }
+
+/**
+ * @brief Load local users from the system.
+ */
+void LocalUserList::loadFromSystem()
+{
+    std::list<LocalUser> users;
+
     um_db_t* db = nullptr;
 
     int rc = 0;
@@ -56,48 +150,78 @@ LocalUserList getLocalUserList()
         um_db_free(db);
     }
 
-    return users;
+    m_users = users;
 }
 
 /**
- * @brief Get local user authorized keys.
- *
- * @param username Username.
- *
- * @return Authorized keys.
+ * @brief Store local users to the system.
  */
-AuthorizedKeyList getAuthorizedKeyList(const std::string& username)
+void LocalUserList::storeToSystem()
 {
-    namespace fs = std::filesystem;
+    um_db_t* db = nullptr;
 
-    AuthorizedKeyList keys;
+    int rc = 0;
 
-    fs::path ssh_dir;
-
-    if (username == "root") {
-        ssh_dir = fs::path("/root/.ssh");
-    } else {
-        ssh_dir = fs::path("/home/" + username + "/.ssh");
+    db = um_db_new();
+    if (db == nullptr) {
+        throw std::runtime_error("Failed to initialize database.");
     }
 
-    for (const auto& entry : fs::directory_iterator(ssh_dir)) {
-        if (fs::is_regular_file(entry.path()) && entry.path().extension() == ".pub") {
-            std::ifstream file(entry.path());
-            std::string algorithm, data;
+    if (rc = um_db_load(db); rc != 0) {
+        throw std::runtime_error("Failed to load user database.");
+    }
 
-            if (file.is_open()) {
-                // read algorithm and key-data
-                file >> algorithm >> data;
-                keys.push_back(AuthorizedKey { .Name = entry.path().filename(), .Algorithm = algorithm, .Data = data });
-            } else {
-                throw std::runtime_error("Failed to open authorized key file.");
+    // remove all local users
+    auto user_iter = um_db_get_user_list_head(db);
+    while (user_iter) {
+        const um_user_t* user = user_iter->user;
+
+        if (um_user_get_uid(user) == 0 || (um_user_get_uid(user) >= 1000 && um_user_get_uid(user) < 65534)) {
+            if (rc = um_db_delete_user(db, um_user_get_name(user)); rc != 0) {
+                throw std::runtime_error("Failed to remove user from database.");
             }
+        }
 
-            file.close();
+        user_iter = const_cast<um_user_element_t*>(user_iter->next);
+    }
+
+    // add local users
+    for (const auto& user : m_users) {
+        um_user_t* new_user = um_user_new();
+
+        if (new_user == nullptr) {
+            throw std::runtime_error("Failed to create new user.");
+        }
+
+        if (rc = um_user_set_name(new_user, user.Name.c_str()); rc != 0) {
+            throw std::runtime_error("Failed to set user name.");
+        }
+
+        if (user.Password.has_value()) {
+            if (rc = um_user_set_password_hash(new_user, user.Password.value_or("").c_str()); rc != 0) {
+                throw std::runtime_error("Failed to set user password hash.");
+            }
+        }
+
+        if (rc = um_db_add_user(db, new_user); rc != 0) {
+            throw std::runtime_error("Failed to add user to database.");
         }
     }
 
-    return keys;
+    if (rc = um_db_store(db); rc != 0) {
+        throw std::runtime_error("Failed to save user database.");
+    }
+
+    if (db) {
+        um_db_free(db);
+    }
 }
+
+/**
+ * @brief Get local users.
+ *
+ * @return Local users on the system.
+ */
+std::list<LocalUser>& LocalUserList::getUsers() const { return const_cast<std::list<LocalUser>&>(m_users); }
 
 }

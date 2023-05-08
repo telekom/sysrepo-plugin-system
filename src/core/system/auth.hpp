@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <list>
 #include <optional>
 
 namespace ietf::sys::auth {
@@ -16,9 +16,39 @@ struct AuthorizedKey {
 };
 
 /**
- * @brief Authorized key list type alias.
+ * @brief Authorized key list.
  */
-using AuthorizedKeyList = std::vector<AuthorizedKey>;
+class AuthorizedKeyList {
+public:
+    /**
+     * @brief Construct a new Authorized Key List object.
+     */
+    AuthorizedKeyList();
+
+    /**
+     * @brief Load authorized keys from the system.
+     *
+     * @param username Username of the keys owner.
+     */
+    void loadFromSystem(const std::string& username);
+
+    /**
+     * @brief Store authorized keys to the system.
+     *
+     * @param username Username of the keys owner.
+     */
+    void storeToSystem(const std::string& username);
+
+    /**
+     * @brief Get authorized keys.
+     *
+     * @return Authorized keys.
+     */
+    std::list<AuthorizedKey>& getKeys() const;
+
+private:
+    std::list<AuthorizedKey> m_keys;
+};
 
 /**
  * @brief Local user helper struct.
@@ -30,9 +60,40 @@ struct LocalUser {
 };
 
 /**
- * @brief Local user list type alias.
+ * @brief Local user list.
  */
-using LocalUserList = std::vector<LocalUser>;
+class LocalUserList {
+public:
+    /**
+     * @brief Construct a new Local User List object.
+     */
+    LocalUserList();
+
+    /**
+     * @brief Load local users from the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Store local users to the system.
+     */
+    void storeToSystem();
+
+    /**
+     * @brief Get local users.
+     *
+     * @return Local users.
+     */
+    std::list<LocalUser>& getUsers() const;
+
+private:
+    std::list<LocalUser> m_users;
+};
+
+// /**
+//  * @brief Local user list type alias.
+//  */
+// using LocalUserList = std::vector<LocalUser>;
 
 /**
  * @brief Get system local users.
