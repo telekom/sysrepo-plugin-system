@@ -151,8 +151,10 @@ void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginConte
         ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(ctx.getModuleChangeContext()) },
         ModuleChangeCallback {
             "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(ctx.getModuleChangeContext()) },
-        ModuleChangeCallback {
-            "/ietf-system:system/authentication/user", ietf::sys::sub::change::AuthUserModuleChangeCb(ctx.getModuleChangeContext()) },
+        ModuleChangeCallback { "/ietf-system:system/authentication/user[name and password]",
+            ietf::sys::sub::change::AuthUserModuleChangeCb(ctx.getModuleChangeContext()) },
+        ModuleChangeCallback { "/ietf-system:system/authentication/user/authorized-key",
+            ietf::sys::sub::change::AuthUserAuthorizedKeyModuleChangeCb(ctx.getModuleChangeContext()) },
     };
 
     auto& sub_handle = ctx.getSubscriptionHandle();

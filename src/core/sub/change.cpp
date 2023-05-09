@@ -553,8 +553,10 @@ namespace sub::change {
         switch (event) {
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.",
-                    change.node.printStr(libyang::DataFormat::JSON, libyang::PrintFlags::WithDefaultsAll)->data());
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+
+                SRPLG_LOG_DBG(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
@@ -575,5 +577,64 @@ namespace sub::change {
         return sr::ErrorCode::CallbackFailed;
     }
 
+    /**
+     * sysrepo-plugin-generator: Generated default constructor.
+     *
+     * @param ctx Plugin module change context.
+     *
+     */
+    AuthUserAuthorizedKeyModuleChangeCb::AuthUserAuthorizedKeyModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
+
+    /**
+     * Functor for path /ietf-system:system/authentication/user/authorized-key.
+     *
+     * @param session An implicit session for the callback.
+     * @param subscriptionId ID the subscription associated with the callback.
+     * @param moduleName The module name used for subscribing.
+     * @param subXPath The optional xpath used at the time of subscription.
+     * @param event Type of the event that has occured.
+     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
+     * SR_EV_DONE, for example) have the same request ID.
+     *
+     * @return Error code.
+     *
+     */
+    sr::ErrorCode AuthUserAuthorizedKeyModuleChangeCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
+        std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
+    {
+        sr::ErrorCode error = sr::ErrorCode::Ok;
+
+        switch (event) {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+
+                SRPLG_LOG_DBG(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+
+                SRPLG_LOG_DBG(PLUGIN_NAME, "Node path: %s", change.node.path().data());
+
+                const auto& user_name = ietf::sys::extractListKeyFromXPath("user", "name", change.node.path());
+
+                SRPLG_LOG_DBG(PLUGIN_NAME, "Username for authorized key: %s", user_name.data());
+
+                switch (change.operation) {
+                case sysrepo::ChangeOperation::Created:
+                case sysrepo::ChangeOperation::Modified: {
+                    break;
+                }
+                case sysrepo::ChangeOperation::Deleted:
+                    break;
+                case sysrepo::ChangeOperation::Moved:
+                    break;
+                }
+            }
+            break;
+        default:
+            break;
+        }
+
+        return sr::ErrorCode::CallbackFailed;
+    }
 }
 }
