@@ -1,6 +1,11 @@
 #pragma once
 
+#include "libyang-cpp/DataNode.hpp"
 #include <string>
+
+#include <libyang-cpp/Context.hpp>
+
+namespace ly = libyang;
 
 namespace ietf::sys {
 constexpr auto PLUGIN_NAME = "ietf-system-plugin";
@@ -17,5 +22,14 @@ constexpr auto TIMEZONE_DIR_PATH = "/usr/share/zoneinfo";
  * @return std::string Key value.
  */
 const std::string extractListKeyFromXPath(const std::string& list, const std::string& key, const std::string& xpath);
+
+/**
+ * @brief Get meta value.
+ *
+ * @param meta Meta collection object.
+ * @param name Meta name.
+ * @return std::string Meta value.
+ */
+const std::string getMetaValue(ly::MetaCollection& meta, const std::string& name);
 
 }

@@ -33,4 +33,21 @@ const std::string extractListKeyFromXPath(const std::string& list, const std::st
     return value;
 }
 
+/**
+ * @brief Get meta value.
+ *
+ * @param meta Meta collection object.
+ * @param name Meta name.
+ * @return std::string Meta value.
+ */
+const std::string getMetaValue(ly::MetaCollection& meta, const std::string& name)
+{
+    for (const auto& m : meta) {
+        if (m.name() == name) {
+            return m.valueStr();
+        }
+    }
+    throw std::runtime_error("Failed to get meta value.");
+}
+
 }
