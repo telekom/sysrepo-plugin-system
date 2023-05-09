@@ -57,6 +57,7 @@ set(
     src/core/system/timezone-name.hpp
     src/core/system/auth.hpp
     src/core/system/dns.hpp
+    src/core/system/ip.hpp
 )
 
 set(
@@ -78,6 +79,7 @@ set(
     src/core/system/timezone-name.cpp
     src/core/system/auth.cpp
     src/core/system/dns.cpp
+    src/core/system/ip.cpp
 )
 
 set(

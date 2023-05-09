@@ -1,123 +1,13 @@
 #include "dns.hpp"
 
+using namespace ietf::sys::ipv;
 namespace ietf::sys::dns {
-
-// Address class
-Address::Address(std::string address)
-    : address { address }
-
-{
-    // ipv4 / ipv6
-    struct in_addr ip_addr;
-
-    if (inet_pton(AF_INET, address.c_str(), &ip_addr) == 1) {
-        // its ipv4
-        BYTE_SIZE = 4;
-        version = 2;
-
-        uint8_t* bytes = (uint8_t*)&ip_addr.s_addr;
-        for (int i = 0; i < BYTE_SIZE; i++) {
-            dns.ipv4_address[i] = bytes[i];
-        };
-
-    } else if (inet_pton(AF_INET6, address.c_str(), &ip_addr) == 1) {
-        // its ipv6
-        BYTE_SIZE = 16;
-        version = 10;
-
-        uint8_t* bytes = (uint8_t*)&ip_addr.s_addr;
-        for (int i = 0; i < BYTE_SIZE; i++) {
-            dns.ipv6_address[i] = bytes[i];
-        };
-    } else {
-        // error
-        throw std::runtime_error("Failed to create address, Wrong format!");
-    };
-}
-
-Address::Address(std::vector<uint8_t> bytes)
-{
-
-    if (bytes.size() == 4) {
-        // ipv4
-        version = 2;
-        BYTE_SIZE = 4;
-
-        for (int i = 0; i < BYTE_SIZE; i++) {
-
-            dns.ipv4_address[i] = bytes[i];
-            address.append(std::to_string(bytes[i]));
-
-            if (i < (BYTE_SIZE - 1)) {
-                address.append(".");
-            };
-        }
-
-    } else if (bytes.size() == 16) {
-        // ipv6
-
-        version = 10;
-        BYTE_SIZE = 16;
-
-        for (int i = 0; i < BYTE_SIZE; i++) {
-
-            dns.ipv6_address[i] = bytes[i];
-            address.append(std::to_string(bytes[i]));
-
-            if (i < (BYTE_SIZE - 1)) {
-                address.append("::");
-            };
-        }
-    } else {
-        throw std::runtime_error("Unknown address type");
-    }
-}
-
-int Address::getVersion() { return version; };
-
-std::string Address::getStringAddr() { return this->address; };
-
-std::vector<uint8_t> Address::byteVector()
-{
-    std::vector<uint8_t> bytes;
-    for (int i = 0; i < BYTE_SIZE; i++) {
-        // push from ipv6, cause its longer and contains ipv4
-        bytes.push_back(dns.ipv6_address[i]);
-    }
-    return bytes;
-};
-
-bool Address::operator==(const Address& other) const
-{
-
-    // first check the version
-    if (this->version != other.version) {
-        return false;
-    }
-
-    // check byte size
-    if (this->BYTE_SIZE != other.BYTE_SIZE) {
-        return false;
-    }
-
-    // check byte array
-    for (int i = 0; i < BYTE_SIZE; i++) {
-        if (this->dns.ipv6_address[i] != other.dns.ipv6_address[i]) {
-            return false;
-        }
-    }
-
-    // finaly if all ok, return true, they are equal
-    return true;
-}
-
-// End of address implementation
 
 DnsServer::DnsServer(int ifindex, std::string name, Address address, uint16_t port)
     : Name { name }
     , address { address }
     , Port { port }
-    , m_ifindex { ifindex } {
+    , _ifindex { ifindex } {
 
     };
 
@@ -125,19 +15,19 @@ std::string DnsServer::getName() { return Name; };
 
 uint16_t DnsServer::getPort() { return Port; };
 
-Address DnsServer::getAddress() { return address; };
+Address* DnsServer::getAddress() { return &address; };
 
 void DnsServer::setPort(const uint16_t& port) { this->Port = port; }
 
 void DnsServer::setAddress(const Address& address) { this->address = address; }
 
-std::string DnsServer::getStringAddress() { return this->address.getStringAddr(); };
+std::string DnsServer::getStringAddress() { return address.getStringAddr(); };
 
-int DnsServer::getIfindex() { return m_ifindex; };
+int DnsServer::getIfindex() { return _ifindex; };
 
 bool DnsServer::operator==(const DnsServer& other) const
 {
-    return ((this->Name == other.Name) && (this->address == other.address) && (this->Port == other.Port) && (this->m_ifindex == other.m_ifindex));
+    return ((this->Name == other.Name) && (this->address == other.address) && (this->Port == other.Port) && (this->_ifindex == other._ifindex));
 };
 
 // DnsSearchServer implementation
@@ -147,39 +37,41 @@ DnsSearchServer::DnsSearchServer()
     Domain.clear();
 }
 
+DnsSearchServer::DnsSearchServer(int ifindex, std::string domain, bool search)
+    : Domain { domain }
+    , Search { search }
+    , _ifindex { ifindex } {};
+
 DnsSearchServer::DnsSearchServer(std::string domain, bool search)
     : Domain { domain }
     , Search { search }
-    , m_ifindex { SYSTEMD_IFINDEX } {};
+    , _ifindex { SYSTEMD_IFINDEX } {};
 
 std::string DnsSearchServer::getDomain() { return Domain; }
 
 bool DnsSearchServer::getSearch() { return Search; }
 
-int DnsSearchServer::getIfIndex() { return m_ifindex; }
+int DnsSearchServer::getIfIndex() { return _ifindex; }
 
 void DnsSearchServer::setDomain(std::string domain) { this->Domain = domain; }
 
 void DnsSearchServer::setSearch(bool search) { this->Search = search; }
 
-bool DnsSearchServer::operator==(const DnsSearchServer& other) const
-{
-    return (this->Domain == other.Domain) && (this->m_ifindex == other.m_ifindex);
-}
+bool DnsSearchServer::operator==(const DnsSearchServer& other) const { return (this->Domain == other.Domain) && (this->_ifindex == other._ifindex); }
 
 bool DnsSearchServer::operator!=(const DnsSearchServer& other) const
 {
-    return !((this->Domain == other.Domain) && (this->m_ifindex == other.m_ifindex));
+    return !((this->Domain == other.Domain) && (this->_ifindex == other._ifindex));
 }
 
 // DnsSearchServerList implementation
 
 DnsSearchServerList::DnsSearchServerList()
-    : m_ifindex { SYSTEMD_IFINDEX } {};
+    : _ifindex { SYSTEMD_IFINDEX } {};
 
 // not recomended, explicit definition of ifindex
 DnsSearchServerList::DnsSearchServerList(int ifindex)
-    : m_ifindex { ifindex } {};
+    : _ifindex { ifindex } {};
 
 bool DnsSearchServerList::addDnsSearchServer(DnsSearchServer srv)
 {
@@ -249,7 +141,7 @@ bool DnsSearchServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -285,10 +177,10 @@ bool DnsSearchServerList::importListFromSdBus()
     for (auto& vc : sdbusData) {
         // filter by ifindex
         int ifindex = vc.get<0>();
-        if (ifindex == m_ifindex) {
+        if (ifindex == _ifindex) {
             servers.push_back(
                 // store the ifindex ,domain, search
-                DnsSearchServer(vc.get<1>(), vc.get<2>()));
+                DnsSearchServer(ifindex, vc.get<1>(), vc.get<2>()));
         };
     };
 
@@ -300,9 +192,9 @@ bool DnsSearchServerList::importListFromSdBus()
 // DnsServerList initialization
 
 DnsServerList::DnsServerList()
-    : m_ifindex { SYSTEMD_IFINDEX } {};
+    : _ifindex { SYSTEMD_IFINDEX } {};
 DnsServerList::DnsServerList(int ifindex)
-    : m_ifindex { ifindex } {};
+    : _ifindex { ifindex } {};
 
 bool DnsServerList::importListFromSdBus()
 {
@@ -322,25 +214,32 @@ bool DnsServerList::importListFromSdBus()
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
     }
-
+    // ifindex, version (ipv4=2 ipv6=10), byte_array, port, name
     sdbusData = v.get<std::vector<sdbus::Struct<int, int, std::vector<uint8_t>, uint16_t, std::string>>>();
     servers.clear();
 
     for (auto& vc : sdbusData) {
-        Address adr(vc.get<2>());
-        // SRPLG_LOG_ERR("GET ADDR: ", "%s", adr.getStringAddr().c_str());
-        // SRPLG_LOG_ERR("GET PORT: ", "%d", vc.get<3>());
-        // SRPLG_LOG_ERR("GET IFIND: ", "%d", vc.get<0>());
-        // SRPLG_LOG_ERR("GET NAME: ", "%s", vc.get<4>().c_str());
-        // SRPLG_LOG_ERR("GET VERS: ", "%d", vc.get<1>());
+
         int ifindex = vc.get<0>();
-        if (ifindex == m_ifindex) {
+        if (ifindex == _ifindex) {
+
+            std::shared_ptr<Address> addr;
+
+            int version = vc.get<1>();
             int port = vc.get<3>();
+
             if (port == 0) {
                 port = 53;
             };
-            Address addr(vc.get<2>());
-            servers.push_back(DnsServer(ifindex, vc.get<4>(), addr, port));
+
+            if (version == 2) {
+                addr = std::make_shared<IPV4Address>(vc.get<2>());
+            } else if (version == 10) {
+                addr = std::make_shared<IPV6Address>(vc.get<2>());
+            }
+
+            // Address addr(vc.get<2>());
+            servers.push_back(DnsServer(ifindex, vc.get<4>(), *addr, port));
         };
     }
 
@@ -355,7 +254,7 @@ bool DnsServerList::exportListToSdBus()
 
     for (auto& server : servers) {
         sdbusData.push_back(sdbus::Struct<int, std::vector<uint8_t>, uint16_t, std::string>(
-            sdbus::make_struct(server.getAddress().getVersion(), server.getAddress().byteVector(), server.getPort(), server.getName())));
+            sdbus::make_struct(server.getAddress()->getVersion(), server.getAddress()->byteVector(), server.getPort(), server.getName())));
     };
 
     const char* destinationName = "org.freedesktop.resolve1";
@@ -364,7 +263,7 @@ bool DnsServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -378,7 +277,7 @@ bool DnsServerList::exportListToSdBus()
     return error;
 }
 
-int DnsServerList::getIfIndex() { return m_ifindex; };
+int DnsServerList::getIfIndex() { return _ifindex; };
 
 bool DnsServerList::addDnsServer(DnsServer srv)
 {
@@ -419,7 +318,11 @@ bool DnsServerList::modifyDnsServer(DnsServer server)
     for (auto& srv : servers) { // name is the key in yang model, no duplicates
         if (srv.getName().compare(server.getName()) == 0) {
 
-            srv.setAddress(server.getAddress());
+            if(srv.getAddress()->getVersion() != server.getAddress()->getVersion()){
+                throw std::runtime_error("Server has diferent IPVersion, cannot modify!");
+            }
+
+            srv.setAddress(*server.getAddress());
             srv.setPort(server.getPort());
             return true;
         }
@@ -471,14 +374,30 @@ std::optional<DnsServer> getServerFromChangedNode(const libyang::DataNode& chang
         }
 
         uint16_t port = 53;
+        std::shared_ptr<Address> addr = nullptr;
 
         if (map.find("port") != map.end()) {
             port = stoi(map.at("port"));
         }
 
-        Address addr(map["address"]);
-        DnsServer server(SYSTEMD_IFINDEX, map["name"], addr, port);
+        std::string adr = map["address"];
+         struct in_addr ip_addr;
+        //int ip_version = getAddressIPVersion(adr);
 
+
+        if (inet_pton(AF_INET, adr.c_str(), &ip_addr) == 1) {
+
+            addr = std::make_shared<IPV4Address>(adr);
+
+        } else if (inet_pton(AF_INET6, adr.c_str(), &ip_addr) == 1) {
+
+            addr = std::make_shared<IPV6Address>(adr);
+
+        } else {
+            throw std::runtime_error("Unknown address format!");
+        }
+
+        DnsServer server(SYSTEMD_IFINDEX, map["name"], *addr, port);
         return server;
     }
 

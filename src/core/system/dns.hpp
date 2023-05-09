@@ -10,32 +10,11 @@
 #include <libyang-cpp/DataNode.hpp>
 #include <libyang-cpp/Collection.hpp>
 #include <variant>
+#include "ip.hpp"
 
+using namespace ietf::sys::ipv;
 namespace ietf::sys::dns {
 
-class Address {
-public:
-    Address(std::string address);
-    Address(std::vector<uint8_t>);
-
-    int getVersion();
-    std::string getStringAddr();
-
-    std::vector<uint8_t> byteVector();
-
-    bool operator==(const Address& other) const;
-
-private:
-    uint8_t BYTE_SIZE;
-    std::string address;
-
-    int version;
-
-    union dns {
-        uint8_t ipv6_address[16];
-        uint8_t ipv4_address[4];
-    } dns;
-};
 
 /**
  * @brief DNS server.
@@ -45,7 +24,7 @@ private:
     std::string Name; ///< Arbitrary name of the DNS server.
     Address address; ///< Address of the DNS server.
     std::uint16_t Port; ///< Port of the DNS server.
-    int m_ifindex;
+    int _ifindex;
 
 public:
     DnsServer(int ifindex, std::string name, Address address, std::uint16_t port);
@@ -54,7 +33,7 @@ public:
     void setPort(const uint16_t& port);
     std::string getName();
     std::string getStringAddress();
-    dns::Address getAddress();
+    Address* getAddress();
     std::uint16_t getPort();
     int getIfindex();
 
@@ -70,7 +49,7 @@ class DnsSearchServer {
 private:
     std::string Domain;
     bool Search;
-    int m_ifindex;
+    int _ifindex;
 
 public:
     /**
@@ -81,6 +60,7 @@ public:
     /**
      * @brief Constructor with all parameters
      */
+    DnsSearchServer(int ifindex, std::string domain, bool search);
     DnsSearchServer(std::string domain, bool search);
 
     /**
@@ -134,7 +114,7 @@ public:
 class DnsSearchServerList {
 
 private:
-    int m_ifindex;
+    int _ifindex;
     std::vector<DnsSearchServer> servers;
 
 public:
@@ -180,7 +160,7 @@ public:
 
 class DnsServerList {
 private:
-    int m_ifindex;
+    int _ifindex;
     std::vector<DnsServer> servers;
 
 public:
