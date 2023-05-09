@@ -49,13 +49,6 @@ public:
      */
     std::list<AuthorizedKey>::iterator end() { return m_keys.end(); }
 
-    /**
-     * @brief Get authorized keys.
-     *
-     * @return Authorized keys.
-     */
-    std::list<AuthorizedKey>& getKeys() const;
-
 private:
     std::list<AuthorizedKey> m_keys;
 };
@@ -98,13 +91,6 @@ public:
      * @brief Get iterator to the end.
      */
     std::list<LocalUser>::iterator end() { return m_users.end(); }
-
-    /**
-     * @brief Get local users.
-     *
-     * @return Local users.
-     */
-    std::list<LocalUser>& getUsers() const;
 
 private:
     std::list<LocalUser> m_users;

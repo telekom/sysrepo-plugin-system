@@ -94,13 +94,6 @@ void AuthorizedKeyList::storeToSystem(const std::string& username)
 }
 
 /**
- * @brief Get authorized keys.
- *
- * @return Authorized keys.
- */
-std::list<AuthorizedKey>& AuthorizedKeyList::getKeys() const { return const_cast<std::list<AuthorizedKey>&>(m_keys); }
-
-/**
  * @brief Construct a new Local User List object.
  */
 LocalUserList::LocalUserList() { }
@@ -214,12 +207,5 @@ void LocalUserList::storeToSystem()
         um_db_free(db);
     }
 }
-
-/**
- * @brief Get local users.
- *
- * @return Local users on the system.
- */
-std::list<LocalUser>& LocalUserList::getUsers() const { return const_cast<std::list<LocalUser>&>(m_users); }
 
 }
