@@ -4,78 +4,78 @@ using namespace ietf::sys::ipv;
 namespace ietf::sys::dns {
 
 DnsServer::DnsServer(int ifindex, std::string name, Address address, uint16_t port)
-    : Name { name }
-    , address { address }
-    , Port { port }
-    , _ifindex { ifindex } {
+    : m_name { name }
+    , m_address { address }
+    , m_port { port }
+    , m_ifindex { ifindex } {
 
     };
 
-std::string DnsServer::getName() { return Name; };
+std::string DnsServer::getName() { return m_name; };
 
-uint16_t DnsServer::getPort() { return Port; };
+uint16_t DnsServer::getPort() { return m_port; };
 
-Address* DnsServer::getAddress() { return &address; };
+Address* DnsServer::getAddress() { return &m_address; };
 
-void DnsServer::setPort(const uint16_t& port) { this->Port = port; }
+void DnsServer::setPort(const uint16_t& port) { this->m_port = port; }
 
-void DnsServer::setAddress(const Address& address) { this->address = address; }
+void DnsServer::setAddress(const Address& address) { this->m_address = address; }
 
-std::string DnsServer::getStringAddress() { return address.getStringAddr(); };
+std::string DnsServer::getStringAddress() { return m_address.getStringAddr(); };
 
-int DnsServer::getIfindex() { return _ifindex; };
+int DnsServer::getIfindex() { return m_ifindex; };
 
 bool DnsServer::operator==(const DnsServer& other) const
 {
-    return ((this->Name == other.Name) && (this->address == other.address) && (this->Port == other.Port) && (this->_ifindex == other._ifindex));
+    return ((this->m_name == other.m_name) && (this->m_address == other.m_address) && (this->m_port == other.m_port) && (this->m_ifindex == other.m_ifindex));
 };
 
 // DnsSearchServer implementation
 DnsSearchServer::DnsSearchServer()
-    : Search { false }
+    : m_search { false }
 {
-    Domain.clear();
+    m_domain.clear();
 }
 
 DnsSearchServer::DnsSearchServer(int ifindex, std::string domain, bool search)
-    : Domain { domain }
-    , Search { search }
-    , _ifindex { ifindex } {};
+    : m_domain { domain }
+    , m_search { search }
+    , m_ifindex { ifindex } {};
 
 DnsSearchServer::DnsSearchServer(std::string domain, bool search)
-    : Domain { domain }
-    , Search { search }
-    , _ifindex { SYSTEMD_IFINDEX } {};
+    : m_domain { domain }
+    , m_search { search }
+    , m_ifindex { SYSTEMD_IFINDEX } {};
 
-std::string DnsSearchServer::getDomain() { return Domain; }
+std::string DnsSearchServer::getDomain() { return m_domain; }
 
-bool DnsSearchServer::getSearch() { return Search; }
+bool DnsSearchServer::getSearch() { return m_search; }
 
-int DnsSearchServer::getIfIndex() { return _ifindex; }
+int DnsSearchServer::getIfIndex() { return m_ifindex; }
 
-void DnsSearchServer::setDomain(std::string domain) { this->Domain = domain; }
+void DnsSearchServer::setDomain(std::string domain) { this->m_domain = domain; }
 
-void DnsSearchServer::setSearch(bool search) { this->Search = search; }
+void DnsSearchServer::setSearch(bool search) { this->m_search = search; }
 
-bool DnsSearchServer::operator==(const DnsSearchServer& other) const { return (this->Domain == other.Domain) && (this->_ifindex == other._ifindex); }
+bool DnsSearchServer::operator==(const DnsSearchServer& other) const { return (this->m_domain == other.m_domain) && (this->m_ifindex == other.m_ifindex); }
 
 bool DnsSearchServer::operator!=(const DnsSearchServer& other) const
 {
-    return !((this->Domain == other.Domain) && (this->_ifindex == other._ifindex));
+    return !((this->m_domain == other.m_domain) && (this->m_ifindex == other.m_ifindex));
 }
 
 // DnsSearchServerList implementation
 
 DnsSearchServerList::DnsSearchServerList()
-    : _ifindex { SYSTEMD_IFINDEX } {};
+    : m_ifindex { SYSTEMD_IFINDEX } {};
 
 // not recomended, explicit definition of ifindex
 DnsSearchServerList::DnsSearchServerList(int ifindex)
-    : _ifindex { ifindex } {};
+    : m_ifindex { ifindex } {};
 
 bool DnsSearchServerList::addDnsSearchServer(DnsSearchServer srv)
 {
-    for (DnsSearchServer& server : servers) {
+    for (DnsSearchServer& server : m_servers) {
         if (server == srv) {
             // allready exists or wrong ifindex
             if (server.getSearch() != srv.getSearch()) {
@@ -87,16 +87,16 @@ bool DnsSearchServerList::addDnsSearchServer(DnsSearchServer srv)
         }
     }
 
-    servers.push_back(srv);
+    m_servers.push_back(srv);
     return true;
 }
 
-std::vector<DnsSearchServer> DnsSearchServerList::getAllServers() { return servers; }
+std::vector<DnsSearchServer> DnsSearchServerList::getAllServers() { return m_servers; }
 
 std::optional<DnsSearchServer> DnsSearchServerList::findDnsSearchServer(const DnsSearchServer& server)
 {
 
-    for (DnsSearchServer& srv : servers) {
+    for (DnsSearchServer& srv : m_servers) {
         if (srv == server) {
             return server;
         }
@@ -107,12 +107,12 @@ std::optional<DnsSearchServer> DnsSearchServerList::findDnsSearchServer(const Dn
 
 bool DnsSearchServerList::removeDnsSearchServer(const DnsSearchServer& server)
 {
-    std::vector<DnsSearchServer>::iterator it = servers.begin();
+    std::vector<DnsSearchServer>::iterator it = m_servers.begin();
     // safe aproach to erase while iterating
-    while (it != servers.end()) {
+    while (it != m_servers.end()) {
 
         if (*it == server) {
-            it = servers.erase(it);
+            it = m_servers.erase(it);
             return true;
         } else {
             it++;
@@ -131,7 +131,7 @@ bool DnsSearchServerList::exportListToSdBus()
 
     std::vector<sdbus::Struct<std::string, bool>> sdbusData;
 
-    for (auto& server : servers) {
+    for (auto& server : m_servers) {
         sdbusData.push_back(sdbus::Struct<std::string, bool>(sdbus::make_struct(server.getDomain(), server.getSearch())));
     };
 
@@ -141,7 +141,7 @@ bool DnsSearchServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -149,7 +149,7 @@ bool DnsSearchServerList::exportListToSdBus()
 
     // clear container after succsess
     if (!error) {
-        servers.clear();
+        m_servers.clear();
     }
 
     return error;
@@ -173,12 +173,12 @@ bool DnsSearchServerList::importListFromSdBus()
         error = true;
     }
     sdbusData = v.get<std::vector<sdbus::Struct<int32_t, std::string, bool>>>();
-    servers.clear();
+    m_servers.clear();
     for (auto& vc : sdbusData) {
         // filter by ifindex
         int ifindex = vc.get<0>();
-        if (ifindex == _ifindex) {
-            servers.push_back(
+        if (ifindex == m_ifindex) {
+            m_servers.push_back(
                 // store the ifindex ,domain, search
                 DnsSearchServer(ifindex, vc.get<1>(), vc.get<2>()));
         };
@@ -192,9 +192,9 @@ bool DnsSearchServerList::importListFromSdBus()
 // DnsServerList initialization
 
 DnsServerList::DnsServerList()
-    : _ifindex { SYSTEMD_IFINDEX } {};
+    : m_ifindex { SYSTEMD_IFINDEX } {};
 DnsServerList::DnsServerList(int ifindex)
-    : _ifindex { ifindex } {};
+    : m_ifindex { ifindex } {};
 
 bool DnsServerList::importListFromSdBus()
 {
@@ -216,12 +216,12 @@ bool DnsServerList::importListFromSdBus()
     }
     // ifindex, version (ipv4=2 ipv6=10), byte_array, port, name
     sdbusData = v.get<std::vector<sdbus::Struct<int, int, std::vector<uint8_t>, uint16_t, std::string>>>();
-    servers.clear();
+    m_servers.clear();
 
     for (auto& vc : sdbusData) {
 
         int ifindex = vc.get<0>();
-        if (ifindex == _ifindex) {
+        if (ifindex == m_ifindex) {
 
             std::shared_ptr<Address> addr;
 
@@ -239,7 +239,7 @@ bool DnsServerList::importListFromSdBus()
             }
 
             // Address addr(vc.get<2>());
-            servers.push_back(DnsServer(ifindex, vc.get<4>(), *addr, port));
+            m_servers.push_back(DnsServer(ifindex, vc.get<4>(), *addr, port));
         };
     }
 
@@ -252,7 +252,7 @@ bool DnsServerList::exportListToSdBus()
 
     std::vector<sdbus::Struct<int, std::vector<uint8_t>, uint16_t, std::string>> sdbusData;
 
-    for (auto& server : servers) {
+    for (auto& server : m_servers) {
         sdbusData.push_back(sdbus::Struct<int, std::vector<uint8_t>, uint16_t, std::string>(
             sdbus::make_struct(server.getAddress()->getVersion(), server.getAddress()->byteVector(), server.getPort(), server.getName())));
     };
@@ -263,7 +263,7 @@ bool DnsServerList::exportListToSdBus()
 
     try {
         auto proxy = sdbus::createProxy(destinationName, objectPath);
-        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(_ifindex, sdbusData);
+        proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
     } catch (sdbus::Error& e) {
         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
         error = true;
@@ -271,17 +271,17 @@ bool DnsServerList::exportListToSdBus()
 
     // clear container after succsess
     if (!error) {
-        servers.clear();
+        m_servers.clear();
     }
 
     return error;
 }
 
-int DnsServerList::getIfIndex() { return _ifindex; };
+int DnsServerList::getIfIndex() { return m_ifindex; };
 
 bool DnsServerList::addDnsServer(DnsServer srv)
 {
-    for (DnsServer& server : servers) {
+    for (DnsServer& server : m_servers) {
         if (server.getName().compare(srv.getName()) == 0) {
             // the name is the key in yang
             // allready exists, return false
@@ -289,20 +289,20 @@ bool DnsServerList::addDnsServer(DnsServer srv)
         }
     }
 
-    servers.push_back(srv);
+    m_servers.push_back(srv);
     return true;
 }
 
-std::vector<DnsServer> DnsServerList::getDnsServerVector() { return servers; };
+std::vector<DnsServer> DnsServerList::getDnsServerVector() { return m_servers; };
 
 bool DnsServerList::removeDnsServer(const DnsServer& server)
 {
-    std::vector<DnsServer>::iterator it = servers.begin();
+    std::vector<DnsServer>::iterator it = m_servers.begin();
     // safe aproach to erase while iterating
-    while (it != servers.end()) {
+    while (it != m_servers.end()) {
 
         if (*it == server) {
-            it = servers.erase(it);
+            it = m_servers.erase(it);
             return true;
         } else {
             it++;
@@ -315,7 +315,7 @@ bool DnsServerList::removeDnsServer(const DnsServer& server)
 bool DnsServerList::modifyDnsServer(DnsServer server)
 {
 
-    for (auto& srv : servers) { // name is the key in yang model, no duplicates
+    for (auto& srv : m_servers) { // name is the key in yang model, no duplicates
         if (srv.getName().compare(server.getName()) == 0) {
 
             if(srv.getAddress()->getVersion() != server.getAddress()->getVersion()){

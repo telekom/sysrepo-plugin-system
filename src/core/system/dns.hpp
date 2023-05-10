@@ -21,10 +21,10 @@ namespace ietf::sys::dns {
  */
 class DnsServer {
 private:
-    std::string Name; ///< Arbitrary name of the DNS server.
-    Address address; ///< Address of the DNS server.
-    std::uint16_t Port; ///< Port of the DNS server.
-    int _ifindex;
+    std::string m_name; ///< Arbitrary name of the DNS server.
+    Address m_address; ///< Address of the DNS server.
+    std::uint16_t m_port; ///< Port of the DNS server.
+    int m_ifindex;
 
 public:
     DnsServer(int ifindex, std::string name, Address address, std::uint16_t port);
@@ -47,9 +47,9 @@ public:
 class DnsSearchServer {
 
 private:
-    std::string Domain;
-    bool Search;
-    int _ifindex;
+    std::string m_domain;
+    bool m_search;
+    int m_ifindex;
 
 public:
     /**
@@ -114,8 +114,8 @@ public:
 class DnsSearchServerList {
 
 private:
-    int _ifindex;
-    std::vector<DnsSearchServer> servers;
+    int m_ifindex;
+    std::vector<DnsSearchServer> m_servers;
 
 public:
     DnsSearchServerList();
@@ -160,8 +160,8 @@ public:
 
 class DnsServerList {
 private:
-    int _ifindex;
-    std::vector<DnsServer> servers;
+    int m_ifindex;
+    std::vector<DnsServer> m_servers;
 
 public:
     DnsServerList();
