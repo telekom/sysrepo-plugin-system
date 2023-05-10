@@ -80,9 +80,9 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto hostname = sys::getHostname();
+        // auto hostname = sys::getHostname();
 
-        output->newPath("hostname", hostname);
+        // output->newPath("hostname", hostname);
 
         return error;
     }
@@ -143,9 +143,9 @@ namespace sub::oper {
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
 
-        auto tz_name = sys::getTimezoneName();
+        // auto tz_name = sys::getTimezoneName();
 
-        output->newPath("timezone-name", tz_name);
+        // output->newPath("timezone-name", tz_name);
 
         return error;
     }
