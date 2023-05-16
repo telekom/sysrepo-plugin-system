@@ -382,6 +382,7 @@ std::optional<DnsServer> getServerFromChangedNode(const libyang::DataNode& chang
 
         std::string adr = map["address"];
          struct in_addr ip_addr;
+         struct in6_addr ip_addr_6;
         //int ip_version = getAddressIPVersion(adr);
 
 
@@ -389,8 +390,8 @@ std::optional<DnsServer> getServerFromChangedNode(const libyang::DataNode& chang
 
             addr = std::make_shared<IPV4Address>(adr);
 
-        } else if (inet_pton(AF_INET6, adr.c_str(), &ip_addr) == 1) {
-
+        } else if (inet_pton(AF_INET6, adr.c_str(), &ip_addr_6) == 1) {
+            
             addr = std::make_shared<IPV6Address>(adr);
 
         } else {

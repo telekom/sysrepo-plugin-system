@@ -53,13 +53,13 @@ IPV6Address::IPV6Address(std::string ipv6_address)
 {
 
     this->address = ipv6_address;
-    struct in_addr ip_addr;
+    struct in6_addr ip_addr;
     if (inet_pton(AF_INET6, address.c_str(), &ip_addr) == 1) {
         // its ipv6
         BYTE_SIZE = 16;
         version = 10;
 
-        uint8_t* bytes = (uint8_t*)&ip_addr.s_addr;
+        uint8_t* bytes = (uint8_t*)&ip_addr;
         for (int i = 0; i < BYTE_SIZE; i++) {
             byte_vector.push_back(bytes[i]);
         };
