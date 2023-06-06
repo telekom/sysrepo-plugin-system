@@ -50,4 +50,21 @@ const std::string getMetaValue(ly::MetaCollection& meta, const std::string& name
     throw std::runtime_error("Failed to get meta value.");
 }
 
+/**
+ * @brief Convert meta values list to a hash.
+ *
+ * @param meta Meta collection object.
+ * @return std::map<std::string, std::string> Meta values hash.
+ */
+std::map<std::string, std::string> getMetaValuesHash(ly::MetaCollection meta)
+{
+    std::map<std::string, std::string> hash;
+
+    for (const auto& m : meta) {
+        hash[m.name()] = m.valueStr();
+    }
+
+    return hash;
+}
+
 }

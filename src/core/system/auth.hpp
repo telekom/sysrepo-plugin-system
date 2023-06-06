@@ -4,6 +4,10 @@
 #include <list>
 #include <optional>
 
+extern "C" {
+#include <umgmt.h>
+}
+
 namespace ietf::sys::auth {
 
 /**
@@ -83,6 +87,22 @@ public:
     void storeToSystem();
 
     /**
+     * @brief Add new user.
+     *
+     * @param name User name.
+     * @param password User password.
+     */
+    void addUser(const std::string& name, std::optional<std::string> password);
+
+    /**
+     * @brief Change user password to a new value.
+     *
+     * @param name User name.
+     * @param password Password to set.
+     */
+    void changeUserPassword(const std::string& name, std::string password);
+
+    /**
      * @brief Get iterator to the beginning.
      */
     std::list<LocalUser>::iterator begin() { return m_users.begin(); }
@@ -95,4 +115,52 @@ public:
 private:
     std::list<LocalUser> m_users;
 };
+
+class DatabaseContext {
+public:
+    DatabaseContext();
+
+    /**
+     * @brief Load authentication database from the system.
+     */
+    void loadFromSystem(void);
+
+    /**
+     * @brief Add user to the database.
+     *
+     * @param user User to add.
+     */
+    void addUser(LocalUser user);
+
+    /**
+     * @brief Change the password hash for the given user.
+     *
+     * @param name User name.
+     * @param password_hash Password hash to set.
+     */
+    void changeUserPasswordHash(const std::string& name, const std::string& password_hash);
+
+    /**
+     * @brief Remove the password hash for the given user.
+     *
+     * @param name User name.
+     */
+    void removeUserPasswordHash(const std::string& name);
+
+    /**
+     * @brief Remove user with the given name from the database.
+     *
+     * @param name User name of the user to remove.
+     */
+    void removeUser(const std::string& name);
+
+    /**
+     * @brief Store authentication database to the system.
+     */
+    void storeToSystem(void);
+
+private:
+    um_db_t* m_db;
+};
+
 }

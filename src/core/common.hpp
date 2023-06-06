@@ -2,6 +2,7 @@
 
 #include "libyang-cpp/DataNode.hpp"
 #include <string>
+#include <map>
 
 #include <libyang-cpp/Context.hpp>
 
@@ -31,5 +32,13 @@ const std::string extractListKeyFromXPath(const std::string& list, const std::st
  * @return std::string Meta value.
  */
 const std::string getMetaValue(ly::MetaCollection& meta, const std::string& name);
+
+/**
+ * @brief Convert meta values list to a hash.
+ *
+ * @param meta Meta collection object.
+ * @return std::map<std::string, std::string> Meta values hash.
+ */
+std::map<std::string, std::string> getMetaValuesHash(ly::MetaCollection meta);
 
 }

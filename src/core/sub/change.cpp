@@ -558,12 +558,39 @@ namespace sub::change {
                 SRPLG_LOG_DBG(
                     ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
+                const auto& name_node = change.node.findPath("name");
+                const auto& password_node = change.node.findPath("password");
+
+                const auto& user_meta = ietf::sys::getMetaValuesHash(change.node.meta());
+                const auto& name_meta = ietf::sys::getMetaValuesHash(name_node->meta());
+                auto password_meta = std::map<std::string, std::string>();
+
+                const auto& name_value = name_node->asTerm().value();
+                const auto& name = std::get<std::string>(name_value);
+                auto password = std::optional<std::string>(std::nullopt);
+
+                if (password_node) {
+                    const auto& password_value = password_node->asTerm().value();
+                    password = std::get<std::string>(password_value);
+                    password_meta = ietf::sys::getMetaValuesHash(password_node->meta());
+                }
+
                 switch (change.operation) {
-                case sysrepo::ChangeOperation::Created:
-                case sysrepo::ChangeOperation::Modified: {
+                case sysrepo::ChangeOperation::Created: {
+                    // create new user or create new password
+                    const auto& name_operation = name_meta.find("operation");
+                    if (name_operation != name_meta.end()) {
+                        // name has operation
+                    } else {
+                        // no name operation - only password change
+                    }
                     break;
                 }
+                case sysrepo::ChangeOperation::Modified:
+                    // modify user password
+                    break;
                 case sysrepo::ChangeOperation::Deleted:
+                    // delete user or delete user password
                     break;
                 case sysrepo::ChangeOperation::Moved:
                     break;
