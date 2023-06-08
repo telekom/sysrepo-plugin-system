@@ -70,11 +70,11 @@ set(
     src/core/system-state/clock.cpp
 
     # system
-    src/core/system/hostname.cpp
     src/core/system/timezone-name.cpp
 
     # modules
     src/modules/auth.cpp
+    src/modules/hostname.cpp
 )
 
 set(

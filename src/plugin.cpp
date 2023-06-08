@@ -17,7 +17,9 @@
 #include "core/module.hpp"
 #include "core/module-registry.hpp"
 
+// [TODO]: Try to remove dependency
 #include "modules/auth.hpp"
+#include "modules/hostname.hpp"
 
 namespace sr = sysrepo;
 
@@ -70,9 +72,11 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // [TODO]: Try to remove this dependency and use static variable in each module to register it
     registry.registerModule<AuthModule>();
+    registry.registerModule<HostnameModule>();
 
     // get registered modules
     auto& modules = registry.getRegisteredModules();
+    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Number of modules registered: %d", modules.size());
 
     // registerOperationalSubscriptions(sess, *plugin_ctx);
     // registerModuleChangeSubscriptions(sess, *plugin_ctx);
@@ -109,7 +113,6 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto oper_callbacks = {
-        OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(ctx.getOperContext()) },
         OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(ctx.getOperContext()) },
@@ -136,7 +139,6 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
 void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
 {
     const auto change_callbacks = {
-        ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(ctx.getModuleChangeContext()) },
         ModuleChangeCallback {
             "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(ctx.getModuleChangeContext()) },
     };
