@@ -5,9 +5,6 @@
 #include "libyang-cpp/Enum.hpp"
 #include "sysrepo-cpp/Enum.hpp"
 
-// system API
-#include <core/system/timezone-name.hpp>
-
 // sethostname() and gethostname()
 #include <stdexcept>
 #include <unistd.h>
@@ -20,9 +17,6 @@
 
 namespace ietf::sys {
 namespace sub::change {
-    // use system API
-    namespace sys = ietf::sys;
-
     /**
      * sysrepo-plugin-generator: Generated default constructor.
      *
@@ -75,96 +69,6 @@ namespace sub::change {
      *
      */
     sr::ErrorCode LocationModuleChangeCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
-        std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
-    {
-        sr::ErrorCode error = sr::ErrorCode::Ok;
-        return error;
-    }
-
-    /**
-     * sysrepo-plugin-generator: Generated default constructor.
-     *
-     * @param ctx Plugin module change context.
-     *
-     */
-    ClockTimezoneNameModuleChangeCb::ClockTimezoneNameModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
-
-    /**
-     * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-name.
-     *
-     * @param session An implicit session for the callback.
-     * @param subscriptionId ID the subscription associated with the callback.
-     * @param moduleName The module name used for subscribing.
-     * @param subXPath The optional xpath used at the time of subscription.
-     * @param event Type of the event that has occured.
-     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
-     * SR_EV_DONE, for example) have the same request ID.
-     *
-     * @return Error code.
-     *
-     */
-    sr::ErrorCode ClockTimezoneNameModuleChangeCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
-        std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
-    {
-        sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        switch (event) {
-        case sysrepo::Event::Change:
-            for (auto& change : session.getChanges(subXPath->data())) {
-                switch (change.operation) {
-                case sysrepo::ChangeOperation::Created:
-                case sysrepo::ChangeOperation::Modified: {
-
-                    // modified hostname - get current value and use sethostname()
-                    auto value = change.node.asTerm().value();
-                    auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
-
-                    try {
-                        sys::setTimezoneName(timezone_name);
-                    } catch (const std::runtime_error& err) {
-                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
-                        error = sr::ErrorCode::OperationFailed;
-                    }
-
-                    break;
-                }
-                case sysrepo::ChangeOperation::Deleted:
-                    break;
-                case sysrepo::ChangeOperation::Moved:
-                    break;
-                }
-            }
-            break;
-        default:
-            break;
-        }
-
-        return error;
-    }
-
-    /**
-     * sysrepo-plugin-generator: Generated default constructor.
-     *
-     * @param ctx Plugin module change context.
-     *
-     */
-    ClockTimezoneUtcOffsetModuleChangeCb::ClockTimezoneUtcOffsetModuleChangeCb(std::shared_ptr<ietf::sys::ModuleChangeContext> ctx) { m_ctx = ctx; }
-
-    /**
-     * sysrepo-plugin-generator: Generated module change operator() for path /ietf-system:system/clock/timezone-utc-offset.
-     *
-     * @param session An implicit session for the callback.
-     * @param subscriptionId ID the subscription associated with the callback.
-     * @param moduleName The module name used for subscribing.
-     * @param subXPath The optional xpath used at the time of subscription.
-     * @param event Type of the event that has occured.
-     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
-     * SR_EV_DONE, for example) have the same request ID.
-     *
-     * @return Error code.
-     *
-     */
-    sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
         std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
