@@ -2,6 +2,7 @@
 #include "umgmt/db.h"
 #include "umgmt/user.h"
 
+#include <optional>
 #include <stdexcept>
 #include <filesystem>
 #include <fstream>
@@ -92,118 +93,6 @@ void AuthorizedKeyList::storeToSystem(const std::string& username)
         }
 
         file.close();
-    }
-}
-DatabaseContext::DatabaseContext()
-    : m_db(nullptr)
-{
-}
-
-/**
- * @brief Load authentication database from the system.
- */
-void DatabaseContext::loadFromSystem(void)
-{
-    int rc = 0;
-
-    m_db = um_db_new();
-
-    if (!m_db) {
-        // failed to allocate user database
-        throw std::runtime_error("Unable to allocate auth database.");
-    }
-
-    if (rc = um_db_load(m_db); rc != 0) {
-        throw std::runtime_error("Unable to load auth database.");
-    }
-}
-
-/**
- * @brief Add user to the database.
- *
- * @param user User to add.
- */
-void DatabaseContext::addUser(LocalUser user)
-{
-    int rc = 0;
-    um_user_t* new_user = um_user_new();
-
-    if (!new_user) {
-        throw std::runtime_error("Unable to allocate new user data structure.");
-    }
-
-    if (rc = um_user_set_name(new_user, user.Name.c_str()); rc != 0) {
-        throw std::runtime_error("Unable to set user name.");
-    }
-}
-
-/**
- * @brief Change the password hash for the given user.
- *
- * @param name User name.
- * @param password_hash Password hash to set.
- */
-void DatabaseContext::changeUserPasswordHash(const std::string& name, const std::string& password_hash)
-{
-    um_user_t* user = nullptr;
-
-    user = um_db_get_user(m_db, name.c_str());
-    if (user) {
-        if (int rc = um_user_set_password_hash(user, password_hash.c_str()); rc != 0) {
-            throw std::runtime_error("Unable to set user password hash.");
-        }
-    } else {
-        throw std::runtime_error("Unable to find the user with the given name.");
-    }
-}
-
-/**
- * @brief Remove the password hash for the given user.
- *
- * @param name User name.
- */
-void DatabaseContext::removeUserPasswordHash(const std::string& name)
-{
-    um_user_t* user = nullptr;
-
-    user = um_db_get_user(m_db, name.c_str());
-    if (user) {
-        if (int rc = um_user_set_password_hash(user, nullptr); rc != 0) {
-            throw std::runtime_error("Unable to set user password hash.");
-        }
-    } else {
-        throw std::runtime_error("Unable to find the user with the given name.");
-    }
-}
-
-/**
- * @brief Remove user with the given name from the database.
- *
- * @param name User name of the user to remove.
- */
-void DatabaseContext::removeUser(const std::string& name)
-{
-    if (int rc = um_db_delete_user(m_db, name.c_str()); rc != 0) {
-        throw std::runtime_error("Unable to remove given user from the database.");
-    }
-}
-
-/**
- * @brief Store authentication database to the system.
- */
-void storeToSystem(void);
-
-/**
- * @brief Store authentication database to the system.
- */
-void DatabaseContext::storeToSystem(void)
-{
-    if (!m_db) {
-        throw std::runtime_error("Database uninitialized.");
-    }
-
-    if (int rc = um_db_store(m_db); rc != 0) {
-        throw std::runtime_error("Unable to store auth database.");
     }
 }
 
@@ -352,4 +241,86 @@ void LocalUserList::changeUserPassword(const std::string& name, std::string pass
         }
     }
 }
+
+DatabaseContext::DatabaseContext()
+    : m_db(nullptr)
+{
+}
+
+/**
+ * @brief Load authentication database from the system.
+ */
+void DatabaseContext::loadFromSystem(void)
+{
+    // load only modified users since they
+}
+
+/**
+ * @brief Add user to the database.
+ *
+ * @param user User to add.
+ */
+void DatabaseContext::addUser(LocalUser user) { m_new_users.addUser(user.Name, std::nullopt); }
+
+/**
+ * @brief Change the password hash for the given user.
+ *
+ * @param name User name.
+ * @param password_hash Password hash to set.
+ */
+void DatabaseContext::changeUserPasswordHash(const std::string& name, const std::string& password_hash)
+{
+    m_mod_users.changeUserPassword(name, password_hash);
+}
+
+/**
+ * @brief Remove the password hash for the given user.
+ *
+ * @param name User name.
+ */
+void DatabaseContext::removeUserPasswordHash(const std::string& name)
+{
+    um_user_t* user = nullptr;
+
+    user = um_db_get_user(m_db, name.c_str());
+    if (user) {
+        if (int rc = um_user_set_password_hash(user, nullptr); rc != 0) {
+            throw std::runtime_error("Unable to set user password hash.");
+        }
+    } else {
+        throw std::runtime_error("Unable to find the user with the given name.");
+    }
+}
+
+/**
+ * @brief Remove user with the given name from the database.
+ *
+ * @param name User name of the user to remove.
+ */
+void DatabaseContext::removeUser(const std::string& name)
+{
+    if (int rc = um_db_delete_user(m_db, name.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to remove given user from the database.");
+    }
+}
+
+/**
+ * @brief Store authentication database to the system.
+ */
+void storeToSystem(void);
+
+/**
+ * @brief Store authentication database to the system.
+ */
+void DatabaseContext::storeToSystem(void)
+{
+    if (!m_db) {
+        throw std::runtime_error("Database uninitialized.");
+    }
+
+    if (int rc = um_db_store(m_db); rc != 0) {
+        throw std::runtime_error("Unable to store auth database.");
+    }
+}
+
 }

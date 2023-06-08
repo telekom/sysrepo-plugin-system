@@ -155,11 +155,14 @@ public:
     void removeUser(const std::string& name);
 
     /**
-     * @brief Store authentication database to the system.
+     * @brief Store database context changes to the system.
      */
     void storeToSystem(void);
 
 private:
+    LocalUserList m_new_users;
+    LocalUserList m_mod_users;
+    LocalUserList m_del_users;
     um_db_t* m_db;
 };
 
