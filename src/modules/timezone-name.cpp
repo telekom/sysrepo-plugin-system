@@ -223,7 +223,12 @@ sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session sessi
 /**
  * Timezone module constructor. Allocates each context.
  */
-TimezoneModule::TimezoneModule() { }
+TimezoneModule::TimezoneModule()
+{
+    m_operContext = std::make_shared<TimezoneOperationalContext>();
+    m_changeContext = std::make_shared<TimezoneModuleChangesContext>();
+    m_rpcContext = std::make_shared<TimezoneRpcContext>();
+}
 
 /**
  * Return the operational context from the module.

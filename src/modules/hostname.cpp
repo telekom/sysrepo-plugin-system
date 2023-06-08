@@ -137,7 +137,12 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 /**
  * Hostname module constructor. Allocates each context.
  */
-HostnameModule::HostnameModule() { }
+HostnameModule::HostnameModule()
+{
+    m_operContext = std::make_shared<HostnameOperationalContext>();
+    m_changeContext = std::make_shared<HostnameModuleChangesContext>();
+    m_rpcContext = std::make_shared<HostnameRpcContext>();
+}
 
 /**
  * Return the operational context from the module.
