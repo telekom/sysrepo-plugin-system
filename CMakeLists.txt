@@ -59,8 +59,6 @@ set(
 
     src/core/common.cpp
     src/core/context.cpp
-    src/core/sub/change.cpp
-    src/core/sub/oper.cpp
     src/core/yang/tree.cpp
 
     # modules
