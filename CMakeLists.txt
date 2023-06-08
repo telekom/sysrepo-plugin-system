@@ -61,15 +61,10 @@ set(
     src/core/context.cpp
     src/core/sub/change.cpp
     src/core/sub/oper.cpp
-    src/core/sub/rpc.cpp
     src/core/yang/tree.cpp
-    src/core/api.cpp
-
-    # system-state
-    src/core/system-state/platform.cpp
-    src/core/system-state/clock.cpp
 
     # modules
+    src/modules/system.cpp
     src/modules/hostname.cpp
     src/modules/timezone-name.cpp
     src/modules/auth.cpp

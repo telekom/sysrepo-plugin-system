@@ -18,6 +18,7 @@
 #include "core/module-registry.hpp"
 
 // [TODO]: Try to remove dependency
+#include "modules/system.hpp"
 #include "modules/hostname.hpp"
 #include "modules/timezone-name.hpp"
 #include "modules/auth.hpp"
@@ -72,6 +73,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     SRPLG_LOG_INF("ietf-system-plugin", "Creating plugin subscriptions");
 
     // [TODO]: Try to remove this dependency and use static variable in each module to register it
+    registry.registerModule<SystemModule>();
     registry.registerModule<HostnameModule>();
     registry.registerModule<TimezoneModule>();
     registry.registerModule<AuthModule>();
@@ -120,23 +122,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
  * @param ctx Plugin context.
  *
  */
-void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
-{
-    const auto oper_callbacks = {
-        OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(ctx.getOperContext()) },
-        OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(ctx.getOperContext()) },
-    };
-
-    auto& sub_handle = ctx.getSubscriptionHandle();
-
-    for (auto& cb : oper_callbacks) {
-        if (sub_handle.has_value()) {
-            sub_handle->onOperGet("ietf-system", cb.callback, cb.xpath);
-        } else {
-            sub_handle = sess.onOperGet("ietf-system", cb.callback, cb.xpath);
-        }
-    }
-}
+void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }
 
 /**
  * Register all module change plugin subscriptions.
@@ -154,21 +140,4 @@ void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginConte
  * @param ctx Plugin context.
  *
  */
-void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx)
-{
-    const auto rpc_callbacks = {
-        RpcCallback { "/ietf-system:system-restart", ietf::sys::sub::rpc::SystemRestartRpcCb(ctx.getRpcContext()) },
-        RpcCallback { "/ietf-system:system-shutdown", ietf::sys::sub::rpc::SystemShutdownRpcCb(ctx.getRpcContext()) },
-        RpcCallback { "/ietf-system:set-current-datetime", ietf::sys::sub::rpc::SetCurrentDatetimeRpcCb(ctx.getRpcContext()) },
-    };
-
-    auto& sub_handle = ctx.getSubscriptionHandle();
-
-    for (auto& cb : rpc_callbacks) {
-        if (sub_handle.has_value()) {
-            sub_handle->onRPCAction(cb.xpath, cb.callback);
-        } else {
-            sub_handle = sess.onRPCAction(cb.xpath, cb.callback);
-        }
-    }
-}
+void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx) { }

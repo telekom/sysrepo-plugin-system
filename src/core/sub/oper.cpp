@@ -3,22 +3,10 @@
 #include "core/common.hpp"
 #include "core/api.hpp"
 
-// system-state
-#include <core/system-state/platform.hpp>
-#include <core/system-state/clock.hpp>
-
-// Platform information
-#include <sstream>
-#include <stdexcept>
-#include <sys/sysinfo.h>
-#include <sys/utsname.h>
-
 #include <sysrepo.h>
 
 namespace ietf::sys {
 namespace sub::oper {
-    // use API namespace in operational callbacks
-    namespace sys_state = ietf::sys::state;
 
     /**
      * sysrepo-plugin-generator: Generated default constructor.
@@ -1160,47 +1148,6 @@ namespace sub::oper {
      * @param ctx Plugin operational context.
      *
      */
-    StatePlatformOperGetCb::StatePlatformOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
-
-    /**
-     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/platform.
-     *
-     * @param session An implicit session for the callback.
-     * @param subscriptionId ID the subscription associated with the callback.
-     * @param moduleName The module name used for subscribing.
-     * @param subXPath The optional xpath used at the time of subscription.
-     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
-     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
-     *
-     * @return Error code.
-     *
-     */
-    sr::ErrorCode StatePlatformOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
-        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
-        std::optional<ly::DataNode>& output)
-    {
-        sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        auto platform = output->newPath("platform");
-
-        if (platform) {
-            auto platform_info = sys_state::getPlatformInfo();
-
-            platform->newPath("os-name", platform_info.OsName);
-            platform->newPath("os-release", platform_info.OsRelease);
-            platform->newPath("os-version", platform_info.OsVersion);
-            platform->newPath("machine", platform_info.Machine);
-        }
-
-        return error;
-    }
-
-    /**
-     * sysrepo-plugin-generator: Generated default constructor.
-     *
-     * @param ctx Plugin operational context.
-     *
-     */
     ClockCurrentDatetimeOperGetCb::ClockCurrentDatetimeOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
 
     /**
@@ -1250,45 +1197,6 @@ namespace sub::oper {
         std::optional<ly::DataNode>& output)
     {
         sr::ErrorCode error = sr::ErrorCode::Ok;
-        return error;
-    }
-
-    /**
-     * sysrepo-plugin-generator: Generated default constructor.
-     *
-     * @param ctx Plugin operational context.
-     *
-     */
-    StateClockOperGetCb::StateClockOperGetCb(std::shared_ptr<ietf::sys::OperContext> ctx) { m_ctx = ctx; }
-
-    /**
-     * sysrepo-plugin-generator: Generated operator() for path /ietf-system:system-state/clock.
-     *
-     * @param session An implicit session for the callback.
-     * @param subscriptionId ID the subscription associated with the callback.
-     * @param moduleName The module name used for subscribing.
-     * @param subXPath The optional xpath used at the time of subscription.
-     * @param requestId Request ID unique for the specific module_name. Connected events for one request (SR_EV_CHANGE and
-     * @param output A handle to a tree. The callback is supposed to fill this tree with the requested data.
-     *
-     * @return Error code.
-     *
-     */
-    sr::ErrorCode StateClockOperGetCb::operator()(sr::Session session, uint32_t subscriptionId, std::string_view moduleName,
-        std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId,
-        std::optional<ly::DataNode>& output)
-    {
-        sr::ErrorCode error = sr::ErrorCode::Ok;
-
-        auto clock = output->newPath("clock");
-
-        if (clock) {
-            auto clock_info = sys_state::getClockInfo();
-
-            clock->newPath("current-datetime", clock_info.CurrentDatetime);
-            clock->newPath("boot-datetime", clock_info.BootDatetime);
-        }
-
         return error;
     }
 
