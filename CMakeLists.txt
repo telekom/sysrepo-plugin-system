@@ -73,6 +73,9 @@ set(
     src/core/system/hostname.cpp
     src/core/system/timezone-name.cpp
     src/core/system/auth.cpp
+
+    # modules
+    src/modules/auth.cpp
 )
 
 set(

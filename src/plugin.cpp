@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "core/common.hpp"
 #include "core/context.hpp"
 
 // subscription API
@@ -12,31 +13,13 @@
 #include <sysrepo-cpp/Session.hpp>
 #include <sysrepo-cpp/utils/utils.hpp>
 
+#include "core/callbacks.hpp"
+#include "core/module.hpp"
+#include "core/module-registry.hpp"
+
+#include "modules/auth.hpp"
+
 namespace sr = sysrepo;
-
-/**
- * @brief Operational callback struct.
- */
-struct OperationalCallback {
-    std::string xpath; ///< XPath of the data.
-    sysrepo::OperGetCb callback; ///< Callback function.
-};
-
-/**
- * @brief Module change callback struct.
- */
-struct ModuleChangeCallback {
-    std::string xpath; ///< XPath of the data.
-    sysrepo::ModuleChangeCb callback; ///< Callback function.
-};
-
-/**
- * @brief RPC callback struct.
- */
-struct RpcCallback {
-    std::string xpath; ///< XPath of the data.
-    sysrepo::RpcActionCb callback; ///< Callback function.
-};
 
 /**
  * Register all operational plugin subscriptions.
@@ -78,16 +61,22 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     sr::ErrorCode error = sysrepo::ErrorCode::Ok;
     auto sess = sysrepo::wrapUnmanagedSession(session);
     auto plugin_ctx = new ietf::sys::PluginContext(sess);
+    auto& registry(ModuleRegistry::getInstance());
 
     *priv = static_cast<void*>(plugin_ctx);
 
     // create session subscriptions
     SRPLG_LOG_INF("ietf-system-plugin", "Creating plugin subscriptions");
 
-    registerOperationalSubscriptions(sess, *plugin_ctx);
-    registerModuleChangeSubscriptions(sess, *plugin_ctx);
-    registerRpcSubscriptions(sess, *plugin_ctx);
+    // [TODO]: Try to remove this dependency and use static variable in each module to register it
+    registry.registerModule<AuthModule>();
 
+    // get registered modules
+    auto& modules = registry.getRegisteredModules();
+
+    // registerOperationalSubscriptions(sess, *plugin_ctx);
+    // registerModuleChangeSubscriptions(sess, *plugin_ctx);
+    // registerRpcSubscriptions(sess, *plugin_ctx);
     SRPLG_LOG_INF("ietf-system-plugin", "Created plugin subscriptions");
 
     return static_cast<int>(error);
