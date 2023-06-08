@@ -76,7 +76,9 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // get registered modules
     auto& modules = registry.getRegisteredModules();
-    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Number of modules registered: %d", modules.size());
+    for (auto& mod : modules) {
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registered module: %s", mod->getName());
+    }
 
     // registerOperationalSubscriptions(sess, *plugin_ctx);
     // registerModuleChangeSubscriptions(sess, *plugin_ctx);
@@ -96,9 +98,15 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 {
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup called");
+    auto& registry(ModuleRegistry::getInstance());
 
     auto plugin_ctx = static_cast<ietf::sys::PluginContext*>(priv);
     delete plugin_ctx;
+
+    auto& modules = registry.getRegisteredModules();
+    for (auto& mod : modules) {
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Cleaning up module: %s", mod->getName());
+    }
 
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup finished");
 }

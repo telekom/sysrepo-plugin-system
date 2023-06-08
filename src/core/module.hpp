@@ -44,6 +44,11 @@ public:
      * Get all RPC callbacks which the module should use.
      */
     virtual std::list<RpcCallback> getRpcCallbacks() = 0;
+
+    /**
+     * Get module name.
+     */
+    virtual constexpr const char* getName() = 0;
 };
 
 using ModuleCreateFn = IModule* (*)();

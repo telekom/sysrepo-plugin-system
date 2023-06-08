@@ -830,3 +830,8 @@ std::list<ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
+
+/**
+ * Get module name.
+ */
+constexpr const char* AuthModule::getName() { return "Authentication"; };

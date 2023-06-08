@@ -178,3 +178,8 @@ std::list<ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
+
+/**
+ * Get module name.
+ */
+constexpr const char* HostnameModule::getName() { return "Hostname"; }

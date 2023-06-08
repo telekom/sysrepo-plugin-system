@@ -645,6 +645,11 @@ public:
      */
     virtual std::list<RpcCallback> getRpcCallbacks() override;
 
+    /**
+     * Get module name.
+     */
+    virtual constexpr const char* getName() override;
+
 private:
     std::shared_ptr<AuthOperationalContext> m_operContext;
     std::shared_ptr<AuthModuleChangesContext> m_changeContext;
