@@ -229,6 +229,11 @@ public:
      */
     virtual constexpr const char* getName() override;
 
+    /**
+     * Timezone module destructor.
+     */
+    ~TimezoneModule() { }
+
 private:
     std::shared_ptr<TimezoneOperationalContext> m_operContext;
     std::shared_ptr<TimezoneModuleChangesContext> m_changeContext;

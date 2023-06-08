@@ -39,7 +39,7 @@ public:
     ModuleList& getRegisteredModules() { return m_modules; }
 
 private:
-    ModuleRegistry() { }
-    ~ModuleRegistry() { }
+    ModuleRegistry() = default;
+    ~ModuleRegistry() = default;
     ModuleList m_modules;
 };

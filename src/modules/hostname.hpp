@@ -161,6 +161,11 @@ public:
      */
     virtual constexpr const char* getName() override;
 
+    /**
+     * Hostname module destructor.
+     */
+    ~HostnameModule() { }
+
 private:
     std::shared_ptr<HostnameOperationalContext> m_operContext;
     std::shared_ptr<HostnameModuleChangesContext> m_changeContext;

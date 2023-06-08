@@ -650,6 +650,11 @@ public:
      */
     virtual constexpr const char* getName() override;
 
+    /**
+     * Auth module destructor.
+     */
+    ~AuthModule() { }
+
 private:
     std::shared_ptr<AuthOperationalContext> m_operContext;
     std::shared_ptr<AuthModuleChangesContext> m_changeContext;

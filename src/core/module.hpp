@@ -49,6 +49,11 @@ public:
      * Get module name.
      */
     virtual constexpr const char* getName() = 0;
+
+    /**
+     * Virtual destructor.
+     */
+    virtual ~IModule() { }
 };
 
 using ModuleCreateFn = IModule* (*)();

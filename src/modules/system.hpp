@@ -5,6 +5,8 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include <sysrepo.h>
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
@@ -298,6 +300,11 @@ public:
      * Get module name.
      */
     virtual constexpr const char* getName() override;
+
+    /**
+     * System module destructor.
+     */
+    ~SystemModule() { }
 
 private:
     std::shared_ptr<SystemOperationalContext> m_operContext;
