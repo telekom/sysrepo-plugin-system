@@ -1,24 +1,15 @@
 #pragma once
 
 #include <string>
+#include <core/sdbus.hpp>
 
 namespace ietf::sys {
-/**
- * @brief Hostname type alias.
- */
-using Hostname = std::string;
 
-/**
- * @brief Get hostname.
- *
- * @return Hostname.
- */
-Hostname getHostname();
+class Hostname : public SdBUS<std::string, std::string, bool> {
+public:
+    Hostname();
+    bool setHostname(std::string);
+    std::string getHostname();
+};
 
-/**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
- *
- * @param hostname Hostname.
- */
-void setHostname(const Hostname& hostname);
 }

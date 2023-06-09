@@ -8,9 +8,6 @@
 #include <core/system/timezone-name.hpp>
 #include <core/system/auth.hpp>
 
-// sethostname() and gethostname()
-#include <unistd.h>
-
 // logging
 #include <sysrepo.h>
 
@@ -84,12 +81,12 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-                    // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto hostname = std::get<sys::Hostname>(value);
+                    auto hostname = std::get<std::string>(value);
 
                     try {
-                        sys::setHostname(hostname);
+                        Hostname host;
+                        host.setHostname(hostname);
                     } catch (const std::runtime_error& err) {
                         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                         error = sr::ErrorCode::OperationFailed;
@@ -172,15 +169,14 @@ namespace sub::change {
                 switch (change.operation) {
                 case sysrepo::ChangeOperation::Created:
                 case sysrepo::ChangeOperation::Modified: {
-
-                    // modified hostname - get current value and use sethostname()
                     auto value = change.node.asTerm().value();
-                    auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
+                    auto timezone = std::get<std::string>(value);
 
                     try {
-                        sys::setTimezoneName(timezone_name);
-                    } catch (const std::runtime_error& err) {
-                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                        Timezone t;
+                        t.setTimezone(timezone);
+                    } catch (std::runtime_error& e) {
+                        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
                         error = sr::ErrorCode::OperationFailed;
                     }
 

@@ -25,12 +25,14 @@ find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(UMGMT REQUIRED)
+find_package(LIBSDBUSCPP REQUIRED)
 
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
     ${UMGMT_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
+    ${SDBUS_CPP_INCLUDE_DIRS}
 )
 
 set(
@@ -43,6 +45,7 @@ set(
     src/core/yang/tree.hpp
     src/core/api.hpp
     src/core/common.hpp
+    src/core/sdbus.hpp
 
     # system-state
     src/core/system-state/platform.hpp
@@ -122,6 +125,7 @@ target_link_libraries(
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
     ${UMGMT_LIBRARIES}
+    ${SDBUSCPP_LIBRARIES}
 )
 
 # plugin as a library
