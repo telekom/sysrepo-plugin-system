@@ -1,11 +1,11 @@
 #include "ip.hpp"
 
 //////////////////////////////////////////////
-//              IPV4Address                //
+//              Ipv4Address                //
 /////////////////////////////////////////////
-namespace ietf::sys::ipv {
+namespace ietf::sys::ip {
 
-IPV4Address::IPV4Address(std::string ipv4_address)
+Ipv4Address::Ipv4Address(std::string ipv4_address)
     : Address()
 {
     this->address = ipv4_address;
@@ -24,7 +24,7 @@ IPV4Address::IPV4Address(std::string ipv4_address)
     }
 };
 
-IPV4Address::IPV4Address(std::vector<uint8_t> bytes)
+Ipv4Address::Ipv4Address(std::vector<uint8_t> bytes)
 {
     if (bytes.size() == 4) {
         BYTE_SIZE = 4;
@@ -45,10 +45,10 @@ IPV4Address::IPV4Address(std::vector<uint8_t> bytes)
 }
 
 //////////////////////////////////////////////
-//              IPV6Address                //
+//              Ipv6Address                //
 /////////////////////////////////////////////
 
-IPV6Address::IPV6Address(std::string ipv6_address)
+Ipv6Address::Ipv6Address(std::string ipv6_address)
     : Address()
 {
 
@@ -68,7 +68,7 @@ IPV6Address::IPV6Address(std::string ipv6_address)
     }
 };
 
-IPV6Address::IPV6Address(std::vector<uint8_t> bytes)
+Ipv6Address::Ipv6Address(std::vector<uint8_t> bytes)
 {
     if (bytes.size() == 16) {
         BYTE_SIZE = 16;
@@ -79,7 +79,7 @@ IPV6Address::IPV6Address(std::vector<uint8_t> bytes)
             byte_vector.push_back(bytes.at(i));
             address.append(std::to_string(bytes[i]));
 
-            if (i < (BYTE_SIZE - 1) && i%2 == 1) {
+            if (i < (BYTE_SIZE - 1) && i % 2 == 1) {
                 address.append(":");
             };
         }

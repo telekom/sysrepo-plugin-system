@@ -5,8 +5,9 @@
 #include <arpa/inet.h>
 #include <stdexcept>
 
-namespace ietf::sys::ipv {
+namespace ietf::sys::ip {
 
+// [TODO]: Document class
 class Address {
 public:
     virtual int getVersion();
@@ -25,18 +26,18 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class IPV4Address : public Address {
+class Ipv4Address : public Address {
 public:
-    IPV4Address() = delete;
-    IPV4Address(std::string address);
-    IPV4Address(std::vector<uint8_t> bytes);
+    Ipv4Address() = delete;
+    Ipv4Address(std::string address);
+    Ipv4Address(std::vector<uint8_t> bytes);
 };
 
-class IPV6Address : public Address {
+class Ipv6Address : public Address {
 public:
-    IPV6Address() = delete;
-    IPV6Address(std::string address);
-    IPV6Address(std::vector<uint8_t> bytes);
+    Ipv6Address() = delete;
+    Ipv6Address(std::string address);
+    Ipv6Address(std::vector<uint8_t> bytes);
 };
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
