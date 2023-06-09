@@ -1004,7 +1004,13 @@ std::list<OperationalCallback> DnsModule::getOperationalCallbacks()
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> DnsModule::getModuleChangeCallbacks() { return {}; }
+std::list<ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
+{
+    return {
+        ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
+        ModuleChangeCallback { "/ietf-system:system/dns-resolver/server//*", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
+    };
+}
 
 /**
  * Get all RPC callbacks which the module should use.
