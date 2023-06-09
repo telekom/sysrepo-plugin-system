@@ -72,6 +72,7 @@ set(
     src/modules/system.cpp
     src/modules/hostname.cpp
     src/modules/timezone-name.cpp
+    src/modules/dns.cpp
     src/modules/auth.cpp
 )
 

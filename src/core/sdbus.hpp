@@ -5,7 +5,7 @@
 
 namespace ietf::sys {
 
-// set and get types
+// [TODO]: Document this class
 template <class GET, class... SET> class SdBUS {
 public:
     SdBUS(std::string destination, std::string objectPath, std::string interface, std::string setmethodname, std::string getmethodname);

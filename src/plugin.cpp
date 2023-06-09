@@ -13,6 +13,7 @@
 #include "modules/system.hpp"
 #include "modules/hostname.hpp"
 #include "modules/timezone-name.hpp"
+#include "modules/dns.hpp"
 #include "modules/auth.hpp"
 
 namespace sr = sysrepo;
@@ -65,6 +66,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     registry.registerModule<SystemModule>();
     registry.registerModule<HostnameModule>();
     registry.registerModule<TimezoneModule>();
+    registry.registerModule<DnsModule>();
     registry.registerModule<AuthModule>();
 
     // get registered modules and create subscriptions
