@@ -1,4 +1,5 @@
 #include "dns.hpp"
+#include "core/callbacks.hpp"
 
 #include <core/sdbus.hpp>
 
@@ -992,7 +993,13 @@ std::shared_ptr<IModuleContext> DnsModule::getRpcContext() { return m_rpcContext
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> DnsModule::getOperationalCallbacks() { return {}; }
+std::list<OperationalCallback> DnsModule::getOperationalCallbacks()
+{
+    return {
+        OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
+        OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
+    };
+}
 
 /**
  * Get all module change callbacks which the module should use.
