@@ -20,17 +20,21 @@ set(PLUGIN_LIRBARY_NAME srplg-ietf-system)
 set(PLUGIN_EXECUTABLE_NAME ietf-system-plugin)
 set(PLUGIN_CORE_LIBRARY_NAME ietf-system-plugin-core)
 
+find_package(PkgConfig REQUIRED)
 find_package(SYSREPOCPP REQUIRED)
 find_package(LIBYANGCPP REQUIRED)
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(UMGMT REQUIRED)
+find_package(LIBSYSTEMD REQUIRED)
+find_package(LIBSDBUSCPP REQUIRED)
 
 include_directories(
     ${SYSREPOCPP_INCLUDE_DIRS}
     ${LIBYANGCPP_INCLUDE_DIRS}
     ${UMGMT_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
+    ${SDBUS_CPP_INCLUDE_DIRS}
 )
 
 set(
@@ -52,6 +56,8 @@ set(
     src/core/system/hostname.hpp
     src/core/system/timezone-name.hpp
     src/core/system/auth.hpp
+    src/core/system/dns.hpp
+    src/core/system/ip.hpp
 )
 
 set(
@@ -72,6 +78,8 @@ set(
     src/core/system/hostname.cpp
     src/core/system/timezone-name.cpp
     src/core/system/auth.cpp
+    src/core/system/dns.cpp
+    src/core/system/ip.cpp
 )
 
 set(
@@ -92,6 +100,13 @@ set(
     src/main.c
     src/plugin.cpp
 )
+
+# check for systemd flag
+if(DEFINED SYSTEMD_IFINDEX)
+    add_compile_definitions(SYSTEMD_IFINDEX=${SYSTEMD_IFINDEX})
+else()
+    message(SEND_ERROR "No SYSTEMD_IFINDEX value set for default interface index to use with systemd... Unable to build without it")
+endif()
 
 # core library
 add_library(
@@ -122,6 +137,8 @@ target_link_libraries(
     ${SYSREPOCPP_LIBRARIES}
     ${LIBYANGCPP_LIBRARIES}
     ${UMGMT_LIBRARIES}
+    ${SDBUSCPP_LIBRARIES}
+    
 )
 
 # plugin as a library
@@ -135,7 +152,6 @@ target_link_libraries(
     ${PLUGIN_LIRBARY_NAME}
 
     ${PLUGIN_CORE_LIBRARY_NAME}
-
     ${SYSREPO_LIBRARIES}
     ${LIBYANG_LIBRARIES}
     ${SYSREPOCPP_LIBRARIES}
