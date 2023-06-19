@@ -147,17 +147,17 @@ HostnameModule::HostnameModule()
 /**
  * Return the operational context from the module.
  */
-std::shared_ptr<IModuleContext> HostnameModule::getOperationalContext() { return m_operContext; }
+std::shared_ptr<srpc::IModuleContext> HostnameModule::getOperationalContext() { return m_operContext; }
 
 /**
  * Return the module changes context from the module.
  */
-std::shared_ptr<IModuleContext> HostnameModule::getModuleChangesContext() { return m_changeContext; }
+std::shared_ptr<srpc::IModuleContext> HostnameModule::getModuleChangesContext() { return m_changeContext; }
 
 /**
  * Return the RPC context from the module.
  */
-std::shared_ptr<IModuleContext> HostnameModule::getRpcContext() { return m_rpcContext; }
+std::shared_ptr<srpc::IModuleContext> HostnameModule::getRpcContext() { return m_rpcContext; }
 
 /**
  * Get all operational callbacks which the module should use.

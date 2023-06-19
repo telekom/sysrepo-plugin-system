@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/module.hpp>
+#include <srpcpp/module.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
@@ -33,17 +33,17 @@ void setHostname(const Hostname& hostname);
 /**
  * Operational context for the hostname module.
  */
-class HostnameOperationalContext : public IModuleContext { };
+class HostnameOperationalContext : public srpc::IModuleContext { };
 
 /**
  * Module changes context for the hostname module.
  */
-class HostnameModuleChangesContext : public IModuleContext { };
+class HostnameModuleChangesContext : public srpc::IModuleContext { };
 
 /**
  * RPC context for the hostname module.
  */
-class HostnameRpcContext : public IModuleContext { };
+class HostnameRpcContext : public srpc::IModuleContext { };
 
 namespace ietf::sys::sub::oper {
 /**
@@ -119,7 +119,7 @@ private:
 /**
  * @brief Hostname leaf module.
  */
-class HostnameModule : public IModule {
+class HostnameModule : public srpc::IModule {
 public:
     /**
      * Hostname module constructor. Allocates each context.
@@ -129,17 +129,17 @@ public:
     /**
      * Return the operational context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getOperationalContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getOperationalContext() override;
 
     /**
      * Return the module changes context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getModuleChangesContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getModuleChangesContext() override;
 
     /**
      * Return the RPC context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getRpcContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getRpcContext() override;
 
     /**
      * Get all operational callbacks which the module should use.

@@ -1,5 +1,4 @@
 #include "dns.hpp"
-#include "core/callbacks.hpp"
 
 #include <core/sdbus.hpp>
 
@@ -978,17 +977,17 @@ DnsModule::DnsModule()
 /**
  * Return the operational context from the module.
  */
-std::shared_ptr<IModuleContext> DnsModule::getOperationalContext() { return m_operContext; }
+std::shared_ptr<srpc::IModuleContext> DnsModule::getOperationalContext() { return m_operContext; }
 
 /**
  * Return the module changes context from the module.
  */
-std::shared_ptr<IModuleContext> DnsModule::getModuleChangesContext() { return m_changeContext; }
+std::shared_ptr<srpc::IModuleContext> DnsModule::getModuleChangesContext() { return m_changeContext; }
 
 /**
  * Return the RPC context from the module.
  */
-std::shared_ptr<IModuleContext> DnsModule::getRpcContext() { return m_rpcContext; }
+std::shared_ptr<srpc::IModuleContext> DnsModule::getRpcContext() { return m_rpcContext; }
 
 /**
  * Get all operational callbacks which the module should use.

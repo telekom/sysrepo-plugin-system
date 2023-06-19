@@ -66,7 +66,6 @@ set(
 set(
     CORE_SOURCES
 
-    src/core/common.cpp
     src/core/context.cpp
     src/core/yang/tree.cpp
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/module.hpp>
-#include <core/module-registry.hpp>
+#include <srpcpp/module.hpp>
+#include <srpcpp/module-registry.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
@@ -181,17 +181,17 @@ private:
 /**
  * Operational context for the authentication module.
  */
-class AuthOperationalContext : public IModuleContext { };
+class AuthOperationalContext : public srpc::IModuleContext { };
 
 /**
  * Module changes context for the authentication module.
  */
-class AuthModuleChangesContext : public IModuleContext { };
+class AuthModuleChangesContext : public srpc::IModuleContext { };
 
 /**
  * RPC context for the authentication module.
  */
-class AuthRpcContext : public IModuleContext { };
+class AuthRpcContext : public srpc::IModuleContext { };
 
 namespace ietf::sys::sub::change {
 /**
@@ -608,7 +608,7 @@ private:
  * @brief Authentication container module.
  * @brief Provides callbacks for user list and each user authorized-key list element.
  */
-class AuthModule : public IModule {
+class AuthModule : public srpc::IModule {
 public:
     /**
      * Authentication module constructor. Allocates each context.
@@ -618,17 +618,17 @@ public:
     /**
      * Return the operational context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getOperationalContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getOperationalContext() override;
 
     /**
      * Return the module changes context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getModuleChangesContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getModuleChangesContext() override;
 
     /**
      * Return the RPC context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getRpcContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getRpcContext() override;
 
     /**
      * Get all operational callbacks which the module should use.

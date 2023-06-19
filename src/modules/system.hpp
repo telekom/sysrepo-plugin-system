@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/module.hpp>
+#include <srpcpp/module.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
@@ -14,17 +14,17 @@ namespace ly = libyang;
 /**
  * Operational context for the system module.
  */
-class SystemOperationalContext : public IModuleContext { };
+class SystemOperationalContext : public srpc::IModuleContext { };
 
 /**
  * Module changes context for the system module.
  */
-class SystemModuleChangesContext : public IModuleContext { };
+class SystemModuleChangesContext : public srpc::IModuleContext { };
 
 /**
  * RPC context for the system module.
  */
-class SystemRpcContext : public IModuleContext { };
+class SystemRpcContext : public srpc::IModuleContext { };
 
 namespace ietf::sys::state {
 /**
@@ -259,7 +259,7 @@ private:
 /**
  * @brief System module.
  */
-class SystemModule : public IModule {
+class SystemModule : public srpc::IModule {
 public:
     /**
      * System module constructor. Allocates each context.
@@ -269,17 +269,17 @@ public:
     /**
      * Return the operational context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getOperationalContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getOperationalContext() override;
 
     /**
      * Return the module changes context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getModuleChangesContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getModuleChangesContext() override;
 
     /**
      * Return the RPC context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getRpcContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getRpcContext() override;
 
     /**
      * Get all operational callbacks which the module should use.

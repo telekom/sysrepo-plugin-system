@@ -1,5 +1,7 @@
 #include "auth.hpp"
 
+#include <srpcpp.hpp>
+
 #include "core/common.hpp"
 
 #include <memory>
@@ -450,7 +452,7 @@ sr::ErrorCode AuthUserAuthorizedKeyModuleChangeCb::operator()(sr::Session sessio
 
             SRPLG_LOG_DBG(PLUGIN_NAME, "Node path: %s", change.node.path().data());
 
-            const auto& user_name = ietf::sys::extractListKeyFromXPath("user", "name", change.node.path());
+            const auto& user_name = srpc::extractListKeyFromXPath("user", "name", change.node.path());
 
             SRPLG_LOG_DBG(PLUGIN_NAME, "Username for authorized key: %s", user_name.data());
 
@@ -792,17 +794,17 @@ AuthModule::AuthModule()
 /**
  * Return the operational context from the module.
  */
-std::shared_ptr<IModuleContext> AuthModule::getOperationalContext() { return m_operContext; }
+std::shared_ptr<srpc::IModuleContext> AuthModule::getOperationalContext() { return m_operContext; }
 
 /**
  * Return the module changes context from the module.
  */
-std::shared_ptr<IModuleContext> AuthModule::getModuleChangesContext() { return m_changeContext; }
+std::shared_ptr<srpc::IModuleContext> AuthModule::getModuleChangesContext() { return m_changeContext; }
 
 /**
  * Return the RPC context from the module.
  */
-std::shared_ptr<IModuleContext> AuthModule::getRpcContext() { return m_rpcContext; }
+std::shared_ptr<srpc::IModuleContext> AuthModule::getRpcContext() { return m_rpcContext; }
 
 /**
  * Get all operational callbacks which the module should use.

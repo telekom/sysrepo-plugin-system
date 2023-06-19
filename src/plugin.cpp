@@ -5,9 +5,7 @@
 #include <sysrepo-cpp/Session.hpp>
 #include <sysrepo-cpp/utils/utils.hpp>
 
-#include "core/callbacks.hpp"
-#include "core/module.hpp"
-#include "core/module-registry.hpp"
+#include <srpcpp.hpp>
 
 // [TODO]: Try to remove dependency
 #include "modules/system.hpp"
@@ -27,7 +25,7 @@ namespace sr = sysrepo;
  * @param mod Module to use.
  *
  */
-void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod);
+void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod);
 
 /**
  * Register all module change plugin subscriptions.
@@ -37,7 +35,7 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
  * @param mod Module to use.
  *
  */
-void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod);
+void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod);
 
 /**
  * Register all RPC plugin subscriptions.
@@ -47,7 +45,7 @@ void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginConte
  * @param mod Module to use.
  *
  */
-void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod);
+void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod);
 
 /**
  * @brief Plugin init callback.
@@ -61,7 +59,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 {
     sr::ErrorCode error = sysrepo::ErrorCode::Ok;
     auto sess = sysrepo::wrapUnmanagedSession(session);
-    auto& registry(ModuleRegistry::getInstance());
+    auto& registry(srpc::ModuleRegistry::getInstance());
     auto ctx = new ietf::sys::PluginContext(sess);
 
     *priv = static_cast<void*>(ctx);
@@ -104,7 +102,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 {
     SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup called");
 
-    auto& registry(ModuleRegistry::getInstance());
+    auto& registry(srpc::ModuleRegistry::getInstance());
     auto ctx = static_cast<ietf::sys::PluginContext*>(priv);
 
     auto& modules = registry.getRegisteredModules();
@@ -126,7 +124,7 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
  * @param mod Module to use.
  *
  */
-void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod)
+void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod)
 {
     const auto oper_callbacks = mod->getOperationalCallbacks();
 
@@ -150,7 +148,7 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
  * @param mod Module to use.
  *
  */
-void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod)
+void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod)
 {
     const auto change_callbacks = mod->getModuleChangeCallbacks();
 
@@ -174,7 +172,7 @@ void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginConte
  * @param mod Module to use.
  *
  */
-void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<IModule>& mod)
+void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule>& mod)
 {
     const auto rpc_callbacks = mod->getRpcCallbacks();
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/module.hpp>
+#include <srpcpp/module.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
@@ -34,17 +34,17 @@ void setTimezoneName(const TimezoneName& timezone_name);
 /**
  * Operational context for the timezone module.
  */
-class TimezoneOperationalContext : public IModuleContext { };
+class TimezoneOperationalContext : public srpc::IModuleContext { };
 
 /**
  * Module changes context for the timezone module.
  */
-class TimezoneModuleChangesContext : public IModuleContext { };
+class TimezoneModuleChangesContext : public srpc::IModuleContext { };
 
 /**
  * RPC context for the timezone module.
  */
-class TimezoneRpcContext : public IModuleContext { };
+class TimezoneRpcContext : public srpc::IModuleContext { };
 
 namespace ietf::sys::sub::oper {
 /**
@@ -187,7 +187,7 @@ private:
 /**
  * @brief Timezone module.
  */
-class TimezoneModule : public IModule {
+class TimezoneModule : public srpc::IModule {
 public:
     /**
      * Timezone module constructor. Allocates each context.
@@ -197,17 +197,17 @@ public:
     /**
      * Return the operational context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getOperationalContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getOperationalContext() override;
 
     /**
      * Return the module changes context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getModuleChangesContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getModuleChangesContext() override;
 
     /**
      * Return the RPC context from the module.
      */
-    virtual std::shared_ptr<IModuleContext> getRpcContext() override;
+    virtual std::shared_ptr<srpc::IModuleContext> getRpcContext() override;
 
     /**
      * Get all operational callbacks which the module should use.
