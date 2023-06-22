@@ -442,11 +442,6 @@ void DatabaseContext::deleteUserPasswordHash(const std::string& name)
 /**
  * @brief Store authentication database to the system.
  */
-void storeToSystem(void);
-
-/**
- * @brief Store authentication database to the system.
- */
 void DatabaseContext::storeToSystem(void)
 {
     if (!m_db) {
