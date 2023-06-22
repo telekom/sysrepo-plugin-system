@@ -351,7 +351,19 @@ void DatabaseContext::createUser(const std::string& name)
  *
  * @param name User name of the user to remove.
  */
-void DatabaseContext::deleteUser(const std::string& name) { }
+void DatabaseContext::deleteUser(const std::string& name)
+{
+    // delete the user and the group from the database
+    int rc = 0;
+
+    if (rc = um_db_delete_user(m_db, name.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to delete user from the database");
+    }
+
+    if (rc = um_db_delete_group(m_db, name.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to delete group from the database");
+    }
+}
 
 /**
  * @brief Modify the password hash for the given user.
