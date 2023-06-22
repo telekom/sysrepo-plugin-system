@@ -408,7 +408,36 @@ void DatabaseContext::modifyUserPasswordHash(const std::string& name, const std:
  *
  * @param name User name.
  */
-void DatabaseContext::deleteUserPasswordHash(const std::string& name) { }
+void DatabaseContext::deleteUserPasswordHash(const std::string& name)
+{
+    // set password to "x" and set password hash to "*" for user and group password hash to !
+    um_user_t* user = nullptr;
+    um_group_t* group = nullptr;
+    int rc = 0;
+
+    // get user and group objects
+    if (user = um_db_get_user(m_db, name.c_str()); user == nullptr) {
+        throw std::runtime_error("Unable to find given user");
+    }
+    if (group = um_db_get_group(m_db, name.c_str()); group == nullptr) {
+        throw std::runtime_error("Unable to find given group");
+    }
+
+    // set password and password hash for objects
+    if (rc = um_user_set_password(user, "x"); rc != 0) {
+        throw std::runtime_error("Unable to set user password");
+    }
+    if (rc = um_user_set_password_hash(user, "*"); rc != 0) {
+        throw std::runtime_error("Unable to set user password hash");
+    }
+
+    if (rc = um_group_set_password(group, "x"); rc != 0) {
+        throw std::runtime_error("Unable to set group password");
+    }
+    if (rc = um_group_set_password_hash(group, "!"); rc != 0) {
+        throw std::runtime_error("Unable to set group password hash");
+    }
+}
 
 /**
  * @brief Store authentication database to the system.
