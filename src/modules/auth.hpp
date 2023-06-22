@@ -136,33 +136,33 @@ public:
     void loadFromSystem(void);
 
     /**
-     * @brief Add user to the database.
+     * @brief Create user in the database. Adds the user to the list of new users.
      *
-     * @param user User to add.
+     * @param user User name of the new user.
      */
-    void addUser(LocalUser user);
+    void createUser(const std::string& name);
 
     /**
-     * @brief Change the password hash for the given user.
+     * @brief Delete user with the given name from the database. Adds the user to the list of users to be deleted.
+     *
+     * @param name User name of the user to remove.
+     */
+    void deleteUser(const std::string& name);
+
+    /**
+     * @brief Modify the password hash for the given user.
      *
      * @param name User name.
      * @param password_hash Password hash to set.
      */
-    void changeUserPasswordHash(const std::string& name, const std::string& password_hash);
+    void modifyUserPasswordHash(const std::string& name, const std::string& password_hash);
 
     /**
-     * @brief Remove the password hash for the given user.
+     * @brief Delete the password hash for the given user.
      *
      * @param name User name.
      */
-    void removeUserPasswordHash(const std::string& name);
-
-    /**
-     * @brief Remove user with the given name from the database.
-     *
-     * @param name User name of the user to remove.
-     */
-    void removeUser(const std::string& name);
+    void deleteUserPasswordHash(const std::string& name);
 
     /**
      * @brief Store database context changes to the system.
@@ -170,9 +170,6 @@ public:
     void storeToSystem(void);
 
 private:
-    LocalUserList m_new_users;
-    LocalUserList m_mod_users;
-    LocalUserList m_del_users;
     um_db_t* m_db;
 };
 

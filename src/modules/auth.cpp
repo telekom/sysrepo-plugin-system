@@ -3,6 +3,9 @@
 #include <srpcpp.hpp>
 
 #include "core/common.hpp"
+#include "umgmt/db.h"
+#include "umgmt/group.h"
+#include "umgmt/user.h"
 
 #include <memory>
 #include <optional>
@@ -253,57 +256,117 @@ DatabaseContext::DatabaseContext()
  */
 void DatabaseContext::loadFromSystem(void)
 {
-    // load only modified users since they
+    // load the user database
+    m_db = um_db_new();
+    int rc = 0;
+
+    if (!m_db) {
+        throw std::runtime_error("Unable to allocate space for the database context");
+    }
+
+    if (rc = um_db_load(m_db); rc != 0) {
+        throw std::runtime_error("Unable to load users database");
+    }
 }
 
 /**
- * @brief Add user to the database.
+ * @brief Create user in the database. Adds the user to the list of new users.
  *
- * @param user User to add.
+ * @param user User name of the new user.
  */
-void DatabaseContext::addUser(LocalUser user) { m_new_users.addUser(user.Name, std::nullopt); }
+void DatabaseContext::createUser(const std::string& name)
+{
+    // create a new user without a password and add it to the database
+    // also create a new user group
+    um_user_t* new_user = nullptr;
+    um_group_t* new_group = nullptr;
+    int rc = 0;
+
+    // generate new UID and GID params
+    const int uid = um_db_get_new_uid(m_db);
+    const int gid = um_db_get_new_gid(m_db);
+
+    // alloc new user
+    if (new_user = um_user_new(); new_user == nullptr) {
+        throw std::runtime_error("Unable to allocate a new user");
+    }
+
+    // alloc new group
+    if (new_group = um_group_new(); new_group == nullptr) {
+        throw std::runtime_error("Unable to allocate a new group");
+    }
+
+    // set user name
+    if (rc = um_user_set_name(new_user, name.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to set user name");
+    }
+
+    // set group name
+    if (rc = um_group_set_name(new_group, name.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to set group name");
+    }
+
+    // setup user properties like shell, gecos and skel
+    if (rc = um_user_set_shell_path(new_user, ietf::sys::auth::DEFAULT_SHELL); rc != 0) {
+        throw std::runtime_error("Unable to set user shell");
+    }
+    if (rc = um_user_set_gecos(new_user, ietf::sys::auth::DEFAULT_GECOS); rc != 0) {
+        throw std::runtime_error("Unable to set user gecos field");
+    }
+    if (rc = um_user_set_home_path(new_user, ("/home" + name).c_str()); rc != 0) {
+        throw std::runtime_error("Unable to set user home path");
+    }
+
+    // set uid and gid
+    um_user_set_uid(new_user, uid);
+    um_user_set_gid(new_user, gid);
+
+    // setup shadow data
+    um_user_set_last_change(new_user, -1);
+    um_user_set_change_min(new_user, 0);
+    um_user_set_change_max(new_user, 99999);
+    um_user_set_warn_days(new_user, 7);
+    um_user_set_expiration(new_user, -1);
+    um_user_set_inactive_days(new_user, -1);
+
+    // set admin and member of the group
+    if (rc = um_group_add_admin(new_group, new_user); rc != 0) {
+        throw std::runtime_error("Unable to add admin for the group");
+    }
+    if (rc = um_group_add_member(new_group, new_user); rc != 0) {
+        throw std::runtime_error("Unable to add member for the group");
+    }
+
+    // add user and group to the database
+    if (rc = um_db_add_user(m_db, new_user); rc != 0) {
+        throw std::runtime_error("Unable to add new user to the database");
+    }
+    if (rc = um_db_add_group(m_db, new_group); rc != 0) {
+        throw std::runtime_error("Unable to add new group to the database");
+    }
+}
 
 /**
- * @brief Change the password hash for the given user.
+ * @brief Delete user with the given name from the database. Adds the user to the list of users to be deleted.
+ *
+ * @param name User name of the user to remove.
+ */
+void DatabaseContext::deleteUser(const std::string& name) { }
+
+/**
+ * @brief Modify the password hash for the given user.
  *
  * @param name User name.
  * @param password_hash Password hash to set.
  */
-void DatabaseContext::changeUserPasswordHash(const std::string& name, const std::string& password_hash)
-{
-    m_mod_users.changeUserPassword(name, password_hash);
-}
+void DatabaseContext::modifyUserPasswordHash(const std::string& name, const std::string& password_hash) { }
 
 /**
- * @brief Remove the password hash for the given user.
+ * @brief Delete the password hash for the given user.
  *
  * @param name User name.
  */
-void DatabaseContext::removeUserPasswordHash(const std::string& name)
-{
-    um_user_t* user = nullptr;
-
-    user = um_db_get_user(m_db, name.c_str());
-    if (user) {
-        if (int rc = um_user_set_password_hash(user, nullptr); rc != 0) {
-            throw std::runtime_error("Unable to set user password hash.");
-        }
-    } else {
-        throw std::runtime_error("Unable to find the user with the given name.");
-    }
-}
-
-/**
- * @brief Remove user with the given name from the database.
- *
- * @param name User name of the user to remove.
- */
-void DatabaseContext::removeUser(const std::string& name)
-{
-    if (int rc = um_db_delete_user(m_db, name.c_str()); rc != 0) {
-        throw std::runtime_error("Unable to remove given user from the database.");
-    }
-}
+void DatabaseContext::deleteUserPasswordHash(const std::string& name) { }
 
 /**
  * @brief Store authentication database to the system.
