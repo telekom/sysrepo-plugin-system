@@ -371,7 +371,37 @@ void DatabaseContext::deleteUser(const std::string& name)
  * @param name User name.
  * @param password_hash Password hash to set.
  */
-void DatabaseContext::modifyUserPasswordHash(const std::string& name, const std::string& password_hash) { }
+void DatabaseContext::modifyUserPasswordHash(const std::string& name, const std::string& password_hash)
+{
+    // set password to "x" and set password hash for the user
+    // also set the hash for the group
+    um_user_t* user = nullptr;
+    um_group_t* group = nullptr;
+    int rc = 0;
+
+    // get user and group objects
+    if (user = um_db_get_user(m_db, name.c_str()); user == nullptr) {
+        throw std::runtime_error("Unable to find given user");
+    }
+    if (group = um_db_get_group(m_db, name.c_str()); group == nullptr) {
+        throw std::runtime_error("Unable to find given group");
+    }
+
+    // set password and password hash for objects
+    if (rc = um_user_set_password(user, "x"); rc != 0) {
+        throw std::runtime_error("Unable to set user password");
+    }
+    if (rc = um_user_set_password_hash(user, password_hash.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to set user password hash");
+    }
+
+    if (rc = um_group_set_password(group, "x"); rc != 0) {
+        throw std::runtime_error("Unable to set group password");
+    }
+    if (rc = um_group_set_password_hash(group, password_hash.c_str()); rc != 0) {
+        throw std::runtime_error("Unable to set group password hash");
+    }
+}
 
 /**
  * @brief Delete the password hash for the given user.
