@@ -1,6 +1,8 @@
 #include "dns.hpp"
 #include "core/common.hpp"
 #include "core/ip.hpp"
+#include "srpcpp/common.hpp"
+#include "sysrepo-cpp/Enum.hpp"
 
 #include <core/sdbus.hpp>
 
@@ -461,67 +463,35 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    // dns::DnsSearchServerList dnsSearchServers;
-    // // get all from bus
+    switch (event) {
+    case sysrepo::Event::Change:
+        for (auto& change : session.getChanges(subXPath->data())) {
+            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
 
-    // switch (event) {
-    // case sysrepo::Event::Change:
+            SRPLG_LOG_INF(
+                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-    //     if (dnsSearchServers.importListFromSdBus()) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
+            for (const auto& m : change.node.meta()) {
+                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+            }
 
-    //     // if the call succseeded - continue
-    //     for (auto& change : session.getChanges(subXPath->data())) {
-    //         switch (change.operation) {
-    //         case sysrepo::ChangeOperation::Created:
-    //         case sysrepo::ChangeOperation::Modified: {
+            switch (change.operation) {
+            case sysrepo::ChangeOperation::Created:
+            case sysrepo::ChangeOperation::Modified: {
+                break;
+            }
+            case sysrepo::ChangeOperation::Deleted:
+                break;
+            case sysrepo::ChangeOperation::Moved:
+                break;
+            }
+        }
+        break;
+    default:
+        break;
+    }
 
-    //             // get the changed values in node
-    //             auto value = change.node.asTerm().value();
-    //             auto domain = std::get<std::string>(value);
-
-    //             // no value provided for search param - default true? or maybe another param?
-    //             sys::dns::DnsSearchServer server(domain, true);
-    //             dnsSearchServers.addDnsSearchServer(server);
-
-    //             break;
-    //         }
-    //         case sysrepo::ChangeOperation::Deleted: {
-    //             // modification:
-    //             // first it goes to delete event, then create
-    //             // take deleted from here
-
-    //             auto deletedValue = change.node.asTerm().value();
-    //             auto deletedDomain = std::get<std::string>(deletedValue);
-
-    //             sys::dns::DnsSearchServer deleted(deletedDomain, true);
-
-    //             dnsSearchServers.removeDnsSearchServer(deleted);
-
-    //             break;
-    //         }
-
-    //         case sysrepo::ChangeOperation::Moved:
-    //             break;
-    //         }
-    //     }
-
-    //     // process finished -> export
-    //     try {
-    //         dnsSearchServers.exportListToSdBus();
-    //     } catch (sdbus::Error& e) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", e.getMessage().c_str());
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
-
-    //     break;
-    // default:
-    //     break;
-    // }
-
-    return error;
+    return sr::ErrorCode::CallbackFailed;
 }
 
 /**
@@ -551,83 +521,35 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    // dns::DnsServerList dnsList;
-    // switch (event) {
-    // case sysrepo::Event::Change:
+    switch (event) {
+    case sysrepo::Event::Change:
+        for (auto& change : session.getChanges(subXPath->data())) {
+            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
 
-    //     // first take all from sdbus
-    //     if (dnsList.importListFromSdBus()) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
+            SRPLG_LOG_INF(
+                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-    //     for (sysrepo::Change change : session.getChanges(subXPath->data())) {
-    //         switch (change.operation) {
-    //         case sysrepo::ChangeOperation::Created: {
+            for (const auto& m : change.node.meta()) {
+                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+            }
 
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
+            switch (change.operation) {
+            case sysrepo::ChangeOperation::Created:
+            case sysrepo::ChangeOperation::Modified: {
+                break;
+            }
+            case sysrepo::ChangeOperation::Deleted:
+                break;
+            case sysrepo::ChangeOperation::Moved:
+                break;
+            }
+        }
+        break;
+    default:
+        break;
+    }
 
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
-
-    //             } else {
-    //                 dnsList.addDnsServer(server.value());
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-    //             break;
-    //         }
-
-    //         case sysrepo::ChangeOperation::Modified: {
-
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
-
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
-
-    //             } else {
-    //                 // modify here
-    //                 try {
-    //                     dnsList.modifyDnsServer(server.value());
-    //                 } catch (std::exception(&e)) {
-    //                     SRPLG_LOG_ERR(PLUGIN_NAME, "%s", e.what());
-    //                     return sr::ErrorCode::OperationFailed;
-    //                 };
-
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-    //             break;
-    //         }
-
-    //         case sysrepo::ChangeOperation::Deleted: {
-
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
-
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
-
-    //             } else {
-    //                 dnsList.removeDnsServer(server.value());
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-
-    //             // // deleted code here
-    //             break;
-    //         }
-
-    //         default:
-    //             break;
-    //         }
-    //     }
-    //     if (dnsList.exportListToSdBus() == true) {
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
-    //     break;
-
-    // default:
-    //     break;
-    // }
-
-    return error;
+    return sr::ErrorCode::CallbackFailed;
 }
 
 /**
@@ -733,7 +655,7 @@ std::list<ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
 {
     return {
         ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
-        ModuleChangeCallback { "/ietf-system:system/dns-resolver/server//*", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
+        ModuleChangeCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
     };
 }
 
