@@ -1,11 +1,52 @@
 #include "dns.hpp"
+#include "core/common.hpp"
 
 #include <core/sdbus.hpp>
 
 // logging
+#include <stdexcept>
 #include <sysrepo.h>
 
 namespace ietf::sys::dns {
+/**
+ * @brief Default constructor.
+ */
+DnsSearchList::DnsSearchList()
+    : SdBus("org.freedesktop.resolve1", "/org/freedesktop/resolve1", "org.freedesktop.resolve1.Manager", "SetLinkDomains", "Domains")
+    , m_ifindex(SYSTEMD_IFINDEX)
+{
+}
+
+/**
+ * @brief Loads the list of DNS servers found currently on the system.
+ */
+void DnsSearchList::loadFromSystem()
+{
+    // convert from SDBus list to our list
+    auto domains = this->importFromSdBus();
+    for (auto& d : domains) {
+        m_search.push_back(DnsSearch {
+            .InterfaceIndex = d.get<0>(),
+            .Domain = d.get<1>(),
+            .Search = d.get<2>(),
+        });
+    }
+}
+
+/**
+ * @brief Stores the list of DNS servers in the class to the system.
+ */
+void DnsSearchList::storeToSystem()
+{
+    // convert to SDBus list and store it
+    std::vector<sdbus::Struct<std::string, bool>> sdbus_data;
+
+    for (auto& search : m_search) {
+        sdbus_data.push_back(sdbus::Struct<std::string, bool>(sdbus::make_struct(search.Domain, search.Search)));
+    }
+
+    this->exportToSdBus(m_ifindex, sdbus_data);
+}
 
 // DnsServer::DnsServer(int ifindex, std::string name, ip::Address address, uint16_t port)
 //     : m_name { name }
@@ -452,6 +493,21 @@ sr::ErrorCode DnsSearchOperGetCb::operator()(sr::Session session, uint32_t subsc
     std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsSearchList search_list;
+
+    // load search list and add it to the output yang
+    try {
+        search_list.loadFromSystem();
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS search list from the system: %s", err.what());
+        error = sr::ErrorCode::OperationFailed;
+    }
+
+    // iterate list and add elements to the output tree
+    for (auto& iter : search_list) {
+        output->newPath("search", iter.Domain);
+    }
+
     return error;
 }
 

@@ -6,6 +6,8 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/sdbus.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
@@ -26,9 +28,9 @@ struct DnsServer {
  * @brief DNS search helper struct.
  */
 struct DnsSearch {
-    std::string Domain; ///< Domain of the search element.
     int InterfaceIndex; ///< Interface index of the search element. 0 used for global configuration.
-    int Search; ///< Boolean value indicating wether the value is used for routing (true) or for both routing and searching (false).
+    std::string Domain; ///< Domain of the search element.
+    bool Search; ///< Boolean value indicating wether the value is used for routing (true) or for both routing and searching (false).
 };
 
 /**
@@ -51,6 +53,17 @@ public:
      */
     void storeToSystem();
 
+    /**
+     *
+     * @brief Get iterator to the beginning.
+     */
+    auto begin() { return m_servers.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    auto end() { return m_servers.end(); }
+
 private:
     std::list<DnsServer> m_servers; ///< List of DNS servers.
 };
@@ -58,7 +71,7 @@ private:
 /**
  * @breif DNS search list class used for loading and storing a list of DNS search domains.
  */
-class DnsSearchList {
+class DnsSearchList : public SdBus<std::vector<sdbus::Struct<int32_t, std::string, bool>>, int32_t, std::vector<sdbus::Struct<std::string, bool>>> {
 public:
     /**
      * @brief Default constructor.
@@ -75,7 +88,18 @@ public:
      */
     void storeToSystem();
 
+    /**
+     * @brief Get iterator to the beginning.
+     */
+    auto begin() { return m_search.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    auto end() { return m_search.end(); }
+
 private:
+    int m_ifindex; ///< Interface index used for this list.
     std::list<DnsSearch> m_search; ///< List of DNS search domains.
 };
 

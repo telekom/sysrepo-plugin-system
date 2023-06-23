@@ -8,22 +8,23 @@ namespace ietf::sys {
 // [TODO]: Document this class
 template <class GET, class... SET> class SdBus {
 public:
-    SdBus(std::string destination, std::string objectPath, std::string interface, std::string set_method, std::string get_method)
+    SdBus(std::string destination, std::string objectPath, std::string interface, std::string set_method, std::string property)
         : m_dest(destination)
         , m_objPath(objectPath)
         , m_interface(interface)
         , m_setMethod(set_method)
-        , m_getMethod(get_method)
+        , m_property(property)
     {
     }
 
+protected:
     bool exportToSdBus(SET... data)
     {
         bool error = false;
 
         try {
-            auto proxy = sdbus::createProxy(this->dest, this->objPath);
-            proxy->callMethod(this->sdbusSetMethod).onInterface(this->interface).withArguments(data...);
+            auto proxy = sdbus::createProxy(m_dest, m_objPath);
+            proxy->callMethod(m_setMethod).onInterface(m_interface).withArguments(data...);
         } catch (sdbus::Error& e) {
             throw std::runtime_error(e.getMessage());
             error = true;
@@ -37,8 +38,8 @@ public:
         GET data;
 
         try {
-            auto proxy = sdbus::createProxy(this->dest, this->objPath);
-            sdbus::Variant v = proxy->getProperty(this->sdbusGetMethod).onInterface(this->interface);
+            auto proxy = sdbus::createProxy(m_dest, m_objPath);
+            sdbus::Variant v = proxy->getProperty(m_property).onInterface(m_interface);
             data = v.get<GET>();
         } catch (sdbus::Error& e) {
             throw std::runtime_error(e.getMessage());
@@ -51,6 +52,6 @@ private:
     std::string m_objPath;
     std::string m_interface;
     std::string m_setMethod;
-    std::string m_getMethod;
+    std::string m_property;
 };
 }
