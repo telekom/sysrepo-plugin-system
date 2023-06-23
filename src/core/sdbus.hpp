@@ -6,54 +6,51 @@
 namespace ietf::sys {
 
 // [TODO]: Document this class
-template <class GET, class... SET> class SdBUS {
+template <class GET, class... SET> class SdBus {
 public:
-    SdBUS(std::string destination, std::string objectPath, std::string interface, std::string setmethodname, std::string getmethodname);
+    SdBus(std::string destination, std::string objectPath, std::string interface, std::string set_method, std::string get_method)
+        : m_dest(destination)
+        , m_objPath(objectPath)
+        , m_interface(interface)
+        , m_setMethod(set_method)
+        , m_getMethod(get_method)
+    {
+    }
 
-protected:
-    bool exportToSdBus(SET... data);
-    GET importFromSdBus();
+    bool exportToSdBus(SET... data)
+    {
+        bool error = false;
+
+        try {
+            auto proxy = sdbus::createProxy(this->dest, this->objPath);
+            proxy->callMethod(this->sdbusSetMethod).onInterface(this->interface).withArguments(data...);
+        } catch (sdbus::Error& e) {
+            throw std::runtime_error(e.getMessage());
+            error = true;
+        };
+
+        return error;
+    }
+
+    GET importFromSdBus()
+    {
+        GET data;
+
+        try {
+            auto proxy = sdbus::createProxy(this->dest, this->objPath);
+            sdbus::Variant v = proxy->getProperty(this->sdbusGetMethod).onInterface(this->interface);
+            data = v.get<GET>();
+        } catch (sdbus::Error& e) {
+            throw std::runtime_error(e.getMessage());
+        }
+        return data;
+    }
 
 private:
-    std::string dest, objPath, interface, sdbusSetMethod, sdbusGetMethod;
+    std::string m_dest;
+    std::string m_objPath;
+    std::string m_interface;
+    std::string m_setMethod;
+    std::string m_getMethod;
 };
-
-template <class GET, class... SET>
-SdBUS<GET, SET...>::SdBUS(
-    std::string destination, std::string objectPath, std::string interface, std::string setmethodname, std::string getmethodname)
-    : dest { destination }
-    , objPath { objectPath }
-    , interface {
-    interface
-}, sdbusSetMethod { setmethodname }, sdbusGetMethod { getmethodname } {};
-
-template <class GET, class... SET> bool SdBUS<GET, SET...>::exportToSdBus(SET... data)
-{
-    bool error = false;
-
-    try {
-        auto proxy = sdbus::createProxy(this->dest, this->objPath);
-        proxy->callMethod(this->sdbusSetMethod).onInterface(this->interface).withArguments(data...);
-    } catch (sdbus::Error& e) {
-        throw std::runtime_error(e.getMessage());
-        error = true;
-    };
-
-    return error;
-};
-
-template <class GET, class... SET> GET SdBUS<GET, SET...>::importFromSdBus()
-{
-    GET data;
-
-    try {
-        auto proxy = sdbus::createProxy(this->dest, this->objPath);
-        sdbus::Variant v = proxy->getProperty(this->sdbusGetMethod).onInterface(this->interface);
-        data = v.get<GET>();
-    } catch (sdbus::Error& e) {
-        throw std::runtime_error(e.getMessage());
-    }
-    return data;
-}
-
 }
