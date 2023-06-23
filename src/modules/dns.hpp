@@ -11,6 +11,74 @@ namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys::dns {
+
+/**
+ * @brief DNS server helper struct.
+ */
+struct DnsServer {
+    int InterfaceIndex; ///< Interface index used for the DNS server.
+    std::string Name; ///< Server Name Indication.
+    std::unique_ptr<ip::IAddress> Address; ///< IP address of the server.
+    int Port; ///< Port used for the server. Defaults to 53.
+};
+
+/**
+ * @brief DNS search helper struct.
+ */
+struct DnsSearch {
+    std::string Domain; ///< Domain of the search element.
+    int InterfaceIndex; ///< Interface index of the search element. 0 used for global configuration.
+    int Search; ///< Boolean value indicating wether the value is used for routing (true) or for both routing and searching (false).
+};
+
+/**
+ * @brief DNS server list class used for loading and storing a list of DNS servers.
+ */
+class DnsServerList {
+public:
+    /**
+     * @breif Default constructor.
+     */
+    DnsServerList();
+
+    /**
+     * @brief Loads the list of DNS servers found currently on the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Stores the list of DNS servers in the class to the system.
+     */
+    void storeToSystem();
+
+private:
+    std::list<DnsServer> m_servers; ///< List of DNS servers.
+};
+
+/**
+ * @breif DNS search list class used for loading and storing a list of DNS search domains.
+ */
+class DnsSearchList {
+public:
+    /**
+     * @brief Default constructor.
+     */
+    DnsSearchList();
+
+    /**
+     * @brief Loads the list of DNS servers found currently on the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Stores the list of DNS servers in the class to the system.
+     */
+    void storeToSystem();
+
+private:
+    std::list<DnsSearch> m_search; ///< List of DNS search domains.
+};
+
 // /**
 //  * @brief DNS server.
 //  */
