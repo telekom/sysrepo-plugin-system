@@ -290,6 +290,33 @@ sr::ErrorCode DnsServerOperGetCb::operator()(sr::Session session, uint32_t subsc
     std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsServerList servers;
+
+    try {
+        servers.loadFromSystem();
+
+        for (auto& server : servers) {
+            std::stringstream path_buffer;
+
+            path_buffer << "server[name='" << server.Name << "']";
+
+            auto server_node = output->newPath(path_buffer.str());
+            if (server_node) {
+                if (server.Port != 0) {
+                    server_node->newPath("port", std::to_string(server.Port));
+                }
+                server_node->newPath("udp-and-tcp/address", server.Address->asString());
+            } else {
+                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to create a new server node");
+                error = sr::ErrorCode::Internal;
+                break;
+            }
+        }
+    } catch (const std::exception& e) {
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading local users");
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
+        error = sr::ErrorCode::Internal;
+    }
     return error;
 }
 
