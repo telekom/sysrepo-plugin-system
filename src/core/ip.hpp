@@ -20,15 +20,17 @@ public:
     /**
      * @brief Return the IP address as bytes vector.
      */
-    virtual std::vector<std::byte> asBytes() = 0;
+    virtual std::vector<uint8_t> asBytes() = 0;
 
     /**
      * @brief Return the IP address as a string.
      */
     virtual std::string asString() = 0;
 
+    virtual ~IAddress() { }
+
 protected:
-    std::vector<std::byte> m_bytes; ///< Bytes of the IP address.
+    std::vector<uint8_t> m_bytes; ///< Bytes of the IP address.
 };
 
 /**
@@ -42,19 +44,24 @@ public:
     Ipv4Address(const std::string& address);
 
     /**
+     * @brief Default constructor.
+     */
+    Ipv4Address(std::vector<uint8_t>& bytes);
+
+    /**
      * @brief Return the version of the IP address (AF_INET or AF_INET6).
      */
-    int getVersion() override;
+    virtual int getVersion() override;
 
     /**
      * @brief Return the IP address as bytes vector.
      */
-    std::vector<std::byte> asBytes() override;
+    virtual std::vector<uint8_t> asBytes() override;
 
     /**
      * @brief Return the IP address as a string.
      */
-    std::string asString() override;
+    virtual std::string asString() override;
 };
 
 /**
@@ -68,6 +75,11 @@ public:
     Ipv6Address(const std::string& address);
 
     /**
+     * @brief Default constructor.
+     */
+    Ipv6Address(std::vector<uint8_t>& bytes);
+
+    /**
      * @brief Return the version of the IP address (AF_INET or AF_INET6).
      */
     int getVersion() override;
@@ -75,7 +87,7 @@ public:
     /**
      * @brief Return the IP address as bytes vector.
      */
-    std::vector<std::byte> asBytes() override;
+    std::vector<uint8_t> asBytes() override;
 
     /**
      * @brief Return the IP address as a string.

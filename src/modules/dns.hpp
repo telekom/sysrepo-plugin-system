@@ -18,10 +18,10 @@ namespace ietf::sys::dns {
  * @brief DNS server helper struct.
  */
 struct DnsServer {
-    int InterfaceIndex; ///< Interface index used for the DNS server.
-    std::string Name; ///< Server Name Indication.
+    int32_t InterfaceIndex; ///< Interface index used for the DNS server.
     std::unique_ptr<ip::IAddress> Address; ///< IP address of the server.
-    int Port; ///< Port used for the server. Defaults to 53.
+    uint16_t Port; ///< Port used for the server. Defaults to 53.
+    std::string Name; ///< Server Name Indication.
 };
 
 /**
@@ -36,7 +36,8 @@ struct DnsSearch {
 /**
  * @brief DNS server list class used for loading and storing a list of DNS servers.
  */
-class DnsServerList {
+class DnsServerList : public SdBus<std::vector<sdbus::Struct<int32_t, int32_t, std::vector<uint8_t>, uint16_t, std::string>>, int32_t,
+                          std::vector<sdbus::Struct<int32_t, std::vector<uint8_t>, uint16_t, std::string>>> {
 public:
     /**
      * @breif Default constructor.
@@ -65,6 +66,7 @@ public:
     auto end() { return m_servers.end(); }
 
 private:
+    int m_ifindex; ///< Interface index used for this list.
     std::list<DnsServer> m_servers; ///< List of DNS servers.
 };
 

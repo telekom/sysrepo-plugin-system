@@ -12,7 +12,7 @@ Ipv4Address::Ipv4Address(const std::string& address)
 
     // convert the string value to a vector of bytes using standard C API
     if (inet_pton(AF_INET, address.c_str(), &ip_addr) == 1) {
-        std::byte* bytes = (std::byte*)&ip_addr.s_addr;
+        uint8_t* bytes = (uint8_t*)&ip_addr.s_addr;
         constexpr auto bytes_count = 4;
         for (int i = 0; i < bytes_count; i++) {
             m_bytes.push_back(bytes[i]);
@@ -23,6 +23,11 @@ Ipv4Address::Ipv4Address(const std::string& address)
 }
 
 /**
+ * @brief Default constructor.
+ */
+Ipv4Address::Ipv4Address(std::vector<uint8_t>& bytes) { m_bytes = bytes; }
+
+/**
  * @brief Return the version of the IP address (AF_INET or AF_INET6).
  */
 int Ipv4Address::getVersion() { return AF_INET; }
@@ -30,7 +35,7 @@ int Ipv4Address::getVersion() { return AF_INET; }
 /**
  * @brief Return the IP address as bytes vector.
  */
-std::vector<std::byte> Ipv4Address::asBytes() { return m_bytes; }
+std::vector<uint8_t> Ipv4Address::asBytes() { return m_bytes; }
 
 /**
  * @brief Return the IP address as a string.
@@ -57,7 +62,7 @@ Ipv6Address::Ipv6Address(const std::string& address)
 
     // convert the string value to a vector of bytes using standard C API
     if (inet_pton(AF_INET6, address.c_str(), &ip_addr) == 1) {
-        std::byte* bytes = (std::byte*)&ip_addr.s_addr;
+        uint8_t* bytes = (uint8_t*)&ip_addr.s_addr;
         constexpr auto bytes_count = 16;
         for (int i = 0; i < bytes_count; i++) {
             m_bytes.push_back(bytes[i]);
@@ -68,6 +73,11 @@ Ipv6Address::Ipv6Address(const std::string& address)
 }
 
 /**
+ * @brief Default constructor.
+ */
+Ipv6Address::Ipv6Address(std::vector<uint8_t>& bytes) { m_bytes = bytes; }
+
+/**
  * @brief Return the version of the IP address (AF_INET or AF_INET6).
  */
 int Ipv6Address::getVersion() { return AF_INET6; }
@@ -75,7 +85,7 @@ int Ipv6Address::getVersion() { return AF_INET6; }
 /**
  * @brief Return the IP address as bytes vector.
  */
-std::vector<std::byte> Ipv6Address::asBytes() { return m_bytes; }
+std::vector<uint8_t> Ipv6Address::asBytes() { return m_bytes; }
 
 /**
  * @brief Return the IP address as a string.
