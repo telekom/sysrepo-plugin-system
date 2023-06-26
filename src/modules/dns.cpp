@@ -531,7 +531,7 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
         break;
     }
 
-    return sr::ErrorCode::CallbackFailed;
+    return error;
 }
 
 /**
