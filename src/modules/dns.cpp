@@ -315,7 +315,7 @@ sr::ErrorCode DnsServerOperGetCb::operator()(sr::Session session, uint32_t subsc
             }
         }
     } catch (const std::exception& e) {
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading local users");
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading DNS server list from the system");
         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
         error = sr::ErrorCode::Internal;
     }
