@@ -18,19 +18,14 @@ public:
     }
 
 protected:
-    bool exportToSdBus(SET... data)
+    void exportToSdBus(SET... data)
     {
-        bool error = false;
-
         try {
             auto proxy = sdbus::createProxy(m_dest, m_objPath);
             proxy->callMethod(m_setMethod).onInterface(m_interface).withArguments(data...);
         } catch (sdbus::Error& e) {
             throw std::runtime_error(e.getMessage());
-            error = true;
         };
-
-        return error;
     }
 
     GET importFromSdBus()
@@ -44,6 +39,7 @@ protected:
         } catch (sdbus::Error& e) {
             throw std::runtime_error(e.getMessage());
         }
+
         return data;
     }
 

@@ -86,6 +86,20 @@ public:
     void loadFromSystem();
 
     /**
+     * @brief Add new search domain to the list.
+     *
+     * @param domain Search domain to create.
+     */
+    void createSearchDomain(const std::string& domain);
+
+    /**
+     * @brief Delete search domain from the list.
+     *
+     * @param domain Search domain to remove.
+     */
+    void deleteSearchDomain(const std::string& domain);
+
+    /**
      * @brief Stores the list of DNS servers in the class to the system.
      */
     void storeToSystem();

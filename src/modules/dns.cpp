@@ -96,6 +96,26 @@ void DnsSearchList::loadFromSystem()
 }
 
 /**
+ * @brief Add new search domain to the list.
+ *
+ * @param domain Search domain to create.
+ */
+void DnsSearchList::createSearchDomain(const std::string& domain)
+{
+    m_search.push_back(DnsSearch { .InterfaceIndex = SYSTEMD_IFINDEX, .Domain = domain, .Search = false });
+}
+
+/**
+ * @brief Delete search domain from the list.
+ *
+ * @param domain Search domain to remove.
+ */
+void DnsSearchList::deleteSearchDomain(const std::string& domain)
+{
+    m_search.remove_if([&domain](const auto& search) { return search.Domain == domain; });
+}
+
+/**
  * @brief Stores the list of DNS servers in the class to the system.
  */
 void DnsSearchList::storeToSystem()
@@ -462,12 +482,19 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
     std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsSearchList search_list;
+
+    try {
+        search_list.loadFromSystem();
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS search domains from the system");
+        error = sr::ErrorCode::OperationFailed;
+    }
 
     switch (event) {
     case sysrepo::Event::Change:
         for (auto& change : session.getChanges(subXPath->data())) {
             SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
-
             SRPLG_LOG_INF(
                 ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
@@ -475,16 +502,29 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
                 SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
             }
 
+            const auto value = change.node.asTerm().valueStr();
+            const auto domain = value.data();
+            SRPLG_LOG_INF(PLUGIN_NAME, "Node value: %s", domain);
+
             switch (change.operation) {
             case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
+            case sysrepo::ChangeOperation::Modified:
+                search_list.createSearchDomain(domain);
                 break;
-            }
             case sysrepo::ChangeOperation::Deleted:
+                search_list.deleteSearchDomain(domain);
                 break;
             case sysrepo::ChangeOperation::Moved:
                 break;
             }
+        }
+
+        // store created changes to the system
+        try {
+            search_list.storeToSystem();
+        } catch (const std::runtime_error& err) {
+            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to store DNS search domain changes to the system");
+            error = sysrepo::ErrorCode::OperationFailed;
         }
         break;
     default:
