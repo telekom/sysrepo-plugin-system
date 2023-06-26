@@ -142,14 +142,14 @@ sr::ErrorCode DnsSearchOperGetCb::operator()(sr::Session session, uint32_t subsc
     // load search list and add it to the output yang
     try {
         search_list.loadFromSystem();
+
+        // iterate list and add elements to the output tree
+        for (auto& iter : search_list) {
+            output->newPath("search", iter.Domain);
+        }
     } catch (const std::runtime_error& err) {
         SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS search list from the system: %s", err.what());
         error = sr::ErrorCode::OperationFailed;
-    }
-
-    // iterate list and add elements to the output tree
-    for (auto& iter : search_list) {
-        output->newPath("search", iter.Domain);
     }
 
     return error;
