@@ -3,6 +3,9 @@
 #include <sdbus-c++/sdbus-c++.h>
 #include <string>
 
+// error messages
+#include <sysrepo.h>
+
 namespace ietf::sys {
 
 // [TODO]: Document this class
@@ -24,6 +27,7 @@ protected:
             auto proxy = sdbus::createProxy(m_dest, m_objPath);
             proxy->callMethod(m_setMethod).onInterface(m_interface).withArguments(data...);
         } catch (sdbus::Error& e) {
+            SRPLG_LOG_ERR("sd-bus", "Error exporting data to sd-bus: %s", e.what());
             throw std::runtime_error(e.getMessage());
         };
     }
@@ -37,6 +41,7 @@ protected:
             sdbus::Variant v = proxy->getProperty(m_property).onInterface(m_interface);
             data = v.get<GET>();
         } catch (sdbus::Error& e) {
+            SRPLG_LOG_ERR("sd-bus", "Error importing data from sd-bus: %s", e.what());
             throw std::runtime_error(e.getMessage());
         }
 
