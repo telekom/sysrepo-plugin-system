@@ -37,6 +37,11 @@ The following software is additionally required on the target system:
 * systemd
 * ntpd
 
+### Branches
+The project uses 2 main branches `main` and `devel`. Other branches should not be cloned. In `main` there are files of the last official release. Any latest improvements and changes, which were tested at least briefly are found in `devel`. On every new release, `devel` is merged into `main`.
+
+This means that when only stable official releases are to be used, either `main` can be used or specific releases downloaded. If all the latest bugfixes should be applied, `devel` branch is the one to be used. Note that whenever a new issue is created and it occurs on the `main` branch, the first response will likely be to use `devel` before any further provided support. Also, when creating a **Pull Request**, the target branch should always be set to `devel`.
+
 ### Build
 
 First clone the repository:
@@ -63,17 +68,25 @@ $ cmake -DSYSTEMD_IFINDEX=1 ..
 ```
 note: SYSTEMD_IFINDEX cmake flag is the index of the interface you wish to configure DNS on (to get a list of indexes for all interfaces, use: `ip link`)
 
-The default configuration builds the plugin as a stand-alone foreground application. To build the plugin as a shared object file for use with `sysrepo-plugind`, run the following instead:
+If augeas/augyang configuration is needed (only supported for `ntp` container and the `hostname` leaf node), the augeas specific plugin can be built by providing the CMake option:
+```
+$ mkdir build
+$ cd build
+$ cmake -DSYSTEMD_IFINDEX=1 -DENABLE_AUGEAS_PLUGIN=ON ..
+```
 
+After configuring the build process with CMake, run the make command to build the plugin:
 ```
-$ cmake -DPLUGIN=ON ..
+$ make -j
 ```
 
-Lastly, invoke the build and install using `make`:
+### Build artifacts
 
-```
-$ make -j$(nproc) install
-```
+Plugin will be built as a standalone application and also as a `sysrepo-plugind` module. For example, for the main ietf-system plugin there are two build artifacts:
+- **ietf-system-plugin**: standalone application
+- **libsrplg-ietf-system.so**: `sysrepo-plugind` module which exposes the plugin init and cleanup callbacks and can be installed by invoking the following command: `sysrepo-plugind -P libsrplg-ietf-system.so`
+
+### Sysrepo/YANG requirements
 
 The plugin requires the `iana-crypt-hash` and `ietf-system` YANG modules to be loaded into the Sysrepo datastore. This can be achieved by invoking the following commands:
 
