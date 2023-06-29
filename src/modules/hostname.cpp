@@ -102,32 +102,33 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
     switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
-                // modified hostname - get current value and use sethostname()
-                auto value = change.node.asTerm().value();
-                auto hostname = std::get<sys::Hostname>(value);
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        {
+                            // modified hostname - get current value and use sethostname()
+                            auto value = change.node.asTerm().value();
+                            auto hostname = std::get<sys::Hostname>(value);
 
-                try {
-                    sys::setHostname(hostname);
-                } catch (const std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
+                            try {
+                                sys::setHostname(hostname);
+                            } catch (const std::runtime_error& err) {
+                                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                                error = sr::ErrorCode::OperationFailed;
+                            }
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Deleted:
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
                 }
-                break;
             }
-            case sysrepo::ChangeOperation::Deleted:
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return error;

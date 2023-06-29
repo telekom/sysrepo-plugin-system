@@ -32,24 +32,24 @@ void DnsServerList::loadFromSystem()
         const auto addr_type = s.get<1>();
 
         switch (addr_type) {
-        case AF_INET:
-            m_servers.push_back(DnsServer {
-                .InterfaceIndex = s.get<0>(),
-                .Address = std::make_unique<ip::Ipv4Address>(s.get<2>()),
-                .Port = s.get<3>(),
-                .Name = s.get<4>(),
-            });
-            break;
-        case AF_INET6:
-            m_servers.push_back(DnsServer {
-                .InterfaceIndex = s.get<0>(),
-                .Address = std::make_unique<ip::Ipv6Address>(s.get<2>()),
-                .Port = s.get<3>(),
-                .Name = s.get<4>(),
-            });
-            break;
-        default:
-            break;
+            case AF_INET:
+                m_servers.push_back(DnsServer {
+                    .InterfaceIndex = s.get<0>(),
+                    .Address = std::make_unique<ip::Ipv4Address>(s.get<2>()),
+                    .Port = s.get<3>(),
+                    .Name = s.get<4>(),
+                });
+                break;
+            case AF_INET6:
+                m_servers.push_back(DnsServer {
+                    .InterfaceIndex = s.get<0>(),
+                    .Address = std::make_unique<ip::Ipv6Address>(s.get<2>()),
+                    .Port = s.get<3>(),
+                    .Name = s.get<4>(),
+                });
+                break;
+            default:
+                break;
         }
     }
 }
@@ -492,43 +492,43 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
     }
 
     switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
-            SRPLG_LOG_INF(
-                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_INF(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-            for (const auto& m : change.node.meta()) {
-                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+                for (const auto& m : change.node.meta()) {
+                    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+                }
+
+                const auto value = change.node.asTerm().valueStr();
+                const auto domain = value.data();
+                SRPLG_LOG_INF(PLUGIN_NAME, "Node value: %s", domain);
+
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        search_list.createSearchDomain(domain);
+                        break;
+                    case sysrepo::ChangeOperation::Deleted:
+                        search_list.deleteSearchDomain(domain);
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
             }
 
-            const auto value = change.node.asTerm().valueStr();
-            const auto domain = value.data();
-            SRPLG_LOG_INF(PLUGIN_NAME, "Node value: %s", domain);
-
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified:
-                search_list.createSearchDomain(domain);
-                break;
-            case sysrepo::ChangeOperation::Deleted:
-                search_list.deleteSearchDomain(domain);
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
+            // store created changes to the system
+            try {
+                search_list.storeToSystem();
+            } catch (const std::runtime_error& err) {
+                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to store DNS search domain changes to the system");
+                error = sysrepo::ErrorCode::OperationFailed;
             }
-        }
-
-        // store created changes to the system
-        try {
-            search_list.storeToSystem();
-        } catch (const std::runtime_error& err) {
-            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to store DNS search domain changes to the system");
-            error = sysrepo::ErrorCode::OperationFailed;
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return error;
@@ -562,31 +562,32 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
     switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
 
-            SRPLG_LOG_INF(
-                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                SRPLG_LOG_INF(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-            for (const auto& m : change.node.meta()) {
-                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
-            }
+                for (const auto& m : change.node.meta()) {
+                    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+                }
 
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
-                break;
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        {
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Deleted:
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
             }
-            case sysrepo::ChangeOperation::Deleted:
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return sr::ErrorCode::CallbackFailed;

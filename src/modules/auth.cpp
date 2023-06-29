@@ -517,104 +517,104 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
     auth::DatabaseContext db;
 
     switch (event) {
-    case sysrepo::Event::Change:
-        // load the database before iterating changes
-        try {
-            db.loadFromSystem();
-        } catch (std::runtime_error& err) {
-            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading user database: %s", err.what());
-            error = sr::ErrorCode::OperationFailed;
-        }
-
-        // apply user changes to the database context
-        for (auto& change : session.getChanges("/ietf-system:system/authentication/user/name")) {
-            SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
-            SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
-
-            SRPLG_LOG_DBG(
-                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
-
-            // extract value
-            const auto& value = change.node.asTerm().value();
-            const auto& name = std::get<std::string>(value);
-
-            SRPLG_LOG_DBG(PLUGIN_NAME, "User name: %s", name.c_str());
-
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-                // create a new user in the DatabaseContext
-                try {
-                    db.createUser(name);
-                } catch (std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error creating user: %s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
-                }
-                break;
-            case sysrepo::ChangeOperation::Modified:
-                break;
-            case sysrepo::ChangeOperation::Deleted:
-                try {
-                    db.deleteUser(name);
-                } catch (std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user: %s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
-                }
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
+        case sysrepo::Event::Change:
+            // load the database before iterating changes
+            try {
+                db.loadFromSystem();
+            } catch (std::runtime_error& err) {
+                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading user database: %s", err.what());
+                error = sr::ErrorCode::OperationFailed;
             }
-        }
 
-        // apply password changes to the database context
-        for (auto& change : session.getChanges("/ietf-system:system/authentication/user/password")) {
-            SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
-            SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+            // apply user changes to the database context
+            for (auto& change : session.getChanges("/ietf-system:system/authentication/user/name")) {
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
 
-            SRPLG_LOG_DBG(
-                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                SRPLG_LOG_DBG(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-            // extract value
-            const auto& value = change.node.asTerm().value();
-            const auto& password_hash = std::get<std::string>(value);
-            const auto& name = srpc::extractListKeyFromXPath("user", "name", change.node.path());
+                // extract value
+                const auto& value = change.node.asTerm().value();
+                const auto& name = std::get<std::string>(value);
 
-            SRPLG_LOG_DBG(PLUGIN_NAME, "User name: %s", name.c_str());
-            SRPLG_LOG_DBG(PLUGIN_NAME, "User password: %s", password_hash.c_str());
+                SRPLG_LOG_DBG(PLUGIN_NAME, "User name: %s", name.c_str());
 
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified:
-                // create/modify user password in the DatabaseContext
-                try {
-                    db.modifyUserPasswordHash(name, password_hash);
-                } catch (std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error createing user password: %s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                        // create a new user in the DatabaseContext
+                        try {
+                            db.createUser(name);
+                        } catch (std::runtime_error& err) {
+                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error creating user: %s", err.what());
+                            error = sr::ErrorCode::OperationFailed;
+                        }
+                        break;
+                    case sysrepo::ChangeOperation::Modified:
+                        break;
+                    case sysrepo::ChangeOperation::Deleted:
+                        try {
+                            db.deleteUser(name);
+                        } catch (std::runtime_error& err) {
+                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user: %s", err.what());
+                            error = sr::ErrorCode::OperationFailed;
+                        }
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
                 }
-                break;
-            case sysrepo::ChangeOperation::Deleted:
-                try {
-                    db.deleteUserPasswordHash(name);
-                } catch (std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user password: %s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
-                }
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
             }
-        }
 
-        // apply database context to the system
-        try {
-            db.storeToSystem();
-        } catch (const std::runtime_error& err) {
-            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error storing database context changes to the system: %s", err.what());
-            error = sr::ErrorCode::OperationFailed;
-        }
-        break;
-    default:
-        break;
+            // apply password changes to the database context
+            for (auto& change : session.getChanges("/ietf-system:system/authentication/user/password")) {
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+
+                SRPLG_LOG_DBG(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+
+                // extract value
+                const auto& value = change.node.asTerm().value();
+                const auto& password_hash = std::get<std::string>(value);
+                const auto& name = srpc::extractListKeyFromXPath("user", "name", change.node.path());
+
+                SRPLG_LOG_DBG(PLUGIN_NAME, "User name: %s", name.c_str());
+                SRPLG_LOG_DBG(PLUGIN_NAME, "User password: %s", password_hash.c_str());
+
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        // create/modify user password in the DatabaseContext
+                        try {
+                            db.modifyUserPasswordHash(name, password_hash);
+                        } catch (std::runtime_error& err) {
+                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error createing user password: %s", err.what());
+                            error = sr::ErrorCode::OperationFailed;
+                        }
+                        break;
+                    case sysrepo::ChangeOperation::Deleted:
+                        try {
+                            db.deleteUserPasswordHash(name);
+                        } catch (std::runtime_error& err) {
+                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user password: %s", err.what());
+                            error = sr::ErrorCode::OperationFailed;
+                        }
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
+            }
+
+            // apply database context to the system
+            try {
+                db.storeToSystem();
+            } catch (const std::runtime_error& err) {
+                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error storing database context changes to the system: %s", err.what());
+                error = sr::ErrorCode::OperationFailed;
+            }
+            break;
+        default:
+            break;
     }
 
     return error;
@@ -648,33 +648,34 @@ sr::ErrorCode AuthUserAuthorizedKeyModuleChangeCb::operator()(sr::Session sessio
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
     switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
 
-            SRPLG_LOG_DBG(
-                ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                SRPLG_LOG_DBG(
+                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-            SRPLG_LOG_DBG(PLUGIN_NAME, "Node path: %s", change.node.path().data());
+                SRPLG_LOG_DBG(PLUGIN_NAME, "Node path: %s", change.node.path().data());
 
-            const auto& user_name = srpc::extractListKeyFromXPath("user", "name", change.node.path());
+                const auto& user_name = srpc::extractListKeyFromXPath("user", "name", change.node.path());
 
-            SRPLG_LOG_DBG(PLUGIN_NAME, "Username for authorized key: %s", user_name.data());
+                SRPLG_LOG_DBG(PLUGIN_NAME, "Username for authorized key: %s", user_name.data());
 
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
-                break;
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        {
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Deleted:
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
             }
-            case sysrepo::ChangeOperation::Deleted:
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return sr::ErrorCode::CallbackFailed;
