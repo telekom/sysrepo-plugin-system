@@ -679,30 +679,30 @@ std::shared_ptr<srpc::IModuleContext> DnsModule::getRpcContext() { return m_rpcC
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> DnsModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> DnsModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
-        OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
-        OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
-        ModuleChangeCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.

@@ -1014,21 +1014,22 @@ std::shared_ptr<srpc::IModuleContext> AuthModule::getRpcContext() { return m_rpc
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> AuthModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> AuthModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/authentication/user", ietf::sys::sub::oper::AuthUserOperGetCb(this->m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/authentication/user", ietf::sys::sub::oper::AuthUserOperGetCb(this->m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/authentication/user", ietf::sys::sub::change::AuthUserModuleChangeCb(this->m_changeContext) },
-        ModuleChangeCallback { "/ietf-system:system/authentication/user/authorized-key",
+        srpc::ModuleChangeCallback {
+            "/ietf-system:system/authentication/user", ietf::sys::sub::change::AuthUserModuleChangeCb(this->m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/authentication/user/authorized-key",
             ietf::sys::sub::change::AuthUserAuthorizedKeyModuleChangeCb(this->m_changeContext) },
     };
 }
@@ -1036,7 +1037,7 @@ std::list<ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.

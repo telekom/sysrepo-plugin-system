@@ -355,28 +355,28 @@ std::shared_ptr<srpc::IModuleContext> SystemModule::getRpcContext() { return m_r
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> SystemModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> SystemModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(m_operContext) },
-        OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> SystemModule::getModuleChangeCallbacks() { return {}; }
+std::list<srpc::ModuleChangeCallback> SystemModule::getModuleChangeCallbacks() { return {}; }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> SystemModule::getRpcCallbacks()
+std::list<srpc::RpcCallback> SystemModule::getRpcCallbacks()
 {
     return {
-        RpcCallback { "/ietf-system:system-restart", ietf::sys::sub::rpc::SystemRestartRpcCb(m_rpcContext) },
-        RpcCallback { "/ietf-system:system-shutdown", ietf::sys::sub::rpc::SystemShutdownRpcCb(m_rpcContext) },
-        RpcCallback { "/ietf-system:set-current-datetime", ietf::sys::sub::rpc::SetCurrentDatetimeRpcCb(m_rpcContext) },
+        srpc::RpcCallback { "/ietf-system:system-restart", ietf::sys::sub::rpc::SystemRestartRpcCb(m_rpcContext) },
+        srpc::RpcCallback { "/ietf-system:system-shutdown", ietf::sys::sub::rpc::SystemShutdownRpcCb(m_rpcContext) },
+        srpc::RpcCallback { "/ietf-system:set-current-datetime", ietf::sys::sub::rpc::SetCurrentDatetimeRpcCb(m_rpcContext) },
     };
 }
 

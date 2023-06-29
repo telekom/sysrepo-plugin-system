@@ -131,11 +131,11 @@ void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContex
     auto& sub_handle = ctx.getSubscriptionHandle();
 
     for (auto& cb : oper_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating operational subscription for xpath %s", cb.xpath.c_str());
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating operational subscription for xpath %s", cb.XPath.c_str());
         if (sub_handle.has_value()) {
-            sub_handle->onOperGet("ietf-system", cb.callback, cb.xpath);
+            sub_handle->onOperGet("ietf-system", cb.Callback, cb.XPath);
         } else {
-            sub_handle = sess.onOperGet("ietf-system", cb.callback, cb.xpath);
+            sub_handle = sess.onOperGet("ietf-system", cb.Callback, cb.XPath);
         }
     }
 }
@@ -155,11 +155,11 @@ void registerModuleChangeSubscriptions(sr::Session& sess, ietf::sys::PluginConte
     auto& sub_handle = ctx.getSubscriptionHandle();
 
     for (auto& cb : change_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating module change subscription for xpath %s", cb.xpath.c_str());
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating module change subscription for xpath %s", cb.XPath.c_str());
         if (sub_handle.has_value()) {
-            sub_handle->onModuleChange("ietf-system", cb.callback, cb.xpath);
+            sub_handle->onModuleChange("ietf-system", cb.Callback, cb.XPath);
         } else {
-            sub_handle = sess.onModuleChange("ietf-system", cb.callback, cb.xpath);
+            sub_handle = sess.onModuleChange("ietf-system", cb.Callback, cb.XPath);
         }
     }
 }
@@ -179,11 +179,11 @@ void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, 
     auto& sub_handle = ctx.getSubscriptionHandle();
 
     for (auto& cb : rpc_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating RPC subscription for xpath %s", cb.xpath.c_str());
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating RPC subscription for xpath %s", cb.XPath.c_str());
         if (sub_handle.has_value()) {
-            sub_handle->onRPCAction(cb.xpath, cb.callback);
+            sub_handle->onRPCAction(cb.XPath, cb.Callback);
         } else {
-            sub_handle = sess.onRPCAction(cb.xpath, cb.callback);
+            sub_handle = sess.onRPCAction(cb.XPath, cb.Callback);
         }
     }
 }

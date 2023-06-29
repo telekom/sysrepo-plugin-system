@@ -162,27 +162,27 @@ std::shared_ptr<srpc::IModuleContext> HostnameModule::getRpcContext() { return m
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> HostnameModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> HostnameModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.

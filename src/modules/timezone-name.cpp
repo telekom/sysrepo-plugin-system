@@ -248,27 +248,28 @@ std::shared_ptr<srpc::IModuleContext> TimezoneModule::getRpcContext() { return m
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> TimezoneModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> TimezoneModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback {
+            "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> TimezoneModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> TimezoneModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.
