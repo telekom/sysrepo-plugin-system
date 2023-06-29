@@ -74,8 +74,31 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     registry.registerModule<DnsModule>();
     registry.registerModule<AuthModule>();
 
-    // get registered modules and create subscriptions
     auto& modules = registry.getRegisteredModules();
+
+    // for all registered modules - run system values check
+    for (auto& mod : modules) {
+        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Running system values check for module %s", mod->getName());
+        for (auto& checker : mod->getValueCheckers()) {
+            try {
+                const auto status = checker->checkValues(sess);
+                switch (status) {
+                    case srpc::DatastoreValuesCheckStatus::Equal:
+                        break;
+                    case srpc::DatastoreValuesCheckStatus::Partial:
+                        break;
+                    case srpc::DatastoreValuesCheckStatus::NonExistant:
+                        break;
+                }
+            } catch (const std::runtime_error& err) {
+                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Failed to check system values for [TODO: add checker name]");
+            }
+        }
+    }
+
+    // once all values have been checked subscriptions can normally be registered
+
+    // get registered modules and create subscriptions
     for (auto& mod : modules) {
         SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registering operational callbacks for module %s", mod->getName());
         registerOperationalSubscriptions(sess, *ctx, mod);
