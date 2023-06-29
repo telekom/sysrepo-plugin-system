@@ -7,10 +7,47 @@
 #include <core/sdbus.hpp>
 
 // logging
+#include <memory>
 #include <stdexcept>
 #include <sysrepo.h>
 
 namespace ietf::sys::dns {
+/**
+ * @brief Default constructor.
+ */
+DnsServer::DnsServer()
+    : Port(0)
+    , InterfaceIndex(SYSTEMD_IFINDEX)
+{
+}
+
+/**
+ * @brief Set the IP address of the server.
+ *
+ * @param address IP address (IPv4 or IPv6).
+ */
+void DnsServer::setAddress(const std::string& address)
+{
+    // try IPv4 and IPv6 classes
+    try {
+        this->Address = std::make_unique<ip::Ipv4Address>(address);
+    } catch (const std::runtime_error& err) {
+        // unable to set ipv4 - ipv6 must pass, if not - throw exception
+        try {
+            this->Address = std::make_unique<ip::Ipv6Address>(address);
+        } catch (const std::runtime_error& err) {
+            // Note: should not ever be possible due to YANG regex for an IP address
+            throw std::runtime_error("Invalid IP address received");
+        }
+    }
+}
+
+/**
+ * @brief Set the port of the server.
+ *
+ * @param port Port to set.
+ */
+void DnsServer::setPort(std::optional<uint16_t> port) { this->Port = port ? port.value() : 53; }
 
 /**
  * @breif Default constructor.
@@ -30,27 +67,25 @@ void DnsServerList::loadFromSystem()
     auto servers = this->importFromSdBus();
     for (auto& s : servers) {
         const auto addr_type = s.get<1>();
+        DnsServer server;
+
+        server.InterfaceIndex = s.get<0>();
+        server.Port = s.get<3>();
+        server.Name = s.get<4>();
 
         switch (addr_type) {
             case AF_INET:
-                m_servers.push_back(DnsServer {
-                    .InterfaceIndex = s.get<0>(),
-                    .Address = std::make_unique<ip::Ipv4Address>(s.get<2>()),
-                    .Port = s.get<3>(),
-                    .Name = s.get<4>(),
-                });
+                server.Address = std::make_unique<ip::Ipv4Address>(s.get<2>());
                 break;
             case AF_INET6:
-                m_servers.push_back(DnsServer {
-                    .InterfaceIndex = s.get<0>(),
-                    .Address = std::make_unique<ip::Ipv6Address>(s.get<2>()),
-                    .Port = s.get<3>(),
-                    .Name = s.get<4>(),
-                });
+                server.Address = std::make_unique<ip::Ipv6Address>(s.get<2>());
                 break;
             default:
                 break;
         }
+
+        // move due to unique_ptr usage for address storage
+        m_servers.push_back(std::move(server));
     }
 }
 
@@ -68,6 +103,93 @@ void DnsServerList::storeToSystem()
     }
 
     this->exportToSdBus(m_ifindex, sdbus_data);
+}
+
+/**
+ * @brief Create a new server and add it to the list.
+ *
+ * @param name Name of the DNS server.
+ * @param address IP address of the DNS server.
+ * @param port Optional port value of the DNS server. If no value provided, 53 is used.
+ */
+void DnsServerList::createServer(const std::string& name, const std::string& address, std::optional<uint16_t> port)
+{
+    DnsServer new_server;
+
+    new_server.InterfaceIndex = SYSTEMD_IFINDEX;
+    new_server.Name = name;
+    new_server.setPort(port);
+    new_server.setAddress(address);
+
+    // add the new server to the list
+    // move due to unique_ptr usage for address storage
+    m_servers.push_back(std::move(new_server));
+}
+
+/**
+ * @brief Change the IP address of the given server with the provided name.
+ *
+ * @param name Name of the server to change.
+ * @param address New address to set.
+ */
+void DnsServerList::changeServerAddress(const std::string& name, const std::string& address)
+{
+    const auto it = m_findServer(name);
+
+    if (it != end()) {
+        // found server - change its value
+        it.value()->setAddress(address);
+    } else {
+        // unable to find given server - error
+        throw std::runtime_error("Unable to find DNS server with the provided name");
+    }
+}
+
+/**
+ * @brief Change the port of the given server with the provided name.
+ *
+ * @param name Name of the server to change.
+ * @param port New port to set.
+ */
+void DnsServerList::changeServerPort(const std::string& name, const uint16_t port)
+{
+    const auto it = m_findServer(name);
+
+    if (it) {
+        // found server - change its value
+        it.value()->setPort(std::optional(port));
+    } else {
+        // unable to find given server - error
+        throw std::runtime_error("Unable to find DNS server with the provided name");
+    }
+}
+
+/**
+ * @brief Delete server from the list.
+ *
+ * @param name Name of the DNS server.
+ */
+void DnsServerList::deleteServer(const std::string& name)
+{
+    m_servers.remove_if([&name](const auto& server) { return server.Name == name; });
+}
+
+/**
+ * @brief Helper function for finding DNS server by the provided name.
+ *
+ * @param name Name to use for search.
+ *
+ * @return Iterator pointing to the DNS server with the provided name.
+ */
+std::optional<std::list<DnsServer>::iterator> DnsServerList::m_findServer(const std::string& name)
+{
+    const auto it = std::find_if(begin(), end(), [&name](const auto& server) { return server.Name == name; });
+
+    if (it != end()) {
+        return std::optional(it);
+    } else {
+        return std::nullopt;
+    }
 }
 
 /**
@@ -560,6 +682,14 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
     std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsServerList servers;
+
+    try {
+        servers.loadFromSystem();
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS server list from the system: %s", err.what());
+        return sr::ErrorCode::OperationFailed;
+    }
 
     switch (event) {
         case sysrepo::Event::Change:
@@ -573,12 +703,26 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
                     SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
                 }
 
+                const auto name_node = change.node.findPath("name");
+                const auto address_node = change.node.findPath("udp-and-tcp/address");
+                // [TODO]: Check for DNS port feature to get the port node
+
                 switch (change.operation) {
                     case sysrepo::ChangeOperation::Created:
-                    case sysrepo::ChangeOperation::Modified:
                         {
+                            if (name_node && address_node) {
+                                const auto name = std::get<std::string>(name_node->asTerm().value());
+                                const auto address = std::get<std::string>(address_node->asTerm().value());
+
+                                // add the new server to the list
+                            } else {
+                                // unable to create a DNS server without a name and an address
+                                error = sr::ErrorCode::InvalidArgument;
+                            }
                             break;
                         }
+                    case sysrepo::ChangeOperation::Modified:
+                        break;
                     case sysrepo::ChangeOperation::Deleted:
                         break;
                     case sysrepo::ChangeOperation::Moved:

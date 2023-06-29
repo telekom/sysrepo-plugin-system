@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <srpcpp/module.hpp>
 #include <core/ip.hpp>
 
@@ -22,6 +23,25 @@ struct DnsServer {
     std::unique_ptr<ip::IAddress> Address; ///< IP address of the server.
     uint16_t Port; ///< Port used for the server. Defaults to 53.
     std::string Name; ///< Server Name Indication.
+
+    /**
+     * @brief Default constructor.
+     */
+    DnsServer();
+
+    /**
+     * @brief Set the IP address of the server.
+     *
+     * @param address IP address (IPv4 or IPv6).
+     */
+    void setAddress(const std::string& address);
+
+    /**
+     * @brief Set the port of the server.
+     *
+     * @param port Port to set.
+     */
+    void setPort(std::optional<uint16_t> port);
 };
 
 /**
@@ -40,7 +60,7 @@ class DnsServerList : public SdBus<std::vector<sdbus::Struct<int32_t, int32_t, s
                           std::vector<sdbus::Struct<int32_t, std::vector<uint8_t>, uint16_t, std::string>>> {
 public:
     /**
-     * @breif Default constructor.
+     * @brief Default constructor.
      */
     DnsServerList();
 
@@ -55,7 +75,38 @@ public:
     void storeToSystem();
 
     /**
+     * @brief Create a new server and add it to the list.
      *
+     * @param name Name of the DNS server.
+     * @param address IP address of the DNS server.
+     * @param port Optional port value of the DNS server. If no value provided, 53 is used.
+     */
+    void createServer(const std::string& name, const std::string& address, std::optional<uint16_t> port);
+
+    /**
+     * @brief Change the IP address of the given server with the provided name.
+     *
+     * @param name Name of the server to change.
+     * @param address New address to set.
+     */
+    void changeServerAddress(const std::string& name, const std::string& address);
+
+    /**
+     * @brief Change the port of the given server with the provided name.
+     *
+     * @param name Name of the server to change.
+     * @param port New port to set.
+     */
+    void changeServerPort(const std::string& name, const uint16_t port);
+
+    /**
+     * @brief Delete server from the list.
+     *
+     * @param name Name of the DNS server.
+     */
+    void deleteServer(const std::string& name);
+
+    /**
      * @brief Get iterator to the beginning.
      */
     auto begin() { return m_servers.begin(); }
@@ -66,6 +117,15 @@ public:
     auto end() { return m_servers.end(); }
 
 private:
+    /**
+     * @brief Helper function for finding DNS server by the provided name.
+     *
+     * @param name Name to use for search.
+     *
+     * @return Iterator pointing to the DNS server with the provided name.
+     */
+    std::optional<std::list<DnsServer>::iterator> m_findServer(const std::string& name);
+
     int m_ifindex; ///< Interface index used for this list.
     std::list<DnsServer> m_servers; ///< List of DNS servers.
 };
