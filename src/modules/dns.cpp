@@ -11,6 +11,11 @@
 #include <stdexcept>
 #include <sysrepo.h>
 
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix();
+
 namespace ietf::sys::dns {
 /**
  * @brief Default constructor.
@@ -290,7 +295,7 @@ sr::ErrorCode DnsSearchOperGetCb::operator()(sr::Session session, uint32_t subsc
             output->newPath("search", iter.Domain);
         }
     } catch (const std::runtime_error& err) {
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS search list from the system: %s", err.what());
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS search list from the system: %s", err.what());
         error = sr::ErrorCode::OperationFailed;
     }
 
@@ -451,14 +456,14 @@ sr::ErrorCode DnsServerOperGetCb::operator()(sr::Session session, uint32_t subsc
                 }
                 server_node->newPath("udp-and-tcp/address", server.Address->asString());
             } else {
-                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to create a new server node");
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to create a new server node");
                 error = sr::ErrorCode::Internal;
                 break;
             }
         }
     } catch (const std::exception& e) {
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading DNS server list from the system");
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Error loading DNS server list from the system");
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "%s", e.what());
         error = sr::ErrorCode::Internal;
     }
     return error;
@@ -609,19 +614,19 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
     try {
         search_list.loadFromSystem();
     } catch (const std::runtime_error& err) {
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS search domains from the system");
-        error = sr::ErrorCode::OperationFailed;
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS search domains from the system");
+        return sr::ErrorCode::OperationFailed;
     }
 
     switch (event) {
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
-                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
                 SRPLG_LOG_INF(
-                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 for (const auto& m : change.node.meta()) {
-                    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+                    SRPLG_LOG_INF(getModuleLogPrefix(), "Meta %s = %s", m.name().data(), m.valueStr().data());
                 }
 
                 const auto value = change.node.asTerm().valueStr();
@@ -645,7 +650,7 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
             try {
                 search_list.storeToSystem();
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to store DNS search domain changes to the system");
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to store DNS search domain changes to the system");
                 error = sysrepo::ErrorCode::OperationFailed;
             }
             break;
@@ -687,20 +692,20 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
     try {
         servers.loadFromSystem();
     } catch (const std::runtime_error& err) {
-        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Unable to load DNS server list from the system: %s", err.what());
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS server list from the system: %s", err.what());
         return sr::ErrorCode::OperationFailed;
     }
 
     switch (event) {
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
-                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
 
                 SRPLG_LOG_INF(
-                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 for (const auto& m : change.node.meta()) {
-                    SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Meta %s = %s", m.name().data(), m.valueStr().data());
+                    SRPLG_LOG_INF(getModuleLogPrefix(), "Meta %s = %s", m.name().data(), m.valueStr().data());
                 }
 
                 const auto name_node = change.node.findPath("name");
@@ -713,8 +718,15 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
                             if (name_node && address_node) {
                                 const auto name = std::get<std::string>(name_node->asTerm().value());
                                 const auto address = std::get<std::string>(address_node->asTerm().value());
+                                std::optional<uint16_t> port = std::nullopt;
 
-                                // add the new server to the list
+                                // [TODO]: Check for port feature and get node + value for the port
+                                try {
+                                    servers.createServer(name, address, port);
+                                } catch (const std::runtime_error& err) {
+                                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to create a new DNS server (%s)", err.what());
+                                    error = sr::ErrorCode::OperationFailed;
+                                }
                             } else {
                                 // unable to create a DNS server without a name and an address
                                 error = sr::ErrorCode::InvalidArgument;
@@ -724,9 +736,34 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
                     case sysrepo::ChangeOperation::Modified:
                         break;
                     case sysrepo::ChangeOperation::Deleted:
-                        break;
+                        {
+                            if (name_node) {
+                                const auto name = std::get<std::string>(name_node->asTerm().value());
+
+                                try {
+                                    servers.deleteServer(name);
+                                } catch (const std::runtime_error& err) {
+                                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to delete DNS server (%s)", err.what());
+                                    error = sr::ErrorCode::OperationFailed;
+                                }
+                            } else {
+                                SRPLG_LOG_ERR(getModuleLogPrefix(), "No name value provided - unable to delete DNS server");
+                                error = sr::ErrorCode::InvalidArgument;
+                            }
+                            break;
+                        }
                     case sysrepo::ChangeOperation::Moved:
                         break;
+                }
+            }
+
+            if (error == sr::ErrorCode::Ok) {
+                // no error occured yet - store changes
+                try {
+                    servers.storeToSystem();
+                } catch (const std::runtime_error& err) {
+                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to store DNS server changes to the system (%s)", err.what());
+                    error = sr::ErrorCode::OperationFailed;
                 }
             }
             break;
@@ -734,7 +771,7 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
             break;
     }
 
-    return sr::ErrorCode::CallbackFailed;
+    return error;
 }
 
 /**
@@ -853,3 +890,8 @@ std::list<srpc::RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
  * Get module name.
  */
 constexpr const char* DnsModule::getName() { return "DNS"; }
+
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix() { return "module(ietf-system/dns-resolver)"; }
