@@ -297,6 +297,11 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
+     * Get all system value checkers that this module provides.
+     */
+    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
+
+    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;

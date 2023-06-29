@@ -381,6 +381,11 @@ std::list<srpc::RpcCallback> SystemModule::getRpcCallbacks()
 }
 
 /**
+ * Get all system value checkers that this module provides.
+ */
+std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> SystemModule::getValueCheckers() { return {}; }
+
+/**
  * Get module name.
  */
 constexpr const char* SystemModule::getName() { return "System"; }

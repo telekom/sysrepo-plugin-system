@@ -988,6 +988,34 @@ sr::ErrorCode AuthOperGetCb::operator()(sr::Session session, uint32_t subscripti
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
+}
+
+/**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus UserAuthorizedKeyValueChecker::checkValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
+}
+
+/**
  * Authentication module constructor. Allocates each context.
  */
 AuthModule::AuthModule()
@@ -995,6 +1023,8 @@ AuthModule::AuthModule()
     m_operContext = std::make_shared<AuthOperationalContext>();
     m_changeContext = std::make_shared<AuthModuleChangesContext>();
     m_rpcContext = std::make_shared<AuthRpcContext>();
+    m_userChecker = std::make_shared<UserValueChecker>();
+    m_keyChecker = std::make_shared<UserAuthorizedKeyValueChecker>();
 }
 
 /**
@@ -1039,6 +1069,17 @@ std::list<srpc::ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
+
+/**
+ * Get all system value checkers that this module provides.
+ */
+std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> AuthModule::getValueCheckers()
+{
+    return {
+        m_userChecker,
+        m_keyChecker,
+    };
+}
 
 /**
  * Get module name.

@@ -602,6 +602,36 @@ private:
 }
 
 /**
+ * @brief Checker used to check if ietf-system/system/authentication/user values are contained on the system.
+ */
+class UserValueChecker : public srpc::DatastoreValuesChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+};
+
+/**
+ * @brief Checker used to check if ietf-system/system/authentication/user/authorized-key values are contained on the system.
+ */
+class UserAuthorizedKeyValueChecker : public srpc::DatastoreValuesChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+};
+
+/**
  * @brief Authentication container module.
  * @brief Provides callbacks for user list and each user authorized-key list element.
  */
@@ -643,6 +673,11 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
+     * Get all system value checkers that this module provides.
+     */
+    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
+
+    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -653,6 +688,8 @@ public:
     ~AuthModule() { }
 
 private:
+    std::shared_ptr<UserValueChecker> m_userChecker;
+    std::shared_ptr<UserAuthorizedKeyValueChecker> m_keyChecker;
     std::shared_ptr<AuthOperationalContext> m_operContext;
     std::shared_ptr<AuthModuleChangesContext> m_changeContext;
     std::shared_ptr<AuthRpcContext> m_rpcContext;

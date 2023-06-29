@@ -834,6 +834,34 @@ sr::ErrorCode DnsAttemptsModuleChangeCb::operator()(sr::Session session, uint32_
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus DnsSearchValueChecker::checkValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
+}
+
+/**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus DnsServerValueChecker::checkValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
+}
+
+/**
  * DNS module constructor. Allocates each context.
  */
 DnsModule::DnsModule()
@@ -841,6 +869,8 @@ DnsModule::DnsModule()
     m_operContext = std::make_shared<DnsOperationalContext>();
     m_changeContext = std::make_shared<DnsModuleChangesContext>();
     m_rpcContext = std::make_shared<DnsRpcContext>();
+    m_searchChecker = std::make_shared<DnsSearchValueChecker>();
+    m_serverChecker = std::make_shared<DnsServerValueChecker>();
 }
 
 /**
@@ -885,6 +915,17 @@ std::list<srpc::ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
+
+/**
+ * Get all system value checkers that this module provides.
+ */
+std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> DnsModule::getValueCheckers()
+{
+    return {
+        m_searchChecker,
+        m_serverChecker,
+    };
+}
 
 /**
  * Get module name.

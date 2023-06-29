@@ -1,4 +1,5 @@
 #include "hostname.hpp"
+#include "srpcpp/ds-check.hpp"
 
 #include <core/common.hpp>
 
@@ -136,6 +137,22 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    // load hostname from the system and check if the value is the same as in the current session
+
+    return status;
+}
+
+/**
  * Hostname module constructor. Allocates each context.
  */
 HostnameModule::HostnameModule()
@@ -143,6 +160,7 @@ HostnameModule::HostnameModule()
     m_operContext = std::make_shared<HostnameOperationalContext>();
     m_changeContext = std::make_shared<HostnameModuleChangesContext>();
     m_rpcContext = std::make_shared<HostnameRpcContext>();
+    m_valueChecker = std::make_shared<HostnameValueChecker>();
 }
 
 /**
@@ -184,6 +202,16 @@ std::list<srpc::ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
+
+/**
+ * Get all system value checkers that this module provides.
+ */
+std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> HostnameModule::getValueCheckers()
+{
+    return {
+        m_valueChecker,
+    };
+}
 
 /**
  * Get module name.

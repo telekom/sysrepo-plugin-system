@@ -185,6 +185,21 @@ private:
 }
 
 /**
+ * @brief Checker used to check if ietf-system/system/clock/timezone* value is contained on the system.
+ */
+class TimezoneValueChecker : public srpc::DatastoreValuesChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+};
+
+/**
  * @brief Timezone module.
  */
 class TimezoneModule : public srpc::IModule {
@@ -225,6 +240,11 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
+     * Get all system value checkers that this module provides.
+     */
+    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
+
+    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -235,6 +255,7 @@ public:
     ~TimezoneModule() { }
 
 private:
+    std::shared_ptr<TimezoneValueChecker> m_valueChecker;
     std::shared_ptr<TimezoneOperationalContext> m_operContext;
     std::shared_ptr<TimezoneModuleChangesContext> m_changeContext;
     std::shared_ptr<TimezoneRpcContext> m_rpcContext;
