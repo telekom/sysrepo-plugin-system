@@ -11,32 +11,27 @@
 
 namespace ietf::sys {
 /**
- * @brief Get hostname.
- *
- * @return Hostname.
+ * @brief Hostname constructor.
  */
-Hostname getHostname()
+Hostname::Hostname()
+    : SdBus<std::string, std::string, bool>(
+        "org.freedesktop.hostname1", "/org/freedesktop/hostname1", "org.freedesktop.hostname1", "SetStaticHostname", "Hostname")
 {
-    char hostname[ietf::sys::HOSTNAME_MAX_LEN + 1] = { 0 };
-
-    if (gethostname(hostname, sizeof(hostname)) < 0) {
-        throw std::runtime_error("Failed to get hostname.");
-    }
-
-    return hostname;
 }
 
 /**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
+ * @brief Get the system hostname.
  *
- * @param hostname Hostname.
+ * @return System hostname.
  */
-void setHostname(const Hostname& hostname)
-{
-    if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
-        throw std::runtime_error("Failed to set hostname.");
-    }
-}
+std::string Hostname::getValue(void) { return importFromSdBus(); }
+
+/**
+ * @brief Set the systme hostname.
+ *
+ * @param hostname Hostname to set.
+ */
+void Hostname::setValue(const std::string& hostname) { exportToSdBus(hostname, false); }
 }
 
 namespace ietf::sys::sub::oper {
@@ -66,7 +61,8 @@ sr::ErrorCode HostnameOperGetCb::operator()(sr::Session session, uint32_t subscr
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    auto hostname = sys::getHostname();
+    Hostname hostname_handle;
+    const auto hostname = hostname_handle.getValue();
 
     output->newPath("hostname", hostname);
 
@@ -102,6 +98,8 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
+    Hostname hostname_handle;
+
     switch (event) {
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
@@ -111,10 +109,10 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
                         {
                             // modified hostname - get current value and use sethostname()
                             auto value = change.node.asTerm().value();
-                            auto hostname = std::get<sys::Hostname>(value);
+                            auto hostname = std::get<std::string>(value);
 
                             try {
-                                sys::setHostname(hostname);
+                                hostname_handle.setValue(hostname);
                             } catch (const std::runtime_error& err) {
                                 SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
                                 error = sr::ErrorCode::OperationFailed;

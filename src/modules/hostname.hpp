@@ -6,29 +6,34 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/sdbus.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys {
-/**
- * @brief Hostname type alias.
- */
-using Hostname = std::string;
+class Hostname : public SdBus<std::string, std::string, bool> {
+public:
+    /**
+     * @brief Hostname constructor.
+     */
+    Hostname();
 
-/**
- * @brief Get hostname.
- *
- * @return Hostname.
- */
-Hostname getHostname();
+    /**
+     * @brief Get the system hostname.
+     *
+     * @return System hostname.
+     */
+    std::string getValue(void);
 
-/**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
- *
- * @param hostname Hostname.
- */
-void setHostname(const Hostname& hostname);
+    /**
+     * @brief Set the systme hostname.
+     *
+     * @param hostname Hostname to set.
+     */
+    void setValue(const std::string& hostname);
+};
 }
 
 /**
