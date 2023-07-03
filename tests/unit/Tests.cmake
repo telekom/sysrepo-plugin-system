@@ -10,26 +10,16 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
+find_package(PkgConfig)
+pkg_search_module(GTEST REQUIRED gtest_main)
+
+enable_testing()
+
+# IP address classes tests
 add_executable(
-    system_utest
-
-    ${CMAKE_SOURCE_DIR}/tests/unit/system_utest.c
+    ip_test
+    ${CMAKE_SOURCE_DIR}/tests/unit/ip_test.cpp
 )
-
-target_link_libraries(
-    system_utest
-
-    ${PLUGIN_CORE_LIBRARY_NAME}
-    ${CMOCKA_LIBRARIES}
-    ${SYSREPO_LIBRARIES}
-    ${LIBYANG_LIBRARIES}
-    ${SYSTEMD_LIBRARIES}
-
-    "-Wl,--wrap=gethostname"
-    "-Wl,--wrap=sethostname"
-    "-Wl,--wrap=unlink"
-    "-Wl,--wrap=symlink"
-    "-Wl,--wrap=sr_apply_changes"
-)
-
-add_test(NAME system_utest COMMAND system_utest)
+target_link_libraries(ip_test PRIVATE ${GTEST_LDFLAGS})
+target_compile_options(ip_test PRIVATE ${GTEST_CFLAGS})
+add_test(ip_test ip_test)

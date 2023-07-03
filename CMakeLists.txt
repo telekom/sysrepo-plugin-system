@@ -154,3 +154,7 @@ target_link_libraries(
     ${UMGMT_LIBRARIES}
     ${SRPCPP_LIBRARIES}
 )
+
+if(ENABLE_TESTS)
+    include(tests/unit/Tests.cmake)
+endif()
