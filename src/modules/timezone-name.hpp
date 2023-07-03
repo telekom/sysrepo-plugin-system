@@ -5,30 +5,34 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/sdbus.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys {
+class TimezoneName : public SdBus<std::string, std::string, bool> {
+public:
+    /**
+     * @brief Default constructor.
+     */
+    TimezoneName();
 
-/**
- * @brief Hostname type alias.
- */
-using TimezoneName = std::string;
+    /**
+     * @brief Get timezone name value from the system.
+     *
+     * @return System timezone name.
+     */
+    std::string getValue(void);
 
-/**
- * @brief Get system timezone name from /etc/localtime.
- *
- * @return Timezone name.
- */
-TimezoneName getTimezoneName();
-
-/**
- * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
- *
- * @param timezoneName Timezone name.
- */
-void setTimezoneName(const TimezoneName& timezone_name);
+    /**
+     * @brief Set the timezone name on the system.
+     *
+     * @param timezone_name Timezone to set.
+     */
+    void setValue(const std::string& timezone_name);
+};
 }
 
 /**
