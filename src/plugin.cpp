@@ -18,38 +18,6 @@
 namespace sr = sysrepo;
 
 /**
- * Register all operational plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerOperationalSubscriptions(
-    sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod);
-
-/**
- * Register all module change plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerModuleChangeSubscriptions(
-    sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod);
-
-/**
- * Register all RPC plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod);
-
-/**
  * @brief Plugin init callback.
  *
  * @param session Plugin session.
@@ -67,7 +35,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     *priv = static_cast<void*>(ctx);
 
     // create session subscriptions
-    SRPLG_LOG_INF("ietf-system-plugin", "Creating plugin subscriptions");
+    SRPLG_LOG_INF(ctx->getPluginName(), "Creating plugin subscriptions");
 
     // [TODO]: Try to remove this dependency and use static variable in each module to register it
     registry.registerModule<SystemModule>(*ctx);
@@ -80,7 +48,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // for all registered modules - run system values check
     for (auto& mod : modules) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Running system values check for module %s", mod->getName());
+        SRPLG_LOG_INF(ctx->getPluginName(), "Running system values check for module %s", mod->getName());
         for (auto& checker : mod->getValueCheckers()) {
             try {
                 const auto status = checker->checkValues(sess);
@@ -93,7 +61,7 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
                         break;
                 }
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Failed to check system values for [TODO: add checker name]");
+                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to check system values for [TODO: add checker name]");
             }
         }
     }
@@ -102,13 +70,13 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // get registered modules and create subscriptions
     for (auto& mod : modules) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registering operational callbacks for module %s", mod->getName());
-        registerOperationalSubscriptions(sess, *ctx, mod);
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registering module change callbacks for module %s", mod->getName());
-        registerModuleChangeSubscriptions(sess, *ctx, mod);
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registering RPC callbacks for module %s", mod->getName());
-        registerRpcSubscriptions(sess, *ctx, mod);
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Registered module %s", mod->getName());
+        SRPLG_LOG_INF(ctx->getPluginName(), "Registering operational callbacks for module %s", mod->getName());
+        srpc::registerOperationalSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        SRPLG_LOG_INF(ctx->getPluginName(), "Registering module change callbacks for module %s", mod->getName());
+        srpc::registerModuleChangeSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        SRPLG_LOG_INF(ctx->getPluginName(), "Registering RPC callbacks for module %s", mod->getName());
+        srpc::registerRpcSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        SRPLG_LOG_INF(ctx->getPluginName(), "Registered module %s", mod->getName());
     }
 
     SRPLG_LOG_INF("ietf-system-plugin", "Created plugin subscriptions");
@@ -125,91 +93,19 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
  */
 void sr_plugin_cleanup_cb(sr_session_ctx_t* session, void* priv)
 {
-    SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup called");
-
     auto& registry(srpc::ModuleRegistry<ietf::sys::PluginContext>::getInstance());
     auto ctx = static_cast<ietf::sys::PluginContext*>(priv);
+    const auto plugin_name = ctx->getPluginName();
+
+    SRPLG_LOG_INF(plugin_name, "Plugin cleanup called");
 
     auto& modules = registry.getRegisteredModules();
     for (auto& mod : modules) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Cleaning up module: %s", mod->getName());
+        SRPLG_LOG_INF(ctx->getPluginName(), "Cleaning up module: %s", mod->getName());
     }
 
     // cleanup context manually
     delete ctx;
 
-    SRPLG_LOG_INF("ietf-system-plugin", "Plugin cleanup finished");
-}
-
-/**
- * Register all operational plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerOperationalSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod)
-{
-    const auto oper_callbacks = mod->getOperationalCallbacks();
-
-    auto& sub_handle = ctx.getSubscriptionHandle();
-
-    for (auto& cb : oper_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating operational subscription for xpath %s", cb.XPath.c_str());
-        if (sub_handle.has_value()) {
-            sub_handle->onOperGet("ietf-system", cb.Callback, cb.XPath);
-        } else {
-            sub_handle = sess.onOperGet("ietf-system", cb.Callback, cb.XPath);
-        }
-    }
-}
-
-/**
- * Register all module change plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerModuleChangeSubscriptions(
-    sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod)
-{
-    const auto change_callbacks = mod->getModuleChangeCallbacks();
-
-    auto& sub_handle = ctx.getSubscriptionHandle();
-
-    for (auto& cb : change_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating module change subscription for xpath %s", cb.XPath.c_str());
-        if (sub_handle.has_value()) {
-            sub_handle->onModuleChange("ietf-system", cb.Callback, cb.XPath);
-        } else {
-            sub_handle = sess.onModuleChange("ietf-system", cb.Callback, cb.XPath);
-        }
-    }
-}
-
-/**
- * Register all RPC plugin subscriptions.
- *
- * @param sess Session to use for creating subscriptions.
- * @param ctx Plugin context.
- * @param mod Module to use.
- *
- */
-void registerRpcSubscriptions(sr::Session& sess, ietf::sys::PluginContext& ctx, std::unique_ptr<srpc::IModule<ietf::sys::PluginContext>>& mod)
-{
-    const auto rpc_callbacks = mod->getRpcCallbacks();
-
-    auto& sub_handle = ctx.getSubscriptionHandle();
-
-    for (auto& cb : rpc_callbacks) {
-        SRPLG_LOG_INF(ietf::sys::PLUGIN_NAME, "Creating RPC subscription for xpath %s", cb.XPath.c_str());
-        if (sub_handle.has_value()) {
-            sub_handle->onRPCAction(cb.XPath, cb.Callback);
-        } else {
-            sub_handle = sess.onRPCAction(cb.XPath, cb.Callback);
-        }
-    }
+    SRPLG_LOG_INF(plugin_name, "Plugin cleanup finished");
 }
