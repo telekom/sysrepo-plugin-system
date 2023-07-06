@@ -153,8 +153,30 @@ HostnameValueChecker::HostnameValueChecker(ietf::sys::PluginContext& plugin_ctx)
 srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
+    ietf::sys::Hostname hostname;
 
-    // load hostname from the system and check if the value is the same as in the current session
+    const auto hostname_node = session.getData("/ietf-system:system/hostname");
+
+    if (hostname_node.has_value()) {
+        try {
+            // load the system hostname
+            const auto system_hostname = hostname.getValue();
+            // get the session hostname
+            const auto session_hostname = std::get<std::string>(hostname_node->asTerm().value());
+
+            if (system_hostname == session_hostname) {
+                return srpc::DatastoreValuesCheckStatus::Equal;
+            } else {
+                return srpc::DatastoreValuesCheckStatus::NonExistant;
+            }
+        } catch (const std::runtime_error& err) {
+            SRPLG_LOG_DBG("hostname-value-checker", "Unable to load system hostname: %s", err.what());
+            throw std::runtime_error("Unable to determine hostname system status");
+        }
+    } else {
+        // no hostname node found in the running datastore
+        return srpc::DatastoreValuesCheckStatus::NonExistant;
+    }
 
     return status;
 }
