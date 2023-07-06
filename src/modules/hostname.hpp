@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/context.hpp"
 #include "srpcpp/ds-check.hpp"
 #include <srpcpp/module.hpp>
 
@@ -125,8 +126,13 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/hostname value is contained on the system.
  */
-class HostnameValueChecker : public srpc::DatastoreValuesChecker {
+class HostnameValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
 public:
+    /**
+     * @brief Default constructor.
+     */
+    HostnameValueChecker(ietf::sys::PluginContext& plugin_ctx);
+
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -140,12 +146,12 @@ public:
 /**
  * @brief Hostname leaf module.
  */
-class HostnameModule : public srpc::IModule {
+class HostnameModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Hostname module constructor. Allocates each context.
      */
-    HostnameModule();
+    HostnameModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -178,11 +184,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -193,7 +194,6 @@ public:
     ~HostnameModule() { }
 
 private:
-    std::shared_ptr<HostnameValueChecker> m_valueChecker;
     std::shared_ptr<HostnameOperationalContext> m_operContext;
     std::shared_ptr<HostnameModuleChangesContext> m_changeContext;
     std::shared_ptr<HostnameRpcContext> m_rpcContext;

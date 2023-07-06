@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/context.hpp"
 #include <srpcpp/module.hpp>
 #include <srpcpp/module-registry.hpp>
 
@@ -604,8 +605,13 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/authentication/user values are contained on the system.
  */
-class UserValueChecker : public srpc::DatastoreValuesChecker {
+class UserValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
 public:
+    /**
+     * @brief Default constructor.
+     */
+    UserValueChecker(ietf::sys::PluginContext& plugin_ctx);
+
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -619,8 +625,13 @@ public:
 /**
  * @brief Checker used to check if ietf-system/system/authentication/user/authorized-key values are contained on the system.
  */
-class UserAuthorizedKeyValueChecker : public srpc::DatastoreValuesChecker {
+class UserAuthorizedKeyValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
 public:
+    /**
+     * @brief Default constructor.
+     */
+    UserAuthorizedKeyValueChecker(ietf::sys::PluginContext& plugin_ctx);
+
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -635,12 +646,12 @@ public:
  * @brief Authentication container module.
  * @brief Provides callbacks for user list and each user authorized-key list element.
  */
-class AuthModule : public srpc::IModule {
+class AuthModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Authentication module constructor. Allocates each context.
      */
-    AuthModule();
+    AuthModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -673,11 +684,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -688,8 +694,6 @@ public:
     ~AuthModule() { }
 
 private:
-    std::shared_ptr<UserValueChecker> m_userChecker;
-    std::shared_ptr<UserAuthorizedKeyValueChecker> m_keyChecker;
     std::shared_ptr<AuthOperationalContext> m_operContext;
     std::shared_ptr<AuthModuleChangesContext> m_changeContext;
     std::shared_ptr<AuthRpcContext> m_rpcContext;

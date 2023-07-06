@@ -1,5 +1,6 @@
 #include "dns.hpp"
 #include "core/common.hpp"
+#include "core/context.hpp"
 #include "core/ip.hpp"
 #include "srpcpp/common.hpp"
 #include "sysrepo-cpp/Enum.hpp"
@@ -834,6 +835,14 @@ sr::ErrorCode DnsAttemptsModuleChangeCb::operator()(sr::Session session, uint32_
 }
 
 /**
+ * @brief Default constructor.
+ */
+DnsSearchValueChecker::DnsSearchValueChecker(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
+{
+}
+
+/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
@@ -845,6 +854,14 @@ srpc::DatastoreValuesCheckStatus DnsSearchValueChecker::checkValues(sysrepo::Ses
     srpc::DatastoreValuesCheckStatus status;
 
     return status;
+}
+
+/**
+ * @brief Default constructor.
+ */
+DnsServerValueChecker::DnsServerValueChecker(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
+{
 }
 
 /**
@@ -864,13 +881,14 @@ srpc::DatastoreValuesCheckStatus DnsServerValueChecker::checkValues(sysrepo::Ses
 /**
  * DNS module constructor. Allocates each context.
  */
-DnsModule::DnsModule()
+DnsModule::DnsModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<DnsOperationalContext>();
     m_changeContext = std::make_shared<DnsModuleChangesContext>();
     m_rpcContext = std::make_shared<DnsRpcContext>();
-    m_searchChecker = std::make_shared<DnsSearchValueChecker>();
-    m_serverChecker = std::make_shared<DnsServerValueChecker>();
+    this->addValueChecker<DnsServerValueChecker>();
+    this->addValueChecker<DnsSearchValueChecker>();
 }
 
 /**
@@ -915,17 +933,6 @@ std::list<srpc::ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
-
-/**
- * Get all system value checkers that this module provides.
- */
-std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> DnsModule::getValueCheckers()
-{
-    return {
-        m_searchChecker,
-        m_serverChecker,
-    };
-}
 
 /**
  * Get module name.

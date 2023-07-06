@@ -7,6 +7,7 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/context.hpp"
 #include "core/sdbus.hpp"
 
 // helpers
@@ -840,8 +841,13 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/server values are contained on the system.
  */
-class DnsServerValueChecker : public srpc::DatastoreValuesChecker {
+class DnsServerValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
 public:
+    /**
+     * @brief Default constructor.
+     */
+    DnsServerValueChecker(ietf::sys::PluginContext& plugin_ctx);
+
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -855,8 +861,13 @@ public:
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/search values are contained on the system.
  */
-class DnsSearchValueChecker : public srpc::DatastoreValuesChecker {
+class DnsSearchValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
 public:
+    /**
+     * @brief Default constructor.
+     */
+    DnsSearchValueChecker(ietf::sys::PluginContext& plugin_ctx);
+
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -870,12 +881,12 @@ public:
 /**
  * @brief DNS container module.
  */
-class DnsModule : public srpc::IModule {
+class DnsModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * DNS module constructor. Allocates each context.
      */
-    DnsModule();
+    DnsModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -908,11 +919,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -923,8 +929,6 @@ public:
     ~DnsModule() { }
 
 private:
-    std::shared_ptr<DnsSearchValueChecker> m_searchChecker;
-    std::shared_ptr<DnsServerValueChecker> m_serverChecker;
     std::shared_ptr<DnsOperationalContext> m_operContext;
     std::shared_ptr<DnsModuleChangesContext> m_changeContext;
     std::shared_ptr<DnsRpcContext> m_rpcContext;

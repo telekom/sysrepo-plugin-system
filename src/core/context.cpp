@@ -1,4 +1,5 @@
 #include "context.hpp"
+#include "sysrepo-cpp/Session.hpp"
 
 namespace ietf::sys {
 /**
@@ -19,6 +20,14 @@ PluginContext::PluginContext(sysrepo::Session sess)
  *
  */
 sysrepo::Session& PluginContext::getSession() { return m_sess; }
+
+/**
+ * Get the sysrepo connection.
+ *
+ * @return Connection to sysrepo.
+ *
+ */
+sysrepo::Connection PluginContext::getConnection() { return getSession().getConnection(); }
 
 /**
  * sysrepo-plugin-generator: Generated getter for the subscription handle.

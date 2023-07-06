@@ -1,6 +1,8 @@
 #pragma once
 
 #include <sysrepo-cpp/Session.hpp>
+#include <sysrepo-cpp/Connection.hpp>
+#include <optional>
 
 namespace ietf::sys {
 /**
@@ -23,6 +25,14 @@ public:
      *
      */
     sysrepo::Session& getSession();
+
+    /**
+     * Get the sysrepo connection.
+     *
+     * @return Connection to sysrepo.
+     *
+     */
+    sysrepo::Connection getConnection();
 
     /**
      * sysrepo-plugin-generator: Generated getter for the subscription handle.

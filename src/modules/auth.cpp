@@ -3,6 +3,7 @@
 #include <srpcpp.hpp>
 
 #include "core/common.hpp"
+#include "core/context.hpp"
 #include "srpcpp/common.hpp"
 #include "umgmt/db.h"
 #include "umgmt/group.h"
@@ -988,6 +989,14 @@ sr::ErrorCode AuthOperGetCb::operator()(sr::Session session, uint32_t subscripti
 }
 
 /**
+ * @brief Default constructor.
+ */
+UserValueChecker::UserValueChecker(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
+{
+}
+
+/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
@@ -999,6 +1008,14 @@ srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session&
     srpc::DatastoreValuesCheckStatus status;
 
     return status;
+}
+
+/**
+ * @brief Default constructor.
+ */
+UserAuthorizedKeyValueChecker::UserAuthorizedKeyValueChecker(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
+{
 }
 
 /**
@@ -1018,13 +1035,14 @@ srpc::DatastoreValuesCheckStatus UserAuthorizedKeyValueChecker::checkValues(sysr
 /**
  * Authentication module constructor. Allocates each context.
  */
-AuthModule::AuthModule()
+AuthModule::AuthModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<AuthOperationalContext>();
     m_changeContext = std::make_shared<AuthModuleChangesContext>();
     m_rpcContext = std::make_shared<AuthRpcContext>();
-    m_userChecker = std::make_shared<UserValueChecker>();
-    m_keyChecker = std::make_shared<UserAuthorizedKeyValueChecker>();
+    this->addValueChecker<UserValueChecker>();
+    this->addValueChecker<UserAuthorizedKeyValueChecker>();
 }
 
 /**
@@ -1069,17 +1087,6 @@ std::list<srpc::ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
-
-/**
- * Get all system value checkers that this module provides.
- */
-std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> AuthModule::getValueCheckers()
-{
-    return {
-        m_userChecker,
-        m_keyChecker,
-    };
-}
 
 /**
  * Get module name.

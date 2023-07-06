@@ -7,6 +7,8 @@
 
 #include <sysrepo.h>
 
+#include "core/context.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
@@ -259,12 +261,12 @@ private:
 /**
  * @brief System module.
  */
-class SystemModule : public srpc::IModule {
+class SystemModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * System module constructor. Allocates each context.
      */
-    SystemModule();
+    SystemModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -295,11 +297,6 @@ public:
      * Get all RPC callbacks which the module should use.
      */
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
-
-    /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
 
     /**
      * Get module name.

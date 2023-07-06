@@ -1,4 +1,5 @@
 #include "system.hpp"
+#include "srpcpp/module.hpp"
 
 // Platform information
 #include <stdexcept>
@@ -330,7 +331,8 @@ sr::ErrorCode SystemShutdownRpcCb::operator()(sr::Session session, uint32_t subs
 /**
  * System module constructor. Allocates each context.
  */
-SystemModule::SystemModule()
+SystemModule::SystemModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<SystemOperationalContext>();
     m_changeContext = std::make_shared<SystemModuleChangesContext>();
@@ -379,11 +381,6 @@ std::list<srpc::RpcCallback> SystemModule::getRpcCallbacks()
         srpc::RpcCallback { "/ietf-system:set-current-datetime", ietf::sys::sub::rpc::SetCurrentDatetimeRpcCb(m_rpcContext) },
     };
 }
-
-/**
- * Get all system value checkers that this module provides.
- */
-std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> SystemModule::getValueCheckers() { return {}; }
 
 /**
  * Get module name.
