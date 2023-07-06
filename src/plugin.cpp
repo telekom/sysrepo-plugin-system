@@ -61,7 +61,10 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
                         break;
                 }
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to check system values for [TODO: add checker name]");
+                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to check system values for the following paths:");
+                for (const auto& path : checker->getPaths()) {
+                    SRPLG_LOG_INF(ctx->getPluginName(), "\t%s", path.c_str());
+                }
             }
         }
     }

@@ -141,6 +141,18 @@ public:
      * @return Enum describing the output of values comparison.
      */
     virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/hostname",
+        };
+    }
 };
 
 /**
