@@ -71,11 +71,11 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     // get registered modules and create subscriptions
     for (auto& mod : modules) {
         SRPLG_LOG_INF(ctx->getPluginName(), "Registering operational callbacks for module %s", mod->getName());
-        srpc::registerOperationalSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        srpc::registerOperationalSubscriptions(sess, *ctx, mod);
         SRPLG_LOG_INF(ctx->getPluginName(), "Registering module change callbacks for module %s", mod->getName());
-        srpc::registerModuleChangeSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        srpc::registerModuleChangeSubscriptions(sess, *ctx, mod);
         SRPLG_LOG_INF(ctx->getPluginName(), "Registering RPC callbacks for module %s", mod->getName());
-        srpc::registerRpcSubscriptions<ietf::sys::PluginContext>(sess, *ctx, mod);
+        srpc::registerRpcSubscriptions(sess, *ctx, mod);
         SRPLG_LOG_INF(ctx->getPluginName(), "Registered module %s", mod->getName());
     }
 
