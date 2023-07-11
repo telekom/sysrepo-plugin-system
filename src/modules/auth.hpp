@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/context.hpp"
+#include "srpcpp/datastore.hpp"
 #include <srpcpp/module.hpp>
 #include <srpcpp/module-registry.hpp>
 
@@ -605,13 +606,8 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/authentication/user values are contained on the system.
  */
-class UserValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
+class UserValuesChecker : public srpc::IDatastoreChecker {
 public:
-    /**
-     * @brief Default constructor.
-     */
-    UserValueChecker(ietf::sys::PluginContext& plugin_ctx);
-
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -619,12 +615,12 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
-     * @brief Get the paths which the checker is assigned for.
+     * @brief Get the paths which the checker/applier is assigned for.
      *
-     * @return Checker paths.
+     * @return Assigned paths.
      */
     virtual std::list<std::string> getPaths() override
     {
@@ -635,15 +631,34 @@ public:
 };
 
 /**
- * @brief Checker used to check if ietf-system/system/authentication/user/authorized-key values are contained on the system.
+ * @brief Applier used to apply /ietf-system:system/authentication/user values from the datastore to the system.
  */
-class UserAuthorizedKeyValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
-public:
+class UserValuesApplier : public srpc::IDatastoreApplier {
     /**
-     * @brief Default constructor.
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
      */
-    UserAuthorizedKeyValueChecker(ietf::sys::PluginContext& plugin_ctx);
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
 
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user",
+        };
+    }
+};
+
+/**
+ * @brief Checker used to check if /ietf-system:system/authentication/user/authorized-key values are contained on the system.
+ */
+class AuthorizedKeyValuesChecker : public srpc::IDatastoreChecker {
+public:
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -651,12 +666,12 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
-     * @brief Get the paths which the checker is assigned for.
+     * @brief Get the paths which the checker/applier is assigned for.
      *
-     * @return Checker paths.
+     * @return Assigned paths.
      */
     virtual std::list<std::string> getPaths() override
     {
@@ -666,6 +681,29 @@ public:
     }
 };
 
+/**
+ * @brief Applier used to apply /ietf-system:system/authentication/user/authorized-key values from the datastore to the system.
+ */
+class AuthorizedKeyValuesApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user/authorized-key",
+        };
+    }
+};
 /**
  * @brief Authentication container module.
  * @brief Provides callbacks for user list and each user authorized-key list element.

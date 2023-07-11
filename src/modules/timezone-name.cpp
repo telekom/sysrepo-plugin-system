@@ -195,21 +195,13 @@ sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session sessi
 }
 
 /**
- * @brief Default constructor.
- */
-TimezoneValueChecker::TimezoneValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 

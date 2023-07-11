@@ -989,12 +989,25 @@ sr::ErrorCode AuthOperGetCb::operator()(sr::Session session, uint32_t subscripti
 }
 
 /**
- * @brief Default constructor.
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
  */
-UserValueChecker::UserValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
+srpc::DatastoreValuesCheckStatus UserValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
 }
+
+/**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
 
 /**
  * @brief Check for the datastore values on the system.
@@ -1003,7 +1016,7 @@ UserValueChecker::UserValueChecker(ietf::sys::PluginContext& plugin_ctx)
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus AuthorizedKeyValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 
@@ -1011,26 +1024,11 @@ srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session&
 }
 
 /**
- * @brief Default constructor.
- */
-UserAuthorizedKeyValueChecker::UserAuthorizedKeyValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
- * @brief Check for the datastore values on the system.
+ * @brief Apply datastore content from the provided session to the system.
  *
- * @param session Sysrepo session used for retreiving datastore values.
- *
- * @return Enum describing the output of values comparison.
+ * @param session Session to use for retreiving datastore data.
  */
-srpc::DatastoreValuesCheckStatus UserAuthorizedKeyValueChecker::checkValues(sysrepo::Session& session)
-{
-    srpc::DatastoreValuesCheckStatus status;
-
-    return status;
-}
+void AuthorizedKeyValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
 
 /**
  * Authentication module constructor. Allocates each context.
@@ -1041,8 +1039,13 @@ AuthModule::AuthModule(ietf::sys::PluginContext& plugin_ctx)
     m_operContext = std::make_shared<AuthOperationalContext>();
     m_changeContext = std::make_shared<AuthModuleChangesContext>();
     m_rpcContext = std::make_shared<AuthRpcContext>();
-    this->addValueChecker<UserValueChecker>();
-    this->addValueChecker<UserAuthorizedKeyValueChecker>();
+
+    // add checkers
+    this->addValueChecker<UserValuesChecker>();
+    this->addValueChecker<AuthorizedKeyValuesChecker>();
+
+    // add value appliers
+    this->addValueApplier<UserValuesApplier>();
 }
 
 /**

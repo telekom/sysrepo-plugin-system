@@ -46,30 +46,21 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     auto& modules = registry.getRegisteredModules();
 
-    // for all registered modules - run system values check
+    // for all registered modules - apply startup datastore values
+    // startup datastore values are coppied into the running datastore when the first connection with sysrepo is made
     for (auto& mod : modules) {
-        SRPLG_LOG_INF(ctx->getPluginName(), "Running system values check for module %s", mod->getName());
-        for (auto& checker : mod->getValueCheckers()) {
+        SRPLG_LOG_INF(ctx->getPluginName(), "Applying startup values for module %s", mod->getName());
+        for (auto& applier : mod->getValueAppliers()) {
             try {
-                const auto status = checker->checkValues(sess);
-                switch (status) {
-                    case srpc::DatastoreValuesCheckStatus::Equal:
-                        break;
-                    case srpc::DatastoreValuesCheckStatus::Partial:
-                        break;
-                    case srpc::DatastoreValuesCheckStatus::NonExistant:
-                        break;
-                }
+                applier->applyDatastoreValues(sess);
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to check system values for the following paths:");
-                for (const auto& path : checker->getPaths()) {
+                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to apply datastore values for the following paths:");
+                for (const auto& path : applier->getPaths()) {
                     SRPLG_LOG_INF(ctx->getPluginName(), "\t%s", path.c_str());
                 }
             }
         }
     }
-
-    // once all values have been checked subscriptions can normally be registered
 
     // get registered modules and create subscriptions
     for (auto& mod : modules) {

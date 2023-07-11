@@ -835,46 +835,28 @@ sr::ErrorCode DnsAttemptsModuleChangeCb::operator()(sr::Session session, uint32_
 }
 
 /**
- * @brief Default constructor.
- */
-DnsSearchValueChecker::DnsSearchValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus DnsSearchValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus DnsSearchValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
-
     return status;
 }
 
 /**
- * @brief Default constructor.
- */
-DnsServerValueChecker::DnsServerValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus DnsServerValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus DnsServerValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
-
     return status;
 }
 
@@ -887,8 +869,8 @@ DnsModule::DnsModule(ietf::sys::PluginContext& plugin_ctx)
     m_operContext = std::make_shared<DnsOperationalContext>();
     m_changeContext = std::make_shared<DnsModuleChangesContext>();
     m_rpcContext = std::make_shared<DnsRpcContext>();
-    this->addValueChecker<DnsServerValueChecker>();
-    this->addValueChecker<DnsSearchValueChecker>();
+    this->addValueChecker<DnsServerValuesChecker>();
+    this->addValueChecker<DnsSearchValuesChecker>();
 }
 
 /**

@@ -1,6 +1,5 @@
 #include "hostname.hpp"
 #include "core/context.hpp"
-#include "srpcpp/ds-check.hpp"
 
 #include <core/common.hpp>
 
@@ -136,21 +135,13 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 }
 
 /**
- * @brief Default constructor.
- */
-HostnameValueChecker::HostnameValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
     ietf::sys::Hostname hostname;

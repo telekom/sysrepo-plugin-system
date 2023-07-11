@@ -7,6 +7,7 @@
 
 #include "core/context.hpp"
 #include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
@@ -192,13 +193,8 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/clock/timezone* value is contained on the system.
  */
-class TimezoneValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
+class TimezoneValueChecker : public srpc::IDatastoreChecker {
 public:
-    /**
-     * @brief Default constructor.
-     */
-    TimezoneValueChecker(ietf::sys::PluginContext& plugin_ctx);
-
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -206,7 +202,7 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
      * @brief Get the paths which the checker is assigned for.
