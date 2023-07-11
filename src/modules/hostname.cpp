@@ -173,6 +173,13 @@ srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkDatastoreValues(sysr
 }
 
 /**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void HostnameValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
+
+/**
  * Hostname module constructor. Allocates each context.
  */
 HostnameModule::HostnameModule(ietf::sys::PluginContext& plugin_ctx)
@@ -182,6 +189,7 @@ HostnameModule::HostnameModule(ietf::sys::PluginContext& plugin_ctx)
     m_changeContext = std::make_shared<HostnameModuleChangesContext>();
     m_rpcContext = std::make_shared<HostnameRpcContext>();
     this->addValueChecker<HostnameValueChecker>();
+    this->addValueApplier<HostnameValueApplier>();
 }
 
 /**

@@ -151,6 +151,30 @@ public:
 };
 
 /**
+ * @brief Applier used to apply /ietf-system:system/hostname value from the datastore to the system.
+ */
+class HostnameValueApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/hostname",
+        };
+    }
+};
+
+/**
  * @brief Hostname leaf module.
  */
 class HostnameModule : public srpc::IModule<ietf::sys::PluginContext> {

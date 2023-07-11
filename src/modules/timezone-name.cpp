@@ -209,6 +209,13 @@ srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysr
 }
 
 /**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
+
+/**
  * Timezone module constructor. Allocates each context.
  */
 TimezoneModule::TimezoneModule(ietf::sys::PluginContext& plugin_ctx)
@@ -218,6 +225,7 @@ TimezoneModule::TimezoneModule(ietf::sys::PluginContext& plugin_ctx)
     m_changeContext = std::make_shared<TimezoneModuleChangesContext>();
     m_rpcContext = std::make_shared<TimezoneRpcContext>();
     this->addValueChecker<TimezoneValueChecker>();
+    this->addValueApplier<TimezoneValueApplier>();
 }
 
 /**
