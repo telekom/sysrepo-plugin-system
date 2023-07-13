@@ -1,5 +1,6 @@
 #include "auth.hpp"
 
+#include <cstdint>
 #include <srpcpp.hpp>
 
 #include "core/common.hpp"
@@ -1007,7 +1008,37 @@ srpc::DatastoreValuesCheckStatus UserValuesChecker::checkDatastoreValues(sysrepo
  *
  * @param session Session to use for retreiving datastore data.
  */
-void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
+void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    ietf::sys::auth::LocalUserList users;
+    uint8_t user_found = 0;
+    // create database context
+    ietf::sys::auth::DatabaseContext db;
+
+    // extract values
+    const auto user_name_node = session.getData("/ietf-system:system/authentication/user/name");
+    const auto user_name = std::get<std::string>(user_name_node->asTerm().value());
+
+    const auto user_password_node = session.getData("/ietf-system:system/authentication/user/name");
+    const auto user_password = std::get<std::string>(user_password_node->asTerm().value());
+
+    try {
+        users.loadFromSystem();
+
+        for (auto& user : users) {
+            if (user.Name == user_name) {
+                user_found = 1;
+            }
+        }
+    } catch (const std::exception& e) {
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading local users");
+        SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", e.what());
+    }
+    if (user_found == 0) {
+        users.addUser(user_name, user_password);
+        users.storeToSystem();
+    }
+}
 
 /**
  * @brief Check for the datastore values on the system.
