@@ -1,13 +1,13 @@
 #pragma once
 
 #include "core/context.hpp"
-#include "srpcpp/ds-check.hpp"
 #include <srpcpp/module.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
 #include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
@@ -126,13 +126,8 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/hostname value is contained on the system.
  */
-class HostnameValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
+class HostnameValueChecker : public srpc::IDatastoreChecker {
 public:
-    /**
-     * @brief Default constructor.
-     */
-    HostnameValueChecker(ietf::sys::PluginContext& plugin_ctx);
-
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -140,12 +135,36 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
      * @brief Get the paths which the checker is assigned for.
      *
      * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/hostname",
+        };
+    }
+};
+
+/**
+ * @brief Applier used to apply /ietf-system:system/hostname value from the datastore to the system.
+ */
+class HostnameValueApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
      */
     virtual std::list<std::string> getPaths() override
     {

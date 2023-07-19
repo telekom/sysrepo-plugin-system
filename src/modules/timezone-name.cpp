@@ -195,26 +195,25 @@ sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session sessi
 }
 
 /**
- * @brief Default constructor.
- */
-TimezoneValueChecker::TimezoneValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 
     return status;
 }
+
+/**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
 
 /**
  * Timezone module constructor. Allocates each context.
@@ -226,6 +225,7 @@ TimezoneModule::TimezoneModule(ietf::sys::PluginContext& plugin_ctx)
     m_changeContext = std::make_shared<TimezoneModuleChangesContext>();
     m_rpcContext = std::make_shared<TimezoneRpcContext>();
     this->addValueChecker<TimezoneValueChecker>();
+    this->addValueApplier<TimezoneValueApplier>();
 }
 
 /**

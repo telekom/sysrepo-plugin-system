@@ -9,6 +9,7 @@
 
 #include "core/context.hpp"
 #include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
@@ -841,13 +842,8 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/server values are contained on the system.
  */
-class DnsServerValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
+class DnsServerValuesChecker : public srpc::IDatastoreChecker {
 public:
-    /**
-     * @brief Default constructor.
-     */
-    DnsServerValueChecker(ietf::sys::PluginContext& plugin_ctx);
-
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -855,7 +851,7 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
      * @brief Get the paths which the checker is assigned for.
@@ -873,13 +869,8 @@ public:
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/search values are contained on the system.
  */
-class DnsSearchValueChecker : public srpc::DatastoreValuesChecker<ietf::sys::PluginContext> {
+class DnsSearchValuesChecker : public srpc::IDatastoreChecker {
 public:
-    /**
-     * @brief Default constructor.
-     */
-    DnsSearchValueChecker(ietf::sys::PluginContext& plugin_ctx);
-
     /**
      * @brief Check for the datastore values on the system.
      *
@@ -887,7 +878,7 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
 
     /**
      * @brief Get the paths which the checker is assigned for.

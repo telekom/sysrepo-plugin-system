@@ -1,6 +1,5 @@
 #include "hostname.hpp"
 #include "core/context.hpp"
-#include "srpcpp/ds-check.hpp"
 
 #include <core/common.hpp>
 
@@ -136,21 +135,13 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 }
 
 /**
- * @brief Default constructor.
- */
-HostnameValueChecker::HostnameValueChecker(ietf::sys::PluginContext& plugin_ctx)
-    : srpc::DatastoreValuesChecker<ietf::sys::PluginContext>(plugin_ctx)
-{
-}
-
-/**
  * @brief Check for the datastore values on the system.
  *
  * @param session Sysrepo session used for retreiving datastore values.
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
     ietf::sys::Hostname hostname;
@@ -182,6 +173,22 @@ srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkValues(sysrepo::Sess
 }
 
 /**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void HostnameValueApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    const auto hostname_node = session.getData("/ietf-system:system/hostname");
+    const auto session_hostname = std::get<std::string>(hostname_node->asTerm().value());
+    ietf::sys::Hostname hostname;
+
+    if (hostname_node.has_value()) {
+        hostname.setValue(session_hostname);
+    }
+}
+
+/**
  * Hostname module constructor. Allocates each context.
  */
 HostnameModule::HostnameModule(ietf::sys::PluginContext& plugin_ctx)
@@ -191,6 +198,7 @@ HostnameModule::HostnameModule(ietf::sys::PluginContext& plugin_ctx)
     m_changeContext = std::make_shared<HostnameModuleChangesContext>();
     m_rpcContext = std::make_shared<HostnameRpcContext>();
     this->addValueChecker<HostnameValueChecker>();
+    this->addValueApplier<HostnameValueApplier>();
 }
 
 /**
