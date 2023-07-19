@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/context.hpp"
+#include "srpcpp/datastore.hpp"
 #include <srpcpp/module.hpp>
 #include <srpcpp/module-registry.hpp>
 
@@ -602,15 +604,116 @@ private:
 }
 
 /**
+ * @brief Checker used to check if ietf-system/system/authentication/user values are contained on the system.
+ */
+class UserValuesChecker : public srpc::IDatastoreChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user",
+        };
+    }
+};
+
+/**
+ * @brief Applier used to apply /ietf-system:system/authentication/user values from the datastore to the system.
+ */
+class UserValuesApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user",
+        };
+    }
+};
+
+/**
+ * @brief Checker used to check if /ietf-system:system/authentication/user/authorized-key values are contained on the system.
+ */
+class AuthorizedKeyValuesChecker : public srpc::IDatastoreChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user/authorized-key",
+        };
+    }
+};
+
+/**
+ * @brief Applier used to apply /ietf-system:system/authentication/user/authorized-key values from the datastore to the system.
+ */
+class AuthorizedKeyValuesApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/authentication/user/authorized-key",
+        };
+    }
+};
+/**
  * @brief Authentication container module.
  * @brief Provides callbacks for user list and each user authorized-key list element.
  */
-class AuthModule : public srpc::IModule {
+class AuthModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Authentication module constructor. Allocates each context.
      */
-    AuthModule();
+    AuthModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -630,17 +733,17 @@ public:
     /**
      * Get all operational callbacks which the module should use.
      */
-    virtual std::list<OperationalCallback> getOperationalCallbacks() override;
+    virtual std::list<srpc::OperationalCallback> getOperationalCallbacks() override;
 
     /**
      * Get all module change callbacks which the module should use.
      */
-    virtual std::list<ModuleChangeCallback> getModuleChangeCallbacks() override;
+    virtual std::list<srpc::ModuleChangeCallback> getModuleChangeCallbacks() override;
 
     /**
      * Get all RPC callbacks which the module should use.
      */
-    virtual std::list<RpcCallback> getRpcCallbacks() override;
+    virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
      * Get module name.

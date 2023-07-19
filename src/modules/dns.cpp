@@ -1,429 +1,262 @@
 #include "dns.hpp"
+#include "core/common.hpp"
+#include "core/context.hpp"
+#include "core/ip.hpp"
+#include "srpcpp/common.hpp"
+#include "sysrepo-cpp/Enum.hpp"
 
 #include <core/sdbus.hpp>
 
 // logging
+#include <memory>
+#include <stdexcept>
 #include <sysrepo.h>
 
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix();
+
 namespace ietf::sys::dns {
-
-// DnsServer::DnsServer(int ifindex, std::string name, ip::Address address, uint16_t port)
-//     : m_name { name }
-//     , m_address { address }
-//     , m_port { port }
-//     , m_ifindex { ifindex }
-// {
-// }
-
-// std::string DnsServer::getName() { return m_name; }
-
-// uint16_t DnsServer::getPort() { return m_port; }
-
-// ip::Address* DnsServer::getAddress() { return &m_address; }
-
-// void DnsServer::setPort(const uint16_t& port) { this->m_port = port; }
-
-// void DnsServer::setAddress(const ip::Address& address) { this->m_address = address; }
-
-// std::string DnsServer::getStringAddress() { return m_address.getStringAddr(); }
-
-// int DnsServer::getIfindex() { return m_ifindex; }
-
-// bool DnsServer::operator==(const DnsServer& other) const
-// {
-//     return ((this->m_name == other.m_name) && (this->m_address == other.m_address) && (this->m_port == other.m_port)
-//         && (this->m_ifindex == other.m_ifindex));
-// }
-
-// // DnsSearchServer implementation
-// DnsSearchServer::DnsSearchServer()
-//     : m_search { false }
-// {
-//     m_domain.clear();
-// }
-
-// DnsSearchServer::DnsSearchServer(int ifindex, std::string domain, bool search)
-//     : m_domain { domain }
-//     , m_search { search }
-//     , m_ifindex { ifindex }
-// {
-// }
-
-// DnsSearchServer::DnsSearchServer(std::string domain, bool search)
-//     : m_domain { domain }
-//     , m_search { search }
-//     , m_ifindex { SYSTEMD_IFINDEX }
-// {
-// }
-
-// std::string DnsSearchServer::getDomain() { return m_domain; }
-
-// bool DnsSearchServer::getSearch() { return m_search; }
-
-// int DnsSearchServer::getIfIndex() { return m_ifindex; }
-
-// void DnsSearchServer::setDomain(std::string domain) { this->m_domain = domain; }
-
-// void DnsSearchServer::setSearch(bool search) { this->m_search = search; }
-
-// bool DnsSearchServer::operator==(const DnsSearchServer& other) const
-// {
-//     return (this->m_domain == other.m_domain) && (this->m_ifindex == other.m_ifindex);
-// }
-
-// bool DnsSearchServer::operator!=(const DnsSearchServer& other) const
-// {
-//     return !((this->m_domain == other.m_domain) && (this->m_ifindex == other.m_ifindex));
-// }
-
-// // DnsSearchServerList implementation
-
-// DnsSearchServerList::DnsSearchServerList()
-//     : m_ifindex { SYSTEMD_IFINDEX }
-// {
-// }
-
-// // not recomended, explicit definition of ifindex
-// DnsSearchServerList::DnsSearchServerList(int ifindex)
-//     : m_ifindex { ifindex }
-// {
-// }
-
-// bool DnsSearchServerList::addDnsSearchServer(DnsSearchServer srv)
-// {
-//     for (DnsSearchServer& server : m_servers) {
-//         if (server == srv) {
-//             // allready exists or wrong ifindex
-//             if (server.getSearch() != srv.getSearch()) {
-//                 server.setSearch(srv.getSearch());
-//                 // just modified, dont push to vector
-//                 return true;
-//             }
-//             return false;
-//         }
-//     }
-
-//     m_servers.push_back(srv);
-//     return true;
-// }
-
-// std::vector<DnsSearchServer> DnsSearchServerList::getAllServers() { return m_servers; }
-
-// std::optional<DnsSearchServer> DnsSearchServerList::findDnsSearchServer(const DnsSearchServer& server)
-// {
-
-//     for (DnsSearchServer& srv : m_servers) {
-//         if (srv == server) {
-//             return server;
-//         }
-//     }
-
-//     return std::nullopt;
-// }
-
-// bool DnsSearchServerList::removeDnsSearchServer(const DnsSearchServer& server)
-// {
-//     std::vector<DnsSearchServer>::iterator it = m_servers.begin();
-//     // safe aproach to erase while iterating
-//     while (it != m_servers.end()) {
-
-//         if (*it == server) {
-//             it = m_servers.erase(it);
-//             return true;
-//         } else {
-//             it++;
-//         }
-//     }
-
-//     return false;
-// }
-
-// bool DnsSearchServerList::compareDnsSearchServer(const DnsSearchServer& s1, const DnsSearchServer& s2) { return (s1 == s2); }
-
-// bool DnsSearchServerList::exportListToSdBus()
-// {
-
-//     bool error = false;
-
-//     std::vector<sdbus::Struct<std::string, bool>> sdbusData;
-
-//     for (auto& server : m_servers) {
-//         sdbusData.push_back(sdbus::Struct<std::string, bool>(sdbus::make_struct(server.getDomain(), server.getSearch())));
-//     }
-
-//     const char* destinationName = "org.freedesktop.resolve1";
-//     const char* objectPath = "/org/freedesktop/resolve1";
-//     const char* interfaceName = "org.freedesktop.resolve1.Manager";
-
-//     try {
-//         auto proxy = sdbus::createProxy(destinationName, objectPath);
-//         proxy->callMethod("SetLinkDomains").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
-//     } catch (sdbus::Error& e) {
-//         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
-//         error = true;
-//     }
-
-//     // clear container after succsess
-//     if (!error) {
-//         m_servers.clear();
-//     }
-
-//     return error;
-// }
-
-// bool DnsSearchServerList::importListFromSdBus()
-// {
-
-//     bool error = false;
-
-//     std::vector<sdbus::Struct<int32_t, std::string, bool>> sdbusData;
-//     const char* destinationName = "org.freedesktop.resolve1";
-//     const char* objectPath = "/org/freedesktop/resolve1";
-//     const char* interfaceName = "org.freedesktop.resolve1.Manager";
-//     sdbus::Variant v;
-//     try {
-//         auto proxy = sdbus::createProxy(destinationName, objectPath);
-//         v = proxy->getProperty("Domains").onInterface(interfaceName);
-//     } catch (sdbus::Error& e) {
-//         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
-//         error = true;
-//     }
-//     sdbusData = v.get<std::vector<sdbus::Struct<int32_t, std::string, bool>>>();
-//     m_servers.clear();
-//     for (auto& vc : sdbusData) {
-//         // filter by ifindex
-//         int ifindex = vc.get<0>();
-//         if (ifindex == m_ifindex) {
-//             m_servers.push_back(
-//                 // store the ifindex ,domain, search
-//                 DnsSearchServer(ifindex, vc.get<1>(), vc.get<2>()));
-//         }
-//     }
-
-//     return error;
-// }
-
-// // end of DnsSearchServerList initialization
-
-// // DnsServerList initialization
-
-// DnsServerList::DnsServerList()
-//     : m_ifindex { SYSTEMD_IFINDEX }
-// {
-// }
-// DnsServerList::DnsServerList(int ifindex)
-//     : m_ifindex { ifindex }
-// {
-// }
-
-// bool DnsServerList::importListFromSdBus()
-// {
-
-//     bool error = false;
-
-//     std::vector<sdbus::Struct<int, int, std::vector<uint8_t>, uint16_t, std::string>> sdbusData;
-//     const char* destinationName = "org.freedesktop.resolve1";
-//     const char* objectPath = "/org/freedesktop/resolve1";
-//     const char* interfaceName = "org.freedesktop.resolve1.Manager";
-//     sdbus::Variant v;
-
-//     try {
-//         auto proxy = sdbus::createProxy(destinationName, objectPath);
-//         v = proxy->getProperty("DNSEx").onInterface(interfaceName);
-//     } catch (sdbus::Error& e) {
-//         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
-//         error = true;
-//     }
-//     // ifindex, version (ipv4=2 ipv6=10), byte_array, port, name
-//     sdbusData = v.get<std::vector<sdbus::Struct<int, int, std::vector<uint8_t>, uint16_t, std::string>>>();
-//     m_servers.clear();
-
-//     for (auto& vc : sdbusData) {
-
-//         int ifindex = vc.get<0>();
-//         if (ifindex == m_ifindex) {
-
-//             std::shared_ptr<ip::Address> addr;
-
-//             int version = vc.get<1>();
-//             int port = vc.get<3>();
-
-//             if (port == 0) {
-//                 port = 53;
-//             }
-
-//             if (version == 2) {
-//                 addr = std::make_shared<ip::Ipv4Address>(vc.get<2>());
-//             } else if (version == 10) {
-//                 addr = std::make_shared<ip::Ipv6Address>(vc.get<2>());
-//             }
-
-//             // Address addr(vc.get<2>());
-//             m_servers.push_back(DnsServer(ifindex, vc.get<4>(), *addr, port));
-//         }
-//     }
-
-//     return error;
-// }
-
-// bool DnsServerList::exportListToSdBus()
-// {
-//     bool error = false;
-
-//     std::vector<sdbus::Struct<int, std::vector<uint8_t>, uint16_t, std::string>> sdbusData;
-
-//     for (auto& server : m_servers) {
-//         sdbusData.push_back(sdbus::Struct<int, std::vector<uint8_t>, uint16_t, std::string>(
-//             sdbus::make_struct(server.getAddress()->getVersion(), server.getAddress()->byteVector(), server.getPort(), server.getName())));
-//     }
-
-//     const char* destinationName = "org.freedesktop.resolve1";
-//     const char* objectPath = "/org/freedesktop/resolve1";
-//     const char* interfaceName = "org.freedesktop.resolve1.Manager";
-
-//     try {
-//         auto proxy = sdbus::createProxy(destinationName, objectPath);
-//         proxy->callMethod("SetLinkDNSEx").onInterface(interfaceName).withArguments(m_ifindex, sdbusData);
-//     } catch (sdbus::Error& e) {
-//         SRPLG_LOG_ERR("%s", e.getMessage().c_str());
-//         error = true;
-//     }
-
-//     // clear container after succsess
-//     if (!error) {
-//         m_servers.clear();
-//     }
-
-//     return error;
-// }
-
-// int DnsServerList::getIfIndex() { return m_ifindex; }
-
-// bool DnsServerList::addDnsServer(DnsServer srv)
-// {
-//     for (DnsServer& server : m_servers) {
-//         if (server.getName().compare(srv.getName()) == 0) {
-//             // the name is the key in yang
-//             // allready exists, return false
-//             return false;
-//         }
-//     }
-
-//     m_servers.push_back(srv);
-//     return true;
-// }
-
-// std::vector<DnsServer> DnsServerList::getDnsServerVector() { return m_servers; }
-
-// bool DnsServerList::removeDnsServer(const DnsServer& server)
-// {
-//     std::vector<DnsServer>::iterator it = m_servers.begin();
-//     // safe aproach to erase while iterating
-//     while (it != m_servers.end()) {
-
-//         if (*it == server) {
-//             it = m_servers.erase(it);
-//             return true;
-//         } else {
-//             it++;
-//         }
-//     }
-
-//     return false;
-// }
-
-// bool DnsServerList::modifyDnsServer(DnsServer server)
-// {
-
-//     for (auto& srv : m_servers) { // name is the key in yang model, no duplicates
-//         if (srv.getName().compare(server.getName()) == 0) {
-
-//             if (srv.getAddress()->getVersion() != server.getAddress()->getVersion()) {
-//                 throw std::runtime_error("Server has diferent IPVersion, cannot modify!");
-//             }
-
-//             srv.setAddress(*server.getAddress());
-//             srv.setPort(server.getPort());
-//             return true;
-//         }
-//     }
-
-//     return false;
-// }
-
-// // end of DnsServerList init
-
-// // function to take from the changed node, return DnsServer
-// std::optional<DnsServer> getServerFromChangedNode(const libyang::DataNode& changedNode)
-// {
-
-//     libyang::DataNode recursiveNode(changedNode);
-//     libyang::SchemaNode schema = recursiveNode.schema();
-//     std::unordered_map<std::string, std::string> map;
-
-//     // starting from the lowest point address or port
-//     if (schema.name().compare("address") == 0 || schema.name().compare("port") == 0) {
-
-//         // set the node pointer to server node
-//         while (schema.name().compare("server") != 0) {
-//             recursiveNode = recursiveNode.parent().value();
-//             schema = recursiveNode.schema();
-//         }
-
-//         for (libyang::DataNode node : recursiveNode.childrenDfs()) {
-
-//             // jump the first node, cause its server
-//             if (node.schema().name().compare("server") == 0)
-//                 continue;
-
-//             if (node.isTerm()) {
-//                 {
-//                     std::string key = node.schema().name().data();
-//                     std::string value = node.asTerm().valueStr().data();
-//                     map.insert(std::make_pair(key, value));
-//                 }
-
-//             } else {
-
-//                 {
-//                     std::string value = node.schema().name().data();
-//                     std::string key = "transport";
-//                     map.insert(std::make_pair(key, value));
-//                 }
-//             }
-//         }
-
-//         uint16_t port = 53;
-//         std::shared_ptr<ip::Address> addr = nullptr;
-
-//         if (map.find("port") != map.end()) {
-//             port = stoi(map.at("port"));
-//         }
-
-//         std::string adr = map["address"];
-//         struct in_addr ip_addr;
-//         struct in6_addr ip_addr_6;
-//         // int ip_version = getAddressIPVersion(adr);
-
-//         if (inet_pton(AF_INET, adr.c_str(), &ip_addr) == 1) {
-
-//             addr = std::make_shared<ip::Ipv4Address>(adr);
-
-//         } else if (inet_pton(AF_INET6, adr.c_str(), &ip_addr_6) == 1) {
-
-//             addr = std::make_shared<ip::Ipv6Address>(adr);
-
-//         } else {
-//             throw std::runtime_error("Unknown address format!");
-//         }
-
-//         DnsServer server(SYSTEMD_IFINDEX, map["name"], *addr, port);
-//         return server;
-//     }
-
-//     return std::nullopt;
-// }
-
+/**
+ * @brief Default constructor.
+ */
+DnsServer::DnsServer()
+    : Port(0)
+    , InterfaceIndex(SYSTEMD_IFINDEX)
+{
+}
+
+/**
+ * @brief Set the IP address of the server.
+ *
+ * @param address IP address (IPv4 or IPv6).
+ */
+void DnsServer::setAddress(const std::string& address)
+{
+    // try IPv4 and IPv6 classes
+    try {
+        this->Address = std::make_unique<ip::Ipv4Address>(address);
+    } catch (const std::runtime_error& err) {
+        // unable to set ipv4 - ipv6 must pass, if not - throw exception
+        try {
+            this->Address = std::make_unique<ip::Ipv6Address>(address);
+        } catch (const std::runtime_error& err) {
+            // Note: should not ever be possible due to YANG regex for an IP address
+            throw std::runtime_error("Invalid IP address received");
+        }
+    }
+}
+
+/**
+ * @brief Set the port of the server.
+ *
+ * @param port Port to set.
+ */
+void DnsServer::setPort(std::optional<uint16_t> port) { this->Port = port ? port.value() : 53; }
+
+/**
+ * @breif Default constructor.
+ */
+DnsServerList::DnsServerList()
+    : SdBus("org.freedesktop.resolve1", "/org/freedesktop/resolve1", "org.freedesktop.resolve1.Manager", "SetLinkDNSEx", "DNSEx")
+    , m_ifindex(SYSTEMD_IFINDEX)
+{
+}
+
+/**
+ * @brief Loads the list of DNS servers found currently on the system.
+ */
+void DnsServerList::loadFromSystem()
+{
+    // convert from SDBus list to our list
+    auto servers = this->importFromSdBus();
+    for (auto& s : servers) {
+        const auto addr_type = s.get<1>();
+        DnsServer server;
+
+        server.InterfaceIndex = s.get<0>();
+        server.Port = s.get<3>();
+        server.Name = s.get<4>();
+
+        switch (addr_type) {
+            case AF_INET:
+                server.Address = std::make_unique<ip::Ipv4Address>(s.get<2>());
+                break;
+            case AF_INET6:
+                server.Address = std::make_unique<ip::Ipv6Address>(s.get<2>());
+                break;
+            default:
+                break;
+        }
+
+        // move due to unique_ptr usage for address storage
+        m_servers.push_back(std::move(server));
+    }
+}
+
+/**
+ * @brief Stores the list of DNS servers in the class to the system.
+ */
+void DnsServerList::storeToSystem()
+{
+    // convert to SDBus list and store it
+    std::vector<sdbus::Struct<int32_t, std::vector<uint8_t>, uint16_t, std::string>> sdbus_data;
+
+    for (auto& server : m_servers) {
+        sdbus_data.push_back(sdbus::Struct<int32_t, std::vector<uint8_t>, uint16_t, std::string>(
+            server.Address->getVersion(), server.Address->asBytes(), server.Port, server.Name));
+    }
+
+    this->exportToSdBus(m_ifindex, sdbus_data);
+}
+
+/**
+ * @brief Create a new server and add it to the list.
+ *
+ * @param name Name of the DNS server.
+ * @param address IP address of the DNS server.
+ * @param port Optional port value of the DNS server. If no value provided, 53 is used.
+ */
+void DnsServerList::createServer(const std::string& name, const std::string& address, std::optional<uint16_t> port)
+{
+    DnsServer new_server;
+
+    new_server.InterfaceIndex = SYSTEMD_IFINDEX;
+    new_server.Name = name;
+    new_server.setPort(port);
+    new_server.setAddress(address);
+
+    // add the new server to the list
+    // move due to unique_ptr usage for address storage
+    m_servers.push_back(std::move(new_server));
+}
+
+/**
+ * @brief Change the IP address of the given server with the provided name.
+ *
+ * @param name Name of the server to change.
+ * @param address New address to set.
+ */
+void DnsServerList::changeServerAddress(const std::string& name, const std::string& address)
+{
+    const auto it = m_findServer(name);
+
+    if (it != end()) {
+        // found server - change its value
+        it.value()->setAddress(address);
+    } else {
+        // unable to find given server - error
+        throw std::runtime_error("Unable to find DNS server with the provided name");
+    }
+}
+
+/**
+ * @brief Change the port of the given server with the provided name.
+ *
+ * @param name Name of the server to change.
+ * @param port New port to set.
+ */
+void DnsServerList::changeServerPort(const std::string& name, const uint16_t port)
+{
+    const auto it = m_findServer(name);
+
+    if (it) {
+        // found server - change its value
+        it.value()->setPort(std::optional(port));
+    } else {
+        // unable to find given server - error
+        throw std::runtime_error("Unable to find DNS server with the provided name");
+    }
+}
+
+/**
+ * @brief Delete server from the list.
+ *
+ * @param name Name of the DNS server.
+ */
+void DnsServerList::deleteServer(const std::string& name)
+{
+    m_servers.remove_if([&name](const auto& server) { return server.Name == name; });
+}
+
+/**
+ * @brief Helper function for finding DNS server by the provided name.
+ *
+ * @param name Name to use for search.
+ *
+ * @return Iterator pointing to the DNS server with the provided name.
+ */
+std::optional<std::list<DnsServer>::iterator> DnsServerList::m_findServer(const std::string& name)
+{
+    const auto it = std::find_if(begin(), end(), [&name](const auto& server) { return server.Name == name; });
+
+    if (it != end()) {
+        return std::optional(it);
+    } else {
+        return std::nullopt;
+    }
+}
+
+/**
+ * @brief Default constructor.
+ */
+DnsSearchList::DnsSearchList()
+    : SdBus("org.freedesktop.resolve1", "/org/freedesktop/resolve1", "org.freedesktop.resolve1.Manager", "SetLinkDomains", "Domains")
+    , m_ifindex(SYSTEMD_IFINDEX)
+{
+}
+
+/**
+ * @brief Loads the list of DNS servers found currently on the system.
+ */
+void DnsSearchList::loadFromSystem()
+{
+    // convert from SDBus list to our list
+    auto domains = this->importFromSdBus();
+    for (auto& d : domains) {
+        m_search.push_back(DnsSearch {
+            .InterfaceIndex = d.get<0>(),
+            .Domain = d.get<1>(),
+            .Search = d.get<2>(),
+        });
+    }
+}
+
+/**
+ * @brief Add new search domain to the list.
+ *
+ * @param domain Search domain to create.
+ */
+void DnsSearchList::createSearchDomain(const std::string& domain)
+{
+    m_search.push_back(DnsSearch { .InterfaceIndex = SYSTEMD_IFINDEX, .Domain = domain, .Search = false });
+}
+
+/**
+ * @brief Delete search domain from the list.
+ *
+ * @param domain Search domain to remove.
+ */
+void DnsSearchList::deleteSearchDomain(const std::string& domain)
+{
+    m_search.remove_if([&domain](const auto& search) { return search.Domain == domain; });
+}
+
+/**
+ * @brief Stores the list of DNS servers in the class to the system.
+ */
+void DnsSearchList::storeToSystem()
+{
+    // convert to SDBus list and store it
+    std::vector<sdbus::Struct<std::string, bool>> sdbus_data;
+
+    for (auto& search : m_search) {
+        sdbus_data.push_back(sdbus::Struct<std::string, bool>(sdbus::make_struct(search.Domain, search.Search)));
+    }
+
+    this->exportToSdBus(m_ifindex, sdbus_data);
+}
 } // end of namespace
 
 namespace ietf::sys::sub::oper {
@@ -452,6 +285,21 @@ sr::ErrorCode DnsSearchOperGetCb::operator()(sr::Session session, uint32_t subsc
     std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsSearchList search_list;
+
+    // load search list and add it to the output yang
+    try {
+        search_list.loadFromSystem();
+
+        // iterate list and add elements to the output tree
+        for (auto& iter : search_list) {
+            output->newPath("search", iter.Domain);
+        }
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS search list from the system: %s", err.what());
+        error = sr::ErrorCode::OperationFailed;
+    }
+
     return error;
 }
 
@@ -592,6 +440,33 @@ sr::ErrorCode DnsServerOperGetCb::operator()(sr::Session session, uint32_t subsc
     std::optional<std::string_view> subXPath, std::optional<std::string_view> requestXPath, uint32_t requestId, std::optional<ly::DataNode>& output)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsServerList servers;
+
+    try {
+        servers.loadFromSystem();
+
+        for (auto& server : servers) {
+            std::stringstream path_buffer;
+
+            path_buffer << "server[name='" << server.Name << "']";
+
+            auto server_node = output->newPath(path_buffer.str());
+            if (server_node) {
+                if (server.Port != 0) {
+                    server_node->newPath("port", std::to_string(server.Port));
+                }
+                server_node->newPath("udp-and-tcp/address", server.Address->asString());
+            } else {
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to create a new server node");
+                error = sr::ErrorCode::Internal;
+                break;
+            }
+        }
+    } catch (const std::exception& e) {
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Error loading DNS server list from the system");
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "%s", e.what());
+        error = sr::ErrorCode::Internal;
+    }
     return error;
 }
 
@@ -735,66 +610,54 @@ sr::ErrorCode DnsSearchModuleChangeCb::operator()(sr::Session session, uint32_t 
     std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsSearchList search_list;
 
-    // dns::DnsSearchServerList dnsSearchServers;
-    // // get all from bus
+    try {
+        search_list.loadFromSystem();
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS search domains from the system");
+        return sr::ErrorCode::OperationFailed;
+    }
 
-    // switch (event) {
-    // case sysrepo::Event::Change:
+    switch (event) {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_INF(
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-    //     if (dnsSearchServers.importListFromSdBus()) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
+                for (const auto& m : change.node.meta()) {
+                    SRPLG_LOG_INF(getModuleLogPrefix(), "Meta %s = %s", m.name().data(), m.valueStr().data());
+                }
 
-    //     // if the call succseeded - continue
-    //     for (auto& change : session.getChanges(subXPath->data())) {
-    //         switch (change.operation) {
-    //         case sysrepo::ChangeOperation::Created:
-    //         case sysrepo::ChangeOperation::Modified: {
+                const auto value = change.node.asTerm().valueStr();
+                const auto domain = value.data();
+                SRPLG_LOG_INF(PLUGIN_NAME, "Node value: %s", domain);
 
-    //             // get the changed values in node
-    //             auto value = change.node.asTerm().value();
-    //             auto domain = std::get<std::string>(value);
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        search_list.createSearchDomain(domain);
+                        break;
+                    case sysrepo::ChangeOperation::Deleted:
+                        search_list.deleteSearchDomain(domain);
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
+            }
 
-    //             // no value provided for search param - default true? or maybe another param?
-    //             sys::dns::DnsSearchServer server(domain, true);
-    //             dnsSearchServers.addDnsSearchServer(server);
-
-    //             break;
-    //         }
-    //         case sysrepo::ChangeOperation::Deleted: {
-    //             // modification:
-    //             // first it goes to delete event, then create
-    //             // take deleted from here
-
-    //             auto deletedValue = change.node.asTerm().value();
-    //             auto deletedDomain = std::get<std::string>(deletedValue);
-
-    //             sys::dns::DnsSearchServer deleted(deletedDomain, true);
-
-    //             dnsSearchServers.removeDnsSearchServer(deleted);
-
-    //             break;
-    //         }
-
-    //         case sysrepo::ChangeOperation::Moved:
-    //             break;
-    //         }
-    //     }
-
-    //     // process finished -> export
-    //     try {
-    //         dnsSearchServers.exportListToSdBus();
-    //     } catch (sdbus::Error& e) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", e.getMessage().c_str());
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
-
-    //     break;
-    // default:
-    //     break;
-    // }
+            // store created changes to the system
+            try {
+                search_list.storeToSystem();
+            } catch (const std::runtime_error& err) {
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to store DNS search domain changes to the system");
+                error = sysrepo::ErrorCode::OperationFailed;
+            }
+            break;
+        default:
+            break;
+    }
 
     return error;
 }
@@ -825,82 +688,89 @@ sr::ErrorCode DnsServerModuleChangeCb::operator()(sr::Session session, uint32_t 
     std::optional<std::string_view> subXPath, sr::Event event, uint32_t requestId)
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
+    dns::DnsServerList servers;
 
-    // dns::DnsServerList dnsList;
-    // switch (event) {
-    // case sysrepo::Event::Change:
+    try {
+        servers.loadFromSystem();
+    } catch (const std::runtime_error& err) {
+        SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to load DNS server list from the system: %s", err.what());
+        return sr::ErrorCode::OperationFailed;
+    }
 
-    //     // first take all from sdbus
-    //     if (dnsList.importListFromSdBus()) {
-    //         SRPLG_LOG_ERR(PLUGIN_NAME, "%s", "sd bus import failed!");
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
+    switch (event) {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
 
-    //     for (sysrepo::Change change : session.getChanges(subXPath->data())) {
-    //         switch (change.operation) {
-    //         case sysrepo::ChangeOperation::Created: {
+                SRPLG_LOG_INF(
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
+                for (const auto& m : change.node.meta()) {
+                    SRPLG_LOG_INF(getModuleLogPrefix(), "Meta %s = %s", m.name().data(), m.valueStr().data());
+                }
 
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
+                const auto name_node = change.node.findPath("name");
+                const auto address_node = change.node.findPath("udp-and-tcp/address");
+                // [TODO]: Check for DNS port feature to get the port node
 
-    //             } else {
-    //                 dnsList.addDnsServer(server.value());
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-    //             break;
-    //         }
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                        {
+                            if (name_node && address_node) {
+                                const auto name = std::get<std::string>(name_node->asTerm().value());
+                                const auto address = std::get<std::string>(address_node->asTerm().value());
+                                std::optional<uint16_t> port = std::nullopt;
 
-    //         case sysrepo::ChangeOperation::Modified: {
+                                // [TODO]: Check for port feature and get node + value for the port
+                                try {
+                                    servers.createServer(name, address, port);
+                                } catch (const std::runtime_error& err) {
+                                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to create a new DNS server (%s)", err.what());
+                                    error = sr::ErrorCode::OperationFailed;
+                                }
+                            } else {
+                                // unable to create a DNS server without a name and an address
+                                error = sr::ErrorCode::InvalidArgument;
+                            }
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Modified:
+                        break;
+                    case sysrepo::ChangeOperation::Deleted:
+                        {
+                            if (name_node) {
+                                const auto name = std::get<std::string>(name_node->asTerm().value());
 
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
+                                try {
+                                    servers.deleteServer(name);
+                                } catch (const std::runtime_error& err) {
+                                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to delete DNS server (%s)", err.what());
+                                    error = sr::ErrorCode::OperationFailed;
+                                }
+                            } else {
+                                SRPLG_LOG_ERR(getModuleLogPrefix(), "No name value provided - unable to delete DNS server");
+                                error = sr::ErrorCode::InvalidArgument;
+                            }
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
+                }
+            }
 
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
-
-    //             } else {
-    //                 // modify here
-    //                 try {
-    //                     dnsList.modifyDnsServer(server.value());
-    //                 } catch (std::exception(&e)) {
-    //                     SRPLG_LOG_ERR(PLUGIN_NAME, "%s", e.what());
-    //                     return sr::ErrorCode::OperationFailed;
-    //                 };
-
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-    //             break;
-    //         }
-
-    //         case sysrepo::ChangeOperation::Deleted: {
-
-    //             std::optional<dns::DnsServer> server = dns::getServerFromChangedNode(change.node);
-
-    //             if (server == std::nullopt) {
-    //                 error = sr::ErrorCode::OperationFailed;
-
-    //             } else {
-    //                 dnsList.removeDnsServer(server.value());
-    //                 error = sr::ErrorCode::Ok;
-    //             }
-
-    //             // // deleted code here
-    //             break;
-    //         }
-
-    //         default:
-    //             break;
-    //         }
-    //     }
-    //     if (dnsList.exportListToSdBus() == true) {
-    //         return sr::ErrorCode::OperationFailed;
-    //     }
-    //     break;
-
-    // default:
-    //     break;
-    // }
+            if (error == sr::ErrorCode::Ok) {
+                // no error occured yet - store changes
+                try {
+                    servers.storeToSystem();
+                } catch (const std::runtime_error& err) {
+                    SRPLG_LOG_ERR(getModuleLogPrefix(), "Unable to store DNS server changes to the system (%s)", err.what());
+                    error = sr::ErrorCode::OperationFailed;
+                }
+            }
+            break;
+        default:
+            break;
+    }
 
     return error;
 }
@@ -965,13 +835,42 @@ sr::ErrorCode DnsAttemptsModuleChangeCb::operator()(sr::Session session, uint32_
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus DnsSearchValuesChecker::checkDatastoreValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+    return status;
+}
+
+/**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus DnsServerValuesChecker::checkDatastoreValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+    return status;
+}
+
+/**
  * DNS module constructor. Allocates each context.
  */
-DnsModule::DnsModule()
+DnsModule::DnsModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<DnsOperationalContext>();
     m_changeContext = std::make_shared<DnsModuleChangesContext>();
     m_rpcContext = std::make_shared<DnsRpcContext>();
+    this->addValueChecker<DnsServerValuesChecker>();
+    this->addValueChecker<DnsSearchValuesChecker>();
 }
 
 /**
@@ -992,32 +891,37 @@ std::shared_ptr<srpc::IModuleContext> DnsModule::getRpcContext() { return m_rpcC
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> DnsModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> DnsModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
-        OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
-        OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
-        ModuleChangeCallback { "/ietf-system:system/dns-resolver/server//*", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> DnsModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.
  */
 constexpr const char* DnsModule::getName() { return "DNS"; }
+
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix() { return "module(ietf-system/dns-resolver)"; }

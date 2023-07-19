@@ -5,30 +5,36 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/context.hpp"
+#include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys {
+class TimezoneName : public SdBus<std::string, std::string, bool> {
+public:
+    /**
+     * @brief Default constructor.
+     */
+    TimezoneName();
 
-/**
- * @brief Hostname type alias.
- */
-using TimezoneName = std::string;
+    /**
+     * @brief Get timezone name value from the system.
+     *
+     * @return System timezone name.
+     */
+    std::string getValue(void);
 
-/**
- * @brief Get system timezone name from /etc/localtime.
- *
- * @return Timezone name.
- */
-TimezoneName getTimezoneName();
-
-/**
- * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
- *
- * @param timezoneName Timezone name.
- */
-void setTimezoneName(const TimezoneName& timezone_name);
+    /**
+     * @brief Set the timezone name on the system.
+     *
+     * @param timezone_name Timezone to set.
+     */
+    void setValue(const std::string& timezone_name);
+};
 }
 
 /**
@@ -185,14 +191,41 @@ private:
 }
 
 /**
+ * @brief Checker used to check if ietf-system/system/clock/timezone* value is contained on the system.
+ */
+class TimezoneValueChecker : public srpc::IDatastoreChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/clock/timezone-name",
+        };
+    }
+};
+
+/**
  * @brief Timezone module.
  */
-class TimezoneModule : public srpc::IModule {
+class TimezoneModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Timezone module constructor. Allocates each context.
      */
-    TimezoneModule();
+    TimezoneModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -212,17 +245,17 @@ public:
     /**
      * Get all operational callbacks which the module should use.
      */
-    virtual std::list<OperationalCallback> getOperationalCallbacks() override;
+    virtual std::list<srpc::OperationalCallback> getOperationalCallbacks() override;
 
     /**
      * Get all module change callbacks which the module should use.
      */
-    virtual std::list<ModuleChangeCallback> getModuleChangeCallbacks() override;
+    virtual std::list<srpc::ModuleChangeCallback> getModuleChangeCallbacks() override;
 
     /**
      * Get all RPC callbacks which the module should use.
      */
-    virtual std::list<RpcCallback> getRpcCallbacks() override;
+    virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
      * Get module name.

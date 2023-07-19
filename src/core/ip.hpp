@@ -1,43 +1,97 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <arpa/inet.h>
 #include <stdexcept>
 
 namespace ietf::sys::ip {
-
-// [TODO]: Document class
-class Address {
+/**
+ * @brief IP address interface.
+ */
+class IAddress {
 public:
-    virtual int getVersion();
-    virtual std::string getStringAddr();
+    /**
+     * @brief Return the version of the IP address (AF_INET or AF_INET6).
+     */
+    virtual int getVersion() = 0;
 
-    virtual std::vector<uint8_t> byteVector();
+    /**
+     * @brief Return the IP address as bytes vector.
+     */
+    virtual std::vector<uint8_t> asBytes() = 0;
 
-    virtual bool operator==(const Address& other) const;
+    /**
+     * @brief Return the IP address as a string.
+     */
+    virtual std::string asString() = 0;
+
+    virtual ~IAddress() { }
 
 protected:
-    uint8_t BYTE_SIZE;
-    std::string address;
-    int version;
-    std::vector<uint8_t> byte_vector;
+    std::vector<uint8_t> m_bytes; ///< Bytes of the IP address.
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class Ipv4Address : public Address {
+/**
+ * @brief IPv4 address class. Represents a single IPv4 address.
+ */
+class Ipv4Address : public IAddress {
 public:
-    Ipv4Address() = delete;
-    Ipv4Address(std::string address);
-    Ipv4Address(std::vector<uint8_t> bytes);
+    /**
+     * @brief Default constructor.
+     */
+    Ipv4Address(const std::string& address);
+
+    /**
+     * @brief Default constructor.
+     */
+    Ipv4Address(std::vector<uint8_t>& bytes);
+
+    /**
+     * @brief Return the version of the IP address (AF_INET or AF_INET6).
+     */
+    virtual int getVersion() override;
+
+    /**
+     * @brief Return the IP address as bytes vector.
+     */
+    virtual std::vector<uint8_t> asBytes() override;
+
+    /**
+     * @brief Return the IP address as a string.
+     */
+    virtual std::string asString() override;
 };
 
-class Ipv6Address : public Address {
+/**
+ * @brief IPv6 address class. Represents a single IPv6 address.
+ */
+class Ipv6Address : public IAddress {
 public:
-    Ipv6Address() = delete;
-    Ipv6Address(std::string address);
-    Ipv6Address(std::vector<uint8_t> bytes);
+    /**
+     * @brief Default constructor.
+     */
+    Ipv6Address(const std::string& address);
+
+    /**
+     * @brief Default constructor.
+     */
+    Ipv6Address(std::vector<uint8_t>& bytes);
+
+    /**
+     * @brief Return the version of the IP address (AF_INET or AF_INET6).
+     */
+    int getVersion() override;
+
+    /**
+     * @brief Return the IP address as bytes vector.
+     */
+    std::vector<uint8_t> asBytes() override;
+
+    /**
+     * @brief Return the IP address as a string.
+     */
+    std::string asString() override;
 };
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////

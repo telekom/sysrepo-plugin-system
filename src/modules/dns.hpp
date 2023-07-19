@@ -1,16 +1,186 @@
 #pragma once
 
+#include <cstdint>
 #include <srpcpp/module.hpp>
 #include <core/ip.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/context.hpp"
+#include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
+
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys::dns {
+
+/**
+ * @brief DNS server helper struct.
+ */
+struct DnsServer {
+    int32_t InterfaceIndex; ///< Interface index used for the DNS server.
+    std::unique_ptr<ip::IAddress> Address; ///< IP address of the server.
+    uint16_t Port; ///< Port used for the server. Defaults to 53.
+    std::string Name; ///< Server Name Indication.
+
+    /**
+     * @brief Default constructor.
+     */
+    DnsServer();
+
+    /**
+     * @brief Set the IP address of the server.
+     *
+     * @param address IP address (IPv4 or IPv6).
+     */
+    void setAddress(const std::string& address);
+
+    /**
+     * @brief Set the port of the server.
+     *
+     * @param port Port to set.
+     */
+    void setPort(std::optional<uint16_t> port);
+};
+
+/**
+ * @brief DNS search helper struct.
+ */
+struct DnsSearch {
+    int InterfaceIndex; ///< Interface index of the search element. 0 used for global configuration.
+    std::string Domain; ///< Domain of the search element.
+    bool Search; ///< Boolean value indicating wether the value is used for routing (true) or for both routing and searching (false).
+};
+
+/**
+ * @brief DNS server list class used for loading and storing a list of DNS servers.
+ */
+class DnsServerList : public SdBus<std::vector<sdbus::Struct<int32_t, int32_t, std::vector<uint8_t>, uint16_t, std::string>>, int32_t,
+                          std::vector<sdbus::Struct<int32_t, std::vector<uint8_t>, uint16_t, std::string>>> {
+public:
+    /**
+     * @brief Default constructor.
+     */
+    DnsServerList();
+
+    /**
+     * @brief Loads the list of DNS servers found currently on the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Stores the list of DNS servers in the class to the system.
+     */
+    void storeToSystem();
+
+    /**
+     * @brief Create a new server and add it to the list.
+     *
+     * @param name Name of the DNS server.
+     * @param address IP address of the DNS server.
+     * @param port Optional port value of the DNS server. If no value provided, 53 is used.
+     */
+    void createServer(const std::string& name, const std::string& address, std::optional<uint16_t> port);
+
+    /**
+     * @brief Change the IP address of the given server with the provided name.
+     *
+     * @param name Name of the server to change.
+     * @param address New address to set.
+     */
+    void changeServerAddress(const std::string& name, const std::string& address);
+
+    /**
+     * @brief Change the port of the given server with the provided name.
+     *
+     * @param name Name of the server to change.
+     * @param port New port to set.
+     */
+    void changeServerPort(const std::string& name, const uint16_t port);
+
+    /**
+     * @brief Delete server from the list.
+     *
+     * @param name Name of the DNS server.
+     */
+    void deleteServer(const std::string& name);
+
+    /**
+     * @brief Get iterator to the beginning.
+     */
+    auto begin() { return m_servers.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    auto end() { return m_servers.end(); }
+
+private:
+    /**
+     * @brief Helper function for finding DNS server by the provided name.
+     *
+     * @param name Name to use for search.
+     *
+     * @return Iterator pointing to the DNS server with the provided name.
+     */
+    std::optional<std::list<DnsServer>::iterator> m_findServer(const std::string& name);
+
+    int m_ifindex; ///< Interface index used for this list.
+    std::list<DnsServer> m_servers; ///< List of DNS servers.
+};
+
+/**
+ * @breif DNS search list class used for loading and storing a list of DNS search domains.
+ */
+class DnsSearchList : public SdBus<std::vector<sdbus::Struct<int32_t, std::string, bool>>, int32_t, std::vector<sdbus::Struct<std::string, bool>>> {
+public:
+    /**
+     * @brief Default constructor.
+     */
+    DnsSearchList();
+
+    /**
+     * @brief Loads the list of DNS servers found currently on the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Add new search domain to the list.
+     *
+     * @param domain Search domain to create.
+     */
+    void createSearchDomain(const std::string& domain);
+
+    /**
+     * @brief Delete search domain from the list.
+     *
+     * @param domain Search domain to remove.
+     */
+    void deleteSearchDomain(const std::string& domain);
+
+    /**
+     * @brief Stores the list of DNS servers in the class to the system.
+     */
+    void storeToSystem();
+
+    /**
+     * @brief Get iterator to the beginning.
+     */
+    auto begin() { return m_search.begin(); }
+
+    /**
+     * @brief Get iterator to the end.
+     */
+    auto end() { return m_search.end(); }
+
+private:
+    int m_ifindex; ///< Interface index used for this list.
+    std::list<DnsSearch> m_search; ///< List of DNS search domains.
+};
+
 // /**
 //  * @brief DNS server.
 //  */
@@ -670,14 +840,68 @@ private:
 }
 
 /**
+ * @brief Checker used to check if ietf-system/system/dns-resolver/server values are contained on the system.
+ */
+class DnsServerValuesChecker : public srpc::IDatastoreChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/dns-resolver/server",
+        };
+    }
+};
+
+/**
+ * @brief Checker used to check if ietf-system/system/dns-resolver/search values are contained on the system.
+ */
+class DnsSearchValuesChecker : public srpc::IDatastoreChecker {
+public:
+    /**
+     * @brief Check for the datastore values on the system.
+     *
+     * @param session Sysrepo session used for retreiving datastore values.
+     *
+     * @return Enum describing the output of values comparison.
+     */
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/dns-resolver/search",
+        };
+    }
+};
+
+/**
  * @brief DNS container module.
  */
-class DnsModule : public srpc::IModule {
+class DnsModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * DNS module constructor. Allocates each context.
      */
-    DnsModule();
+    DnsModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -697,17 +921,17 @@ public:
     /**
      * Get all operational callbacks which the module should use.
      */
-    virtual std::list<OperationalCallback> getOperationalCallbacks() override;
+    virtual std::list<srpc::OperationalCallback> getOperationalCallbacks() override;
 
     /**
      * Get all module change callbacks which the module should use.
      */
-    virtual std::list<ModuleChangeCallback> getModuleChangeCallbacks() override;
+    virtual std::list<srpc::ModuleChangeCallback> getModuleChangeCallbacks() override;
 
     /**
      * Get all RPC callbacks which the module should use.
      */
-    virtual std::list<RpcCallback> getRpcCallbacks() override;
+    virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
      * Get module name.

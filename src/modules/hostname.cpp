@@ -1,4 +1,5 @@
 #include "hostname.hpp"
+#include "core/context.hpp"
 
 #include <core/common.hpp>
 
@@ -10,32 +11,27 @@
 
 namespace ietf::sys {
 /**
- * @brief Get hostname.
- *
- * @return Hostname.
+ * @brief Hostname constructor.
  */
-Hostname getHostname()
+Hostname::Hostname()
+    : SdBus<std::string, std::string, bool>(
+        "org.freedesktop.hostname1", "/org/freedesktop/hostname1", "org.freedesktop.hostname1", "SetStaticHostname", "Hostname")
 {
-    char hostname[ietf::sys::HOSTNAME_MAX_LEN + 1] = { 0 };
-
-    if (gethostname(hostname, sizeof(hostname)) < 0) {
-        throw std::runtime_error("Failed to get hostname.");
-    }
-
-    return hostname;
 }
 
 /**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
+ * @brief Get the system hostname.
  *
- * @param hostname Hostname.
+ * @return System hostname.
  */
-void setHostname(const Hostname& hostname)
-{
-    if (auto err = sethostname(hostname.c_str(), hostname.size()); err != 0) {
-        throw std::runtime_error("Failed to set hostname.");
-    }
-}
+std::string Hostname::getValue(void) { return importFromSdBus(); }
+
+/**
+ * @brief Set the systme hostname.
+ *
+ * @param hostname Hostname to set.
+ */
+void Hostname::setValue(const std::string& hostname) { exportToSdBus(hostname, false); }
 }
 
 namespace ietf::sys::sub::oper {
@@ -65,7 +61,8 @@ sr::ErrorCode HostnameOperGetCb::operator()(sr::Session session, uint32_t subscr
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    auto hostname = sys::getHostname();
+    Hostname hostname_handle;
+    const auto hostname = hostname_handle.getValue();
 
     output->newPath("hostname", hostname);
 
@@ -101,33 +98,36 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
-                // modified hostname - get current value and use sethostname()
-                auto value = change.node.asTerm().value();
-                auto hostname = std::get<sys::Hostname>(value);
+    Hostname hostname_handle;
 
-                try {
-                    sys::setHostname(hostname);
-                } catch (const std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
+    switch (event) {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        {
+                            // modified hostname - get current value and use sethostname()
+                            auto value = change.node.asTerm().value();
+                            auto hostname = std::get<std::string>(value);
+
+                            try {
+                                hostname_handle.setValue(hostname);
+                            } catch (const std::runtime_error& err) {
+                                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                                error = sr::ErrorCode::OperationFailed;
+                            }
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Deleted:
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
                 }
-                break;
             }
-            case sysrepo::ChangeOperation::Deleted:
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return error;
@@ -135,13 +135,53 @@ sr::ErrorCode HostnameModuleChangeCb::operator()(sr::Session session, uint32_t s
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkDatastoreValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+    ietf::sys::Hostname hostname;
+
+    const auto hostname_node = session.getData("/ietf-system:system/hostname");
+
+    if (hostname_node.has_value()) {
+        try {
+            // load the system hostname
+            const auto system_hostname = hostname.getValue();
+            // get the session hostname
+            const auto session_hostname = std::get<std::string>(hostname_node->asTerm().value());
+
+            if (system_hostname == session_hostname) {
+                return srpc::DatastoreValuesCheckStatus::Equal;
+            } else {
+                return srpc::DatastoreValuesCheckStatus::NonExistant;
+            }
+        } catch (const std::runtime_error& err) {
+            SRPLG_LOG_DBG("hostname-value-checker", "Unable to load system hostname: %s", err.what());
+            throw std::runtime_error("Unable to determine hostname system status");
+        }
+    } else {
+        // no hostname node found in the running datastore
+        return srpc::DatastoreValuesCheckStatus::NonExistant;
+    }
+
+    return status;
+}
+
+/**
  * Hostname module constructor. Allocates each context.
  */
-HostnameModule::HostnameModule()
+HostnameModule::HostnameModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<HostnameOperationalContext>();
     m_changeContext = std::make_shared<HostnameModuleChangesContext>();
     m_rpcContext = std::make_shared<HostnameRpcContext>();
+    this->addValueChecker<HostnameValueChecker>();
 }
 
 /**
@@ -162,27 +202,27 @@ std::shared_ptr<srpc::IModuleContext> HostnameModule::getRpcContext() { return m
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> HostnameModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> HostnameModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> HostnameModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.

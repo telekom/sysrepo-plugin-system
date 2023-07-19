@@ -6,63 +6,34 @@
 
 #include <sysrepo.h>
 
+#include "core/context.hpp"
+#include "core/sdbus.hpp"
+
 namespace ietf::sys {
+
 /**
- * @brief Get system timezone name from /etc/localtime.
- *
- * @return Timezone name.
+ * @brief Default constructor.
  */
-TimezoneName getTimezoneName()
+TimezoneName::TimezoneName()
+    : SdBus<std::string, std::string, bool>(
+        "org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.timedate1", "SetTimezone", "Timezone")
 {
-    if (std::filesystem::exists(ietf::sys::TIMEZONE_FILE_PATH) && std::filesystem::is_symlink(ietf::sys::TIMEZONE_FILE_PATH)) {
-        auto link_path = std::filesystem::read_symlink(ietf::sys::TIMEZONE_FILE_PATH);
-        auto dir = std::filesystem::path(ietf::sys::TIMEZONE_DIR_PATH);
-        auto rel_path = std::filesystem::relative(link_path, dir);
-        return rel_path;
-    } else {
-        throw std::runtime_error("Failed to get timezone name.");
-    }
 }
 
 /**
- * @brief Set system timezone name. Throws a runtime_error if unable to set timezone.
+ * @brief Get timezone name value from the system.
  *
- * @param timezoneName Timezone name.
+ * @return System timezone name.
  */
-void setTimezoneName(const TimezoneName& timezone_name)
-{
-    namespace fs = std::filesystem;
+std::string TimezoneName::getValue(void) { return this->importFromSdBus(); }
 
-    // change timezone-name
-    auto tz_dir = fs::path(ietf::sys::TIMEZONE_DIR_PATH);
-    auto tz_file = tz_dir / timezone_name;
+/**
+ * @brief Set the timezone name on the system.
+ *
+ * @param timezone_name Timezone to set.
+ */
+void TimezoneName::setValue(const std::string& timezone_name) { this->exportToSdBus(timezone_name, false); }
 
-    // check if the file exists
-    auto status = fs::status(tz_file);
-    if (!fs::exists(status)) {
-        throw std::runtime_error("Timezone file does not exist.");
-    }
-
-    // check for /etc/localtime symlink
-    auto localtime = fs::path("/etc/localtime");
-    if (fs::exists(localtime)) {
-        // remove the symlink
-        try {
-            if (auto err = fs::remove(localtime); err != 0) {
-                throw std::runtime_error("Failed to remove /etc/localtime symlink.");
-            }
-        } catch (fs::filesystem_error& err) {
-            throw std::runtime_error("Failed to remove /etc/localtime symlink.");
-        }
-    }
-
-    // symlink removed; create a new one
-    try {
-        fs::create_symlink(tz_file, localtime);
-    } catch (fs::filesystem_error& err) {
-        throw std::runtime_error("Failed to create /etc/localtime symlink.");
-    }
-}
 }
 
 namespace ietf::sys::sub::oper {
@@ -92,7 +63,9 @@ sr::ErrorCode ClockTimezoneNameOperGetCb::operator()(sr::Session session, uint32
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
-    auto tz_name = sys::getTimezoneName();
+    TimezoneName tz_handle;
+
+    auto tz_name = tz_handle.getValue();
 
     output->newPath("timezone-name", tz_name);
 
@@ -156,35 +129,36 @@ sr::ErrorCode ClockTimezoneNameModuleChangeCb::operator()(sr::Session session, u
 {
     sr::ErrorCode error = sr::ErrorCode::Ok;
 
+    TimezoneName tz_handle;
+
     switch (event) {
-    case sysrepo::Event::Change:
-        for (auto& change : session.getChanges(subXPath->data())) {
-            switch (change.operation) {
-            case sysrepo::ChangeOperation::Created:
-            case sysrepo::ChangeOperation::Modified: {
+        case sysrepo::Event::Change:
+            for (auto& change : session.getChanges(subXPath->data())) {
+                switch (change.operation) {
+                    case sysrepo::ChangeOperation::Created:
+                    case sysrepo::ChangeOperation::Modified:
+                        {
+                            auto value = change.node.asTerm().value();
+                            auto timezone_name = std::get<std::string>(value);
 
-                // modified hostname - get current value and use sethostname()
-                auto value = change.node.asTerm().value();
-                auto timezone_name = std::get<ietf::sys::TimezoneName>(value);
+                            try {
+                                tz_handle.setValue(timezone_name);
+                            } catch (const std::runtime_error& err) {
+                                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
+                                error = sr::ErrorCode::OperationFailed;
+                            }
 
-                try {
-                    sys::setTimezoneName(timezone_name);
-                } catch (const std::runtime_error& err) {
-                    SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "%s", err.what());
-                    error = sr::ErrorCode::OperationFailed;
+                            break;
+                        }
+                    case sysrepo::ChangeOperation::Deleted:
+                        break;
+                    case sysrepo::ChangeOperation::Moved:
+                        break;
                 }
-
-                break;
             }
-            case sysrepo::ChangeOperation::Deleted:
-                break;
-            case sysrepo::ChangeOperation::Moved:
-                break;
-            }
-        }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     return error;
@@ -221,13 +195,29 @@ sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session sessi
 }
 
 /**
+ * @brief Check for the datastore values on the system.
+ *
+ * @param session Sysrepo session used for retreiving datastore values.
+ *
+ * @return Enum describing the output of values comparison.
+ */
+srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysrepo::Session& session)
+{
+    srpc::DatastoreValuesCheckStatus status;
+
+    return status;
+}
+
+/**
  * Timezone module constructor. Allocates each context.
  */
-TimezoneModule::TimezoneModule()
+TimezoneModule::TimezoneModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<TimezoneOperationalContext>();
     m_changeContext = std::make_shared<TimezoneModuleChangesContext>();
     m_rpcContext = std::make_shared<TimezoneRpcContext>();
+    this->addValueChecker<TimezoneValueChecker>();
 }
 
 /**
@@ -248,27 +238,28 @@ std::shared_ptr<srpc::IModuleContext> TimezoneModule::getRpcContext() { return m
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<OperationalCallback> TimezoneModule::getOperationalCallbacks()
+std::list<srpc::OperationalCallback> TimezoneModule::getOperationalCallbacks()
 {
     return {
-        OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext) },
+        srpc::OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext) },
     };
 }
 
 /**
  * Get all module change callbacks which the module should use.
  */
-std::list<ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
+std::list<srpc::ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
 {
     return {
-        ModuleChangeCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback {
+            "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext) },
     };
 }
 
 /**
  * Get all RPC callbacks which the module should use.
  */
-std::list<RpcCallback> TimezoneModule::getRpcCallbacks() { return {}; }
+std::list<srpc::RpcCallback> TimezoneModule::getRpcCallbacks() { return {}; }
 
 /**
  * Get module name.

@@ -67,7 +67,7 @@ set(
     CORE_SOURCES
 
     src/core/context.cpp
-    src/core/yang/tree.cpp
+    src/core/ip.cpp
 
     # modules
     src/modules/system.cpp
