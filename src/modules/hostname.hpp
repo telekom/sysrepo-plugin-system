@@ -1,34 +1,40 @@
 #pragma once
 
-#include "srpcpp/ds-check.hpp"
+#include "core/context.hpp"
 #include <srpcpp/module.hpp>
 
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
+
+#include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
 namespace ly = libyang;
 
 namespace ietf::sys {
-/**
- * @brief Hostname type alias.
- */
-using Hostname = std::string;
+class Hostname : public SdBus<std::string, std::string, bool> {
+public:
+    /**
+     * @brief Hostname constructor.
+     */
+    Hostname();
 
-/**
- * @brief Get hostname.
- *
- * @return Hostname.
- */
-Hostname getHostname();
+    /**
+     * @brief Get the system hostname.
+     *
+     * @return System hostname.
+     */
+    std::string getValue(void);
 
-/**
- * @brief Set system hostname. Throws a runtime_error if unable to set hostname.
- *
- * @param hostname Hostname.
- */
-void setHostname(const Hostname& hostname);
+    /**
+     * @brief Set the systme hostname.
+     *
+     * @param hostname Hostname to set.
+     */
+    void setValue(const std::string& hostname);
+};
 }
 
 /**
@@ -120,7 +126,7 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/hostname value is contained on the system.
  */
-class HostnameValueChecker : public srpc::DatastoreValuesChecker {
+class HostnameValueChecker : public srpc::IDatastoreChecker {
 public:
     /**
      * @brief Check for the datastore values on the system.
@@ -129,18 +135,54 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/hostname",
+        };
+    }
+};
+
+/**
+ * @brief Applier used to apply /ietf-system:system/hostname value from the datastore to the system.
+ */
+class HostnameValueApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/hostname",
+        };
+    }
 };
 
 /**
  * @brief Hostname leaf module.
  */
-class HostnameModule : public srpc::IModule {
+class HostnameModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Hostname module constructor. Allocates each context.
      */
-    HostnameModule();
+    HostnameModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -173,11 +215,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -188,7 +225,6 @@ public:
     ~HostnameModule() { }
 
 private:
-    std::shared_ptr<HostnameValueChecker> m_valueChecker;
     std::shared_ptr<HostnameOperationalContext> m_operContext;
     std::shared_ptr<HostnameModuleChangesContext> m_changeContext;
     std::shared_ptr<HostnameRpcContext> m_rpcContext;

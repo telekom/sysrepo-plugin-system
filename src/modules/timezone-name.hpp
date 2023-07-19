@@ -5,7 +5,9 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/context.hpp"
 #include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
@@ -191,7 +193,7 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/clock/timezone* value is contained on the system.
  */
-class TimezoneValueChecker : public srpc::DatastoreValuesChecker {
+class TimezoneValueChecker : public srpc::IDatastoreChecker {
 public:
     /**
      * @brief Check for the datastore values on the system.
@@ -200,18 +202,53 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/clock/timezone-name",
+        };
+    }
 };
 
 /**
+ * @brief Applier used to apply /ietf-system:system/clock/timezone* value from the datastore to the system.
+ */
+class TimezoneValueApplier : public srpc::IDatastoreApplier {
+    /**
+     * @brief Apply datastore content from the provided session to the system.
+     *
+     * @param session Session to use for retreiving datastore data.
+     */
+    virtual void applyDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker/applier is assigned for.
+     *
+     * @return Assigned paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/clock/timezone-name",
+        };
+    }
+};
+/**
  * @brief Timezone module.
  */
-class TimezoneModule : public srpc::IModule {
+class TimezoneModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * Timezone module constructor. Allocates each context.
      */
-    TimezoneModule();
+    TimezoneModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -244,11 +281,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -259,7 +291,6 @@ public:
     ~TimezoneModule() { }
 
 private:
-    std::shared_ptr<TimezoneValueChecker> m_valueChecker;
     std::shared_ptr<TimezoneOperationalContext> m_operContext;
     std::shared_ptr<TimezoneModuleChangesContext> m_changeContext;
     std::shared_ptr<TimezoneRpcContext> m_rpcContext;

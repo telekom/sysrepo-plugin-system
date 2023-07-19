@@ -1,31 +1,21 @@
 #include "context.hpp"
+#include "srpcpp/context.hpp"
+#include "sysrepo-cpp/Session.hpp"
 
 namespace ietf::sys {
 /**
- * sysrepo-plugin-generator: Generated constructor for plugin context.
+ * @brief Default constructor.
  *
  * @param sess Plugin session from the plugin init callback.
  *
  */
 PluginContext::PluginContext(sysrepo::Session sess)
-    : m_sess(sess)
+    : srpc::BasePluginContext(sess)
 {
 }
 
 /**
- * sysrepo-plugin-generator: Generated getter for the plugin session.
- *
- * @return Plugin session from the init callback.
- *
+ * @brief Default destructor.
  */
-sysrepo::Session& PluginContext::getSession() { return m_sess; }
-
-/**
- * sysrepo-plugin-generator: Generated getter for the subscription handle.
- *
- * @return Subscription handle.
- *
- */
-std::optional<sysrepo::Subscription>& PluginContext::getSubscriptionHandle() { return m_subHandle; }
-
+PluginContext::~PluginContext() { }
 }

@@ -6,6 +6,7 @@
 
 #include <sysrepo.h>
 
+#include "core/context.hpp"
 #include "core/sdbus.hpp"
 
 namespace ietf::sys {
@@ -200,7 +201,7 @@ sr::ErrorCode ClockTimezoneUtcOffsetModuleChangeCb::operator()(sr::Session sessi
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 
@@ -208,14 +209,33 @@ srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkValues(sysrepo::Sess
 }
 
 /**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    const auto timezone_name = session.getData("/ietf-system:system/clock/timezone-name");
+    const auto session_timezone_name = std::get<std::string>(timezone_name->asTerm().value());
+
+    ietf::sys::TimezoneName timezone;
+
+    if (timezone_name.has_value()) {
+        timezone.setValue(session_timezone_name);
+    }
+}
+
+/**
  * Timezone module constructor. Allocates each context.
  */
-TimezoneModule::TimezoneModule()
+TimezoneModule::TimezoneModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<TimezoneOperationalContext>();
     m_changeContext = std::make_shared<TimezoneModuleChangesContext>();
     m_rpcContext = std::make_shared<TimezoneRpcContext>();
-    m_valueChecker = std::make_shared<TimezoneValueChecker>();
+    this->addValueChecker<TimezoneValueChecker>();
+    this->addValueApplier<TimezoneValueApplier>();
 }
 
 /**
@@ -258,16 +278,6 @@ std::list<srpc::ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> TimezoneModule::getRpcCallbacks() { return {}; }
-
-/**
- * Get all system value checkers that this module provides.
- */
-std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> TimezoneModule::getValueCheckers()
-{
-    return {
-        m_valueChecker,
-    };
-}
 
 /**
  * Get module name.

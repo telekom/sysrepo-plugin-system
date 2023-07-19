@@ -7,7 +7,9 @@
 #include <sysrepo-cpp/Subscription.hpp>
 #include <libyang-cpp/Context.hpp>
 
+#include "core/context.hpp"
 #include "core/sdbus.hpp"
+#include "srpcpp/datastore.hpp"
 
 // helpers
 namespace sr = sysrepo;
@@ -840,7 +842,7 @@ private:
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/server values are contained on the system.
  */
-class DnsServerValueChecker : public srpc::DatastoreValuesChecker {
+class DnsServerValuesChecker : public srpc::IDatastoreChecker {
 public:
     /**
      * @brief Check for the datastore values on the system.
@@ -849,13 +851,25 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/dns-resolver/server",
+        };
+    }
 };
 
 /**
  * @brief Checker used to check if ietf-system/system/dns-resolver/search values are contained on the system.
  */
-class DnsSearchValueChecker : public srpc::DatastoreValuesChecker {
+class DnsSearchValuesChecker : public srpc::IDatastoreChecker {
 public:
     /**
      * @brief Check for the datastore values on the system.
@@ -864,18 +878,30 @@ public:
      *
      * @return Enum describing the output of values comparison.
      */
-    virtual srpc::DatastoreValuesCheckStatus checkValues(sysrepo::Session& session) override;
+    virtual srpc::DatastoreValuesCheckStatus checkDatastoreValues(sysrepo::Session& session) override;
+
+    /**
+     * @brief Get the paths which the checker is assigned for.
+     *
+     * @return Checker paths.
+     */
+    virtual std::list<std::string> getPaths() override
+    {
+        return {
+            "/ietf-system:system/dns-resolver/search",
+        };
+    }
 };
 
 /**
  * @brief DNS container module.
  */
-class DnsModule : public srpc::IModule {
+class DnsModule : public srpc::IModule<ietf::sys::PluginContext> {
 public:
     /**
      * DNS module constructor. Allocates each context.
      */
-    DnsModule();
+    DnsModule(ietf::sys::PluginContext& plugin_ctx);
 
     /**
      * Return the operational context from the module.
@@ -908,11 +934,6 @@ public:
     virtual std::list<srpc::RpcCallback> getRpcCallbacks() override;
 
     /**
-     * Get all system value checkers that this module provides.
-     */
-    virtual std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> getValueCheckers() override;
-
-    /**
      * Get module name.
      */
     virtual constexpr const char* getName() override;
@@ -923,8 +944,6 @@ public:
     ~DnsModule() { }
 
 private:
-    std::shared_ptr<DnsSearchValueChecker> m_searchChecker;
-    std::shared_ptr<DnsServerValueChecker> m_serverChecker;
     std::shared_ptr<DnsOperationalContext> m_operContext;
     std::shared_ptr<DnsModuleChangesContext> m_changeContext;
     std::shared_ptr<DnsRpcContext> m_rpcContext;

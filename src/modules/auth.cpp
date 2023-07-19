@@ -3,6 +3,7 @@
 #include <srpcpp.hpp>
 
 #include "core/common.hpp"
+#include "core/context.hpp"
 #include "srpcpp/common.hpp"
 #include "umgmt/db.h"
 #include "umgmt/group.h"
@@ -994,12 +995,19 @@ sr::ErrorCode AuthOperGetCb::operator()(sr::Session session, uint32_t subscripti
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus UserValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 
     return status;
 }
+
+/**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
 
 /**
  * @brief Check for the datastore values on the system.
@@ -1008,7 +1016,7 @@ srpc::DatastoreValuesCheckStatus UserValueChecker::checkValues(sysrepo::Session&
  *
  * @return Enum describing the output of values comparison.
  */
-srpc::DatastoreValuesCheckStatus UserAuthorizedKeyValueChecker::checkValues(sysrepo::Session& session)
+srpc::DatastoreValuesCheckStatus AuthorizedKeyValuesChecker::checkDatastoreValues(sysrepo::Session& session)
 {
     srpc::DatastoreValuesCheckStatus status;
 
@@ -1016,15 +1024,28 @@ srpc::DatastoreValuesCheckStatus UserAuthorizedKeyValueChecker::checkValues(sysr
 }
 
 /**
+ * @brief Apply datastore content from the provided session to the system.
+ *
+ * @param session Session to use for retreiving datastore data.
+ */
+void AuthorizedKeyValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
+
+/**
  * Authentication module constructor. Allocates each context.
  */
-AuthModule::AuthModule()
+AuthModule::AuthModule(ietf::sys::PluginContext& plugin_ctx)
+    : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
     m_operContext = std::make_shared<AuthOperationalContext>();
     m_changeContext = std::make_shared<AuthModuleChangesContext>();
     m_rpcContext = std::make_shared<AuthRpcContext>();
-    m_userChecker = std::make_shared<UserValueChecker>();
-    m_keyChecker = std::make_shared<UserAuthorizedKeyValueChecker>();
+
+    // add checkers
+    this->addValueChecker<UserValuesChecker>();
+    this->addValueChecker<AuthorizedKeyValuesChecker>();
+
+    // add value appliers
+    this->addValueApplier<UserValuesApplier>();
 }
 
 /**
@@ -1069,17 +1090,6 @@ std::list<srpc::ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
  * Get all RPC callbacks which the module should use.
  */
 std::list<srpc::RpcCallback> AuthModule::getRpcCallbacks() { return {}; }
-
-/**
- * Get all system value checkers that this module provides.
- */
-std::list<std::shared_ptr<srpc::DatastoreValuesChecker>> AuthModule::getValueCheckers()
-{
-    return {
-        m_userChecker,
-        m_keyChecker,
-    };
-}
 
 /**
  * Get module name.
