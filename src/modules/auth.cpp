@@ -1069,7 +1069,11 @@ std::shared_ptr<srpc::IModuleContext> AuthModule::getRpcContext() { return m_rpc
 std::list<srpc::OperationalCallback> AuthModule::getOperationalCallbacks()
 {
     return {
-        srpc::OperationalCallback { "/ietf-system:system/authentication/user", ietf::sys::sub::oper::AuthUserOperGetCb(this->m_operContext) },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/authentication/user",
+            ietf::sys::sub::oper::AuthUserOperGetCb(this->m_operContext),
+        },
     };
 }
 
@@ -1080,9 +1084,15 @@ std::list<srpc::ModuleChangeCallback> AuthModule::getModuleChangeCallbacks()
 {
     return {
         srpc::ModuleChangeCallback {
-            "/ietf-system:system/authentication/user", ietf::sys::sub::change::AuthUserModuleChangeCb(this->m_changeContext) },
-        srpc::ModuleChangeCallback { "/ietf-system:system/authentication/user/authorized-key",
-            ietf::sys::sub::change::AuthUserAuthorizedKeyModuleChangeCb(this->m_changeContext) },
+            "ietf-system",
+            "/ietf-system:system/authentication/user",
+            ietf::sys::sub::change::AuthUserModuleChangeCb(this->m_changeContext),
+        },
+        srpc::ModuleChangeCallback {
+            "ietf-system",
+            "/ietf-system:system/authentication/user/authorized-key",
+            ietf::sys::sub::change::AuthUserAuthorizedKeyModuleChangeCb(this->m_changeContext),
+        },
     };
 }
 

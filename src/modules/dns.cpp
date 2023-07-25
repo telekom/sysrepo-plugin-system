@@ -894,9 +894,21 @@ std::shared_ptr<srpc::IModuleContext> DnsModule::getRpcContext() { return m_rpcC
 std::list<srpc::OperationalCallback> DnsModule::getOperationalCallbacks()
 {
     return {
-        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext) },
-        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext) },
-        srpc::OperationalCallback { "/ietf-system:system/dns-resolver/options", ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext) },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/dns-resolver/search",
+            ietf::sys::sub::oper::DnsSearchOperGetCb(m_operContext),
+        },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/dns-resolver/server",
+            ietf::sys::sub::oper::DnsServerOperGetCb(m_operContext),
+        },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/dns-resolver/options",
+            ietf::sys::sub::oper::DnsOptionsOperGetCb(m_operContext),
+        },
     };
 }
 
@@ -906,8 +918,16 @@ std::list<srpc::OperationalCallback> DnsModule::getOperationalCallbacks()
 std::list<srpc::ModuleChangeCallback> DnsModule::getModuleChangeCallbacks()
 {
     return {
-        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/search", ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext) },
-        srpc::ModuleChangeCallback { "/ietf-system:system/dns-resolver/server", ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback {
+            "ietf-system",
+            "/ietf-system:system/dns-resolver/search",
+            ietf::sys::sub::change::DnsSearchModuleChangeCb(m_changeContext),
+        },
+        srpc::ModuleChangeCallback {
+            "ietf-system",
+            "/ietf-system:system/dns-resolver/server",
+            ietf::sys::sub::change::DnsServerModuleChangeCb(m_changeContext),
+        },
     };
 }
 

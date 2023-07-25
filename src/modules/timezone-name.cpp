@@ -249,7 +249,11 @@ std::shared_ptr<srpc::IModuleContext> TimezoneModule::getRpcContext() { return m
 std::list<srpc::OperationalCallback> TimezoneModule::getOperationalCallbacks()
 {
     return {
-        srpc::OperationalCallback { "/ietf-system:system/clock/timezone-name", ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext) },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/clock/timezone-name",
+            ietf::sys::sub::oper::ClockTimezoneNameOperGetCb(m_operContext),
+        },
     };
 }
 
@@ -260,7 +264,10 @@ std::list<srpc::ModuleChangeCallback> TimezoneModule::getModuleChangeCallbacks()
 {
     return {
         srpc::ModuleChangeCallback {
-            "/ietf-system:system/clock/timezone-name", ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext) },
+            "ietf-system",
+            "/ietf-system:system/clock/timezone-name",
+            ietf::sys::sub::change::ClockTimezoneNameModuleChangeCb(m_changeContext),
+        },
     };
 }
 

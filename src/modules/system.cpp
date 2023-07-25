@@ -360,8 +360,16 @@ std::shared_ptr<srpc::IModuleContext> SystemModule::getRpcContext() { return m_r
 std::list<srpc::OperationalCallback> SystemModule::getOperationalCallbacks()
 {
     return {
-        srpc::OperationalCallback { "/ietf-system:system-state/platform", ietf::sys::sub::oper::StatePlatformOperGetCb(m_operContext) },
-        srpc::OperationalCallback { "/ietf-system:system-state/clock", ietf::sys::sub::oper::StateClockOperGetCb(m_operContext) },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system-state/platform",
+            ietf::sys::sub::oper::StatePlatformOperGetCb(m_operContext),
+        },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system-state/clock",
+            ietf::sys::sub::oper::StateClockOperGetCb(m_operContext),
+        },
     };
 }
 

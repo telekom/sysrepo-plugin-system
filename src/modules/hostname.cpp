@@ -213,7 +213,11 @@ std::shared_ptr<srpc::IModuleContext> HostnameModule::getRpcContext() { return m
 std::list<srpc::OperationalCallback> HostnameModule::getOperationalCallbacks()
 {
     return {
-        srpc::OperationalCallback { "/ietf-system:system/hostname", ietf::sys::sub::oper::HostnameOperGetCb(m_operContext) },
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/hostname",
+            ietf::sys::sub::oper::HostnameOperGetCb(m_operContext),
+        },
     };
 }
 
@@ -223,7 +227,11 @@ std::list<srpc::OperationalCallback> HostnameModule::getOperationalCallbacks()
 std::list<srpc::ModuleChangeCallback> HostnameModule::getModuleChangeCallbacks()
 {
     return {
-        srpc::ModuleChangeCallback { "/ietf-system:system/hostname", ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext) },
+        srpc::ModuleChangeCallback {
+            "ietf-system",
+            "/ietf-system:system/hostname",
+            ietf::sys::sub::change::HostnameModuleChangeCb(m_changeContext),
+        },
     };
 }
 
