@@ -213,7 +213,22 @@ srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysr
  *
  * @param session Session to use for retreiving datastore data.
  */
-void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
+void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    auto system_node = session.getData("/ietf-system:system");
+    if (system_node) {
+        auto timezone_node = system_node->findPath("clock/timezone-name");
+        if (timezone_node) {
+            auto timezone_value = timezone_node->asTerm().value();
+            auto timezone = std::get<std::string>(timezone_value);
+            auto timezone_sys = ietf::sys::TimezoneName();
+
+            if (timezone != timezone_sys.getValue()) {
+                throw std::runtime_error("Timezone name value from the datastore not in sync with the value from sd-bus");
+            }
+        }
+    }
+}
 
 /**
  * Timezone module constructor. Allocates each context.
