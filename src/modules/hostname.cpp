@@ -177,7 +177,22 @@ srpc::DatastoreValuesCheckStatus HostnameValueChecker::checkDatastoreValues(sysr
  *
  * @param session Session to use for retreiving datastore data.
  */
-void HostnameValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
+void HostnameValueApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    auto system_node = session.getData("/ietf-system:system");
+    if (system_node) {
+        auto hostname_node = system_node->findPath("hostname");
+        if (hostname_node) {
+            auto hostname_value = hostname_node->asTerm().value();
+            auto hostname = std::get<std::string>(hostname_value);
+            auto hostname_sys = ietf::sys::Hostname();
+
+            if (hostname != hostname_sys.getValue()) {
+                throw std::runtime_error("Hostname value from the datastore not in sync with the value from sd-bus");
+            }
+        }
+    }
+}
 
 /**
  * Hostname module constructor. Allocates each context.
