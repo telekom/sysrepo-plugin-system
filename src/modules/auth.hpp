@@ -167,6 +167,11 @@ public:
     void deleteUserPasswordHash(const std::string& name);
 
     /**
+     * @brief Checks wether the user exists in the database or not.
+     */
+    bool checkIfUserExists(const std::string& name);
+
+    /**
      * @brief Store database context changes to the system.
      */
     void storeToSystem(void);

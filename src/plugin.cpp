@@ -48,16 +48,18 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
     // for all registered modules - apply startup datastore values
     // startup datastore values are coppied into the running datastore when the first connection with sysrepo is made
+    sess.switchDatastore(sr::Datastore::Startup);
     for (auto& mod : modules) {
         SRPLG_LOG_INF(ctx->getPluginName(), "Applying startup values for module %s", mod->getName());
         for (auto& applier : mod->getValueAppliers()) {
             try {
                 applier->applyDatastoreValues(sess);
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_INF(ctx->getPluginName(), "Failed to apply datastore values for the following paths:");
+                SRPLG_LOG_ERR(ctx->getPluginName(), "Failed to apply datastore values for the following paths:");
                 for (const auto& path : applier->getPaths()) {
-                    SRPLG_LOG_INF(ctx->getPluginName(), "\t%s", path.c_str());
+                    SRPLG_LOG_ERR(ctx->getPluginName(), "\t%s", path.c_str());
                 }
+                SRPLG_LOG_ERR(ctx->getPluginName(), "Reason: %s", err.what());
             }
         }
     }

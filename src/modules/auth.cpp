@@ -19,6 +19,11 @@
 // use sysrepo logging api
 #include <sysrepo.h>
 
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix() { return "module(ietf-system/authentication)"; }
+
 namespace ietf::sys::auth {
 
 /**
@@ -442,6 +447,11 @@ void DatabaseContext::deleteUserPasswordHash(const std::string& name)
 }
 
 /**
+ * @brief Checks wether the user exists in the database or not.
+ */
+bool DatabaseContext::checkIfUserExists(const std::string& name) { return um_db_get_user(m_db, name.c_str()) != NULL; }
+
+/**
  * @brief Store authentication database to the system.
  */
 void DatabaseContext::storeToSystem(void)
@@ -523,17 +533,17 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
             try {
                 db.loadFromSystem();
             } catch (std::runtime_error& err) {
-                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error loading user database: %s", err.what());
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Error loading user database: %s", err.what());
                 error = sr::ErrorCode::OperationFailed;
             }
 
             // apply user changes to the database context
             for (auto& change : session.getChanges("/ietf-system:system/authentication/user/name")) {
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_DBG(getModuleLogPrefix(), "Value of %s modified.", change.node.path().c_str());
+                SRPLG_LOG_DBG(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
 
                 SRPLG_LOG_DBG(
-                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 // extract value
                 const auto& value = change.node.asTerm().value();
@@ -547,7 +557,7 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
                         try {
                             db.createUser(name);
                         } catch (std::runtime_error& err) {
-                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error creating user: %s", err.what());
+                            SRPLG_LOG_ERR(getModuleLogPrefix(), "Error creating user: %s", err.what());
                             error = sr::ErrorCode::OperationFailed;
                         }
                         break;
@@ -557,7 +567,7 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
                         try {
                             db.deleteUser(name);
                         } catch (std::runtime_error& err) {
-                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user: %s", err.what());
+                            SRPLG_LOG_ERR(getModuleLogPrefix(), "Error deleting user: %s", err.what());
                             error = sr::ErrorCode::OperationFailed;
                         }
                         break;
@@ -568,11 +578,11 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
 
             // apply password changes to the database context
             for (auto& change : session.getChanges("/ietf-system:system/authentication/user/password")) {
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.path().c_str());
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_DBG(getModuleLogPrefix(), "Value of %s modified.", change.node.path().c_str());
+                SRPLG_LOG_DBG(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
 
                 SRPLG_LOG_DBG(
-                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 // extract value
                 const auto& value = change.node.asTerm().value();
@@ -589,7 +599,7 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
                         try {
                             db.modifyUserPasswordHash(name, password_hash);
                         } catch (std::runtime_error& err) {
-                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error createing user password: %s", err.what());
+                            SRPLG_LOG_ERR(getModuleLogPrefix(), "Error createing user password: %s", err.what());
                             error = sr::ErrorCode::OperationFailed;
                         }
                         break;
@@ -597,7 +607,7 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
                         try {
                             db.deleteUserPasswordHash(name);
                         } catch (std::runtime_error& err) {
-                            SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error deleting user password: %s", err.what());
+                            SRPLG_LOG_ERR(getModuleLogPrefix(), "Error deleting user password: %s", err.what());
                             error = sr::ErrorCode::OperationFailed;
                         }
                         break;
@@ -610,7 +620,7 @@ sr::ErrorCode AuthUserModuleChangeCb::operator()(sr::Session session, uint32_t s
             try {
                 db.storeToSystem();
             } catch (const std::runtime_error& err) {
-                SRPLG_LOG_ERR(ietf::sys::PLUGIN_NAME, "Error storing database context changes to the system: %s", err.what());
+                SRPLG_LOG_ERR(getModuleLogPrefix(), "Error storing database context changes to the system: %s", err.what());
                 error = sr::ErrorCode::OperationFailed;
             }
             break;
@@ -651,10 +661,10 @@ sr::ErrorCode AuthUserAuthorizedKeyModuleChangeCb::operator()(sr::Session sessio
     switch (event) {
         case sysrepo::Event::Change:
             for (auto& change : session.getChanges(subXPath->data())) {
-                SRPLG_LOG_DBG(ietf::sys::PLUGIN_NAME, "Value of %s modified.", change.node.schema().name().data());
+                SRPLG_LOG_DBG(getModuleLogPrefix(), "Value of %s modified.", change.node.schema().name().data());
 
                 SRPLG_LOG_DBG(
-                    ietf::sys::PLUGIN_NAME, "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
+                    getModuleLogPrefix(), "\n%s", change.node.printStr(libyang::DataFormat::XML, libyang::PrintFlags::WithDefaultsAll)->data());
 
                 SRPLG_LOG_DBG(PLUGIN_NAME, "Node path: %s", change.node.path().data());
 
@@ -1007,7 +1017,27 @@ srpc::DatastoreValuesCheckStatus UserValuesChecker::checkDatastoreValues(sysrepo
  *
  * @param session Session to use for retreiving datastore data.
  */
-void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
+void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    auto system_node = session.getData("/ietf-system:system");
+    auto user_nodes = system_node->findXPath("authentication/user");
+
+    auto users_db = ietf::sys::auth::DatabaseContext();
+
+    // normally load and pass the exception if it occurs
+    users_db.loadFromSystem();
+
+    for (const auto& user_node : user_nodes) {
+        // check the current user node and throw an error if it doesn't exist on the system
+        const auto& name_node = user_node.findPath("name");
+
+        const auto name_value = std::get<std::string>(name_node->asTerm().value());
+        if (!users_db.checkIfUserExists(name_value)) {
+            // user doesn't exist on the system - log and throw an exception
+            throw std::runtime_error("Unable to find user \'" + name_value + '\'');
+        }
+    }
+}
 
 /**
  * @brief Check for the datastore values on the system.
@@ -1046,6 +1076,7 @@ AuthModule::AuthModule(ietf::sys::PluginContext& plugin_ctx)
 
     // add value appliers
     this->addValueApplier<UserValuesApplier>();
+    this->addValueApplier<AuthorizedKeyValuesApplier>();
 }
 
 /**
