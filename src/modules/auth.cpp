@@ -320,7 +320,7 @@ void DatabaseContext::createUser(const std::string& name)
     if (rc = um_user_set_gecos(new_user, ietf::sys::auth::DEFAULT_GECOS); rc != 0) {
         throw std::runtime_error("Unable to set user gecos field");
     }
-    if (rc = um_user_set_home_path(new_user, ("/home" + name).c_str()); rc != 0) {
+    if (rc = um_user_set_home_path(new_user, ("/home/" + name).c_str()); rc != 0) {
         throw std::runtime_error("Unable to set user home path");
     }
 
