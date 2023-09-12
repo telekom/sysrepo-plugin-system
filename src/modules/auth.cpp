@@ -328,6 +328,9 @@ void DatabaseContext::createUser(const std::string& name)
     um_user_set_uid(new_user, uid);
     um_user_set_gid(new_user, gid);
 
+    // set gid for group
+    um_group_set_gid(new_group, gid);
+
     // setup shadow data
     um_user_set_last_change(new_user, -1);
     um_user_set_change_min(new_user, 0);
