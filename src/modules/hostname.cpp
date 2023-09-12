@@ -9,6 +9,11 @@
 
 #include <sysrepo.h>
 
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix() { return "module(ietf-system/hostname)"; }
+
 namespace ietf::sys {
 /**
  * @brief Hostname constructor.
@@ -188,7 +193,12 @@ void HostnameValueApplier::applyDatastoreValues(sysrepo::Session& session)
             auto hostname_sys = ietf::sys::Hostname();
 
             if (hostname != hostname_sys.getValue()) {
-                throw std::runtime_error("Hostname value from the datastore not in sync with the value from sd-bus");
+                // apply the hostname values
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Hostname system value mismatched: applying datastore value");
+                hostname_sys.setValue(hostname);
+                // throw std::runtime_error("Hostname value from the datastore not in sync with the value from sd-bus");
+            } else {
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Hostname system value matches the datastore value");
             }
         }
     }
