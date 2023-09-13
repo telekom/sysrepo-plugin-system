@@ -40,30 +40,6 @@ include_directories(
 )
 
 set(
-    CORE_HEADERS
-
-    src/core/context.hpp
-    src/core/sub/change.hpp
-    src/core/sub/oper.hpp
-    src/core/sub/rpc.hpp
-    src/core/yang/tree.hpp
-    src/core/api.hpp
-    src/core/common.hpp
-    src/core/sdbus.hpp
-
-    # system-state
-    src/core/system-state/platform.hpp
-    src/core/system-state/clock.hpp
-
-    # system
-    src/core/system/hostname.hpp
-    src/core/system/timezone-name.hpp
-    src/core/system/auth.hpp
-    src/core/system/dns.hpp
-    src/core/system/ip.hpp
-)
-
-set(
     CORE_SOURCES
 
     src/core/context.cpp
