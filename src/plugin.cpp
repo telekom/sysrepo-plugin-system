@@ -7,12 +7,26 @@
 
 #include <srpcpp.hpp>
 
-// [TODO]: Try to remove dependency
+#ifdef SYSTEM_MODULE
 #include "modules/system.hpp"
+#endif
+
+#ifdef HOSTNAME_MODULE
 #include "modules/hostname.hpp"
+#endif
+
+#ifdef TIMEZONE_MODULE
 #include "modules/timezone-name.hpp"
+#endif
+
+#ifdef DNS_MODULE
 #include "modules/dns.hpp"
+#endif
+
+#ifdef AUTH_MODULE
 #include "modules/auth.hpp"
+#endif
+
 #include "sysrepo.h"
 
 namespace sr = sysrepo;
@@ -37,13 +51,27 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
     // create session subscriptions
     SRPLG_LOG_INF(ctx->getPluginName(), "Creating plugin subscriptions");
 
-    // [TODO]: Try to remove this dependency and use static variable in each module to register it
+#ifdef SYSTEM_MODULE
     registry.registerModule<SystemModule>(*ctx);
-    registry.registerModule<HostnameModule>(*ctx);
-    registry.registerModule<TimezoneModule>(*ctx);
-    registry.registerModule<DnsModule>(*ctx);
-    registry.registerModule<AuthModule>(*ctx);
+#endif
 
+#ifdef HOSTNAME_MODULE
+    registry.registerModule<HostnameModule>(*ctx);
+#endif
+
+#ifdef TIMEZONE_MODULE
+    registry.registerModule<TimezoneModule>(*ctx);
+#endif
+
+#ifdef DNS_MODULE
+    registry.registerModule<DnsModule>(*ctx);
+#endif
+
+#ifdef AUTH_MODULE
+    registry.registerModule<AuthModule>(*ctx);
+#endif
+
+    // get all registered modules
     auto& modules = registry.getRegisteredModules();
 
     // for all registered modules - apply startup datastore values
