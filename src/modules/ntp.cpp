@@ -588,6 +588,12 @@ void NtpValuesApplier::applyDatastoreValues(sysrepo::Session& session) { }
 NtpModule::NtpModule(ietf::sys::PluginContext& plugin_ctx)
     : srpc::IModule<ietf::sys::PluginContext>(plugin_ctx)
 {
+    m_operContext = std::make_shared<NtpOperationalContext>();
+    m_changeContext = std::make_shared<NtpModuleChangesContext>();
+    m_rpcContext = std::make_shared<NtpRpcContext>();
+
+    // add values applier
+    this->addValueApplier<NtpValuesApplier>();
 }
 
 /**

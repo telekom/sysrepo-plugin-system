@@ -730,6 +730,7 @@ class NtpValuesApplier : public srpc::IDatastoreApplier {
         };
     }
 };
+
 /**
  * @brief NTP container module.
  */
