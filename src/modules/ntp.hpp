@@ -29,7 +29,36 @@ class NtpModuleChangesContext : public srpc::IModuleContext { };
 class NtpRpcContext : public srpc::IModuleContext { };
 
 namespace ietf::sys::ntp {
+struct NtpServer {
+    std::string Name;
+    std::string Address;
+    std::string Port;
+    std::string AssociationType;
+    std::string IBurst;
+    std::string Prefer;
+};
 
+class NtpServerList {
+public:
+    /**
+     * @brief Constructor for the list of ntp servers. Uses the session and augyang ability to retrieve NTP servers on the system.
+     */
+    NtpServerList(sr::Session& sess);
+
+    /**
+     * @brief Load the list from the system.
+     */
+    void loadFromSystem();
+
+    /**
+     * @brief Store the list to the system.
+     */
+    void storeToSystem();
+
+private:
+    std::list<NtpServer> m_servers; ///< List of NTP servers to manipulate.
+    sr::Session& m_session;
+};
 }
 
 namespace ietf::sys::ntp::change {

@@ -1,7 +1,30 @@
 #include "ntp.hpp"
 
-namespace ietf::sys::ntp::change {
+namespace ietf::sys::ntp {
+/**
+ * @brief Constructor for the list of ntp servers. Uses the session and augyang ability to retrieve NTP servers on the system.
+ */
+NtpServerList::NtpServerList(sr::Session& sess)
+    : m_session(sess)
+{
+}
 
+/**
+ * @brief Load the list from the system.
+ */
+void NtpServerList::loadFromSystem()
+{
+    // load the NTP servers from the configuration file in the session
+    const auto path = "/ntp:ntp[config-file=\'/etc/ntp.conf\']";
+}
+
+/**
+ * @brief Store the list to the system.
+ */
+void NtpServerList::storeToSystem() { }
+}
+
+namespace ietf::sys::ntp::change {
 /**
  * sysrepo-plugin-generator: Generated default constructor.
  *
@@ -614,7 +637,16 @@ std::shared_ptr<srpc::IModuleContext> NtpModule::getRpcContext() { return m_rpcC
 /**
  * Get all operational callbacks which the module should use.
  */
-std::list<srpc::OperationalCallback> NtpModule::getOperationalCallbacks() { return {}; }
+std::list<srpc::OperationalCallback> NtpModule::getOperationalCallbacks()
+{
+    return {
+        srpc::OperationalCallback {
+            "ietf-system",
+            "/ietf-system:system/ntp/server",
+            ietf::sys::ntp::oper::NtpServerOperGetCb(m_operContext),
+        },
+    };
+}
 
 /**
  * Get all module change callbacks which the module should use.
