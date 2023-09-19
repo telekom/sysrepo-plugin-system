@@ -320,13 +320,16 @@ void DatabaseContext::createUser(const std::string& name)
     if (rc = um_user_set_gecos(new_user, ietf::sys::auth::DEFAULT_GECOS); rc != 0) {
         throw std::runtime_error("Unable to set user gecos field");
     }
-    if (rc = um_user_set_home_path(new_user, ("/home" + name).c_str()); rc != 0) {
+    if (rc = um_user_set_home_path(new_user, ("/home/" + name).c_str()); rc != 0) {
         throw std::runtime_error("Unable to set user home path");
     }
 
     // set uid and gid
     um_user_set_uid(new_user, uid);
     um_user_set_gid(new_user, gid);
+
+    // set gid for group
+    um_group_set_gid(new_group, gid);
 
     // setup shadow data
     um_user_set_last_change(new_user, -1);
@@ -1030,13 +1033,24 @@ void UserValuesApplier::applyDatastoreValues(sysrepo::Session& session)
     for (const auto& user_node : user_nodes) {
         // check the current user node and throw an error if it doesn't exist on the system
         const auto& name_node = user_node.findPath("name");
+        const auto& password_node = user_node.findPath("password");
 
         const auto name_value = std::get<std::string>(name_node->asTerm().value());
         if (!users_db.checkIfUserExists(name_value)) {
-            // user doesn't exist on the system - log and throw an exception
-            throw std::runtime_error("Unable to find user \'" + name_value + '\'');
+            // create the missing user and set the password hash
+            SRPLG_LOG_INF(getModuleLogPrefix(), "Creating missing user %s", name_value.c_str());
+            users_db.createUser(name_value);
+
+            if (password_node) {
+                // get the value and set the password hash for the user
+                const auto password_value = std::get<std::string>(password_node->asTerm().value());
+                users_db.modifyUserPasswordHash(name_value, password_value);
+            }
         }
     }
+
+    // once the database has been modified store the changes
+    users_db.storeToSystem();
 }
 
 /**
