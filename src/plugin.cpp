@@ -23,6 +23,10 @@
 #include "modules/dns.hpp"
 #endif
 
+#ifdef NTP_MODULE
+#include "modules/ntp.hpp"
+#endif
+
 #ifdef AUTH_MODULE
 #include "modules/auth.hpp"
 #endif
@@ -65,6 +69,10 @@ int sr_plugin_init_cb(sr_session_ctx_t* session, void** priv)
 
 #ifdef DNS_MODULE
     registry.registerModule<DnsModule>(*ctx);
+#endif
+
+#ifdef NTP_MODULE
+    registry.registerModule<NtpModule>(*ctx);
 #endif
 
 #ifdef AUTH_MODULE

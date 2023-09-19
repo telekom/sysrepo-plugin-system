@@ -48,17 +48,24 @@ include_directories(
 )
 
 set(
-    CORE_SOURCES
-
-    src/core/context.cpp
-    src/core/ip.cpp
+    MODULE_SOURCES
 
     # modules
     src/modules/system.cpp
     src/modules/hostname.cpp
     src/modules/timezone-name.cpp
     src/modules/dns.cpp
+    src/modules/ntp.cpp
     src/modules/auth.cpp
+)
+
+set(
+    CORE_SOURCES
+
+    src/core/context.cpp
+    src/core/ip.cpp
+
+    ${MODULE_SOURCES}
 )
 
 set(
