@@ -1,5 +1,5 @@
 <system xmlns="urn:ietf:params:xml:ns:yang:ietf-system">
     <clock>
-        <timezone-name>Europe/Stockholm</timezone-name>
+        <timezone-name>Etc/UTC</timezone-name>
     </clock>
 </system>

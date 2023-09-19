@@ -9,8 +9,12 @@
 #include "core/context.hpp"
 #include "core/sdbus.hpp"
 
-namespace ietf::sys {
+/**
+ * @brief Return the logging prefix of the current module.
+ */
+static constexpr const char* getModuleLogPrefix() { return "module(ietf-system/timezone)"; }
 
+namespace ietf::sys {
 /**
  * @brief Default constructor.
  */
@@ -213,7 +217,27 @@ srpc::DatastoreValuesCheckStatus TimezoneValueChecker::checkDatastoreValues(sysr
  *
  * @param session Session to use for retreiving datastore data.
  */
-void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session) { }
+void TimezoneValueApplier::applyDatastoreValues(sysrepo::Session& session)
+{
+    auto system_node = session.getData("/ietf-system:system");
+    if (system_node) {
+        auto timezone_node = system_node->findPath("clock/timezone-name");
+        if (timezone_node) {
+            auto timezone_value = timezone_node->asTerm().value();
+            auto timezone = std::get<std::string>(timezone_value);
+            auto timezone_sys = ietf::sys::TimezoneName();
+
+            if (timezone != timezone_sys.getValue()) {
+                // apply the datastore values
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Timezone name system value mismatched: applying datastore value");
+                timezone_sys.setValue(timezone);
+                // throw std::runtime_error("Timezone name value from the datastore not in sync with the value from sd-bus");
+            } else {
+                SRPLG_LOG_INF(getModuleLogPrefix(), "Timezone name system value matches the datastore value");
+            }
+        }
+    }
+}
 
 /**
  * Timezone module constructor. Allocates each context.
